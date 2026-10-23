@@ -1,0 +1,63 @@
+// Prisma schema for LPPM UNUSU (Lembaga Penelitian dan Pengabdian kepada Masyarakat)
+// Mengelola Riset Dosen, Pengabdian (PKM), Publikasi Jurnal & HKI
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Penelitian {
+  id          Int      @id @default(autoincrement())
+  judul       String   @db.Text
+  ketua       String   // Nama Dosen Ketua Peneliti
+  nidn        String   @db.VarChar(50)
+  anggota     String?  @db.Text
+  skema       String   @default("Penelitian Dosen Pemula (PDP)") // PDP, Terapan, Kerjasama, Mandiri
+  bidangFokus String   // AI, Teknologi Informasi, Pendidikan, Aswaja
+  danaDisetujui Decimal? @db.Decimal(12, 2)
+  sumberDana  String   @default("Internal UNUSU") // Kemendikbud, Internal, Mandiri
+  tahun       Int      @default(2026)
+  status      String   @default("Disetujui") // Pengajuan, Review, Disetujui, Selesai
+  laporanUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("lppm_penelitian")
+}
+
+model Pengabdian {
+  id          Int      @id @default(autoincrement())
+  judul       String   @db.Text
+  ketua       String
+  nidn        String   @db.VarChar(50)
+  anggota     String?  @db.Text
+  mitra       String   // SMK NU, Pesantren, UMKM Binaan
+  lokasi      String   // Medan, Deli Serdang, dsb.
+  danaDisetujui Decimal? @db.Decimal(12, 2)
+  tahun       Int      @default(2026)
+  status      String   @default("Disetujui")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("lppm_pengabdian")
+}
+
+model Publikasi {
+  id          Int      @id @default(autoincrement())
+  judul       String   @db.Text
+  penulis     String
+  jenis       String   @default("Jurnal Nasional") // Jurnal Internasional (Scopus), Jurnal Nasional (SINTA), Prosiding, Buku
+  namaJurnal  String
+  volumeIssue String?  // Vol. 4 No. 2
+  tahun       Int      @default(2026)
+  doiUrl      String?
+  sintaScore  String?  @default("SINTA 3")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("lppm_publikasi")
+}
