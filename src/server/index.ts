@@ -20,6 +20,7 @@ app.use(express.json());
 // Static client
 const clientDistPath = path.resolve(process.cwd(), "dist/client");
 app.use(express.static(clientDistPath));
+app.use("/lppm", express.static(clientDistPath));
 
 // Health check
 app.get("/api/health", (req: Request, res: Response) => {
@@ -248,3 +249,4 @@ app.get("*", (req: Request, res: Response) => {
 app.listen(PORT, () => {
   console.log(`🚀 LPPM UNUSU Monolith Server running on http://localhost:${PORT}`);
 });
+

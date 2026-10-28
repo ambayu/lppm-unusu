@@ -19,10 +19,16 @@ function ProtectedRoute({ children }: { children: React.ReactElement }) {
   return children;
 }
 
+const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 export function App() {
+  const currentPath = window.location.pathname;
+  const isBaseSubpath = BASE_PATH && currentPath.startsWith(BASE_PATH);
+  const routerBasename = isBaseSubpath ? BASE_PATH : '';
+
   return (
     <AuthProvider>
-      <Router basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+      <Router basename={routerBasename}>
         <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans">
           <Navbar />
           <main className="flex-1">
@@ -45,3 +51,4 @@ export function App() {
 }
 
 export default App;
+
