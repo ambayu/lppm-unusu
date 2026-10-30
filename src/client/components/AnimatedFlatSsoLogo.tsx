@@ -76,7 +76,7 @@ export const AnimatedFlatSsoLogo: React.FC<Props> = ({ size = 200, className = '
         </defs>
 
         {/* Ambient Glow */}
-        <circle cx={cx} cy={cy} r="95" fill="#22C55E"
+        <circle cx={cx} cy={cy} r="95" fill="#22C55E" opacity="0.12"
           style={{ animation: 'onuGlow 4s ease-in-out infinite' }}
         />
 
