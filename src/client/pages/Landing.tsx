@@ -220,8 +220,8 @@ export const LandingPage: React.FC = () => {
 
       {/* 3.5 TENTANG LPPM UNUSU (DESAIN SEPERTI PROFIL ONE UNUSU) */}
       <section id="profil" aria-labelledby="profil-lppm-title" className="bg-white py-16 sm:py-24 border-b border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-12 lg:grid-cols-12 lg:gap-16">
-          <div className="lg:col-span-7">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
+          <div className="lg:col-span-6">
             <div className="space-y-2">
               <span className="text-xs font-bold uppercase tracking-widest text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1 rounded-full inline-block">
                 Tentang Lembaga
@@ -256,14 +256,14 @@ export const LandingPage: React.FC = () => {
             </ul>
           </div>
 
-          {/* Visual Peneliti Setengah Badan dengan Backdrop Rounded Gradient */}
-          <div className="lg:col-span-5">
-            <div className="relative mx-auto flex max-w-md items-end justify-center">
-              <div className="absolute inset-x-4 bottom-0 h-[82%] rounded-[36px] bg-gradient-to-tr from-violet-100 via-amber-100/60 to-transparent border border-violet-100/80" />
+          {/* Visual Peneliti Setengah Badan (Ukuran Lebih Besar & Menawan) */}
+          <div className="lg:col-span-6">
+            <div className="relative mx-auto flex max-w-lg items-end justify-center">
+              <div className="absolute inset-x-2 bottom-0 h-[86%] rounded-[40px] bg-gradient-to-tr from-violet-100/90 via-amber-100/70 to-transparent border border-violet-100" />
               <img
                 src="/assets/profil-peneliti.png"
                 alt="Peneliti dan Pengabdi LPPM UNUSU"
-                className="relative z-10 block w-full max-w-[360px] h-auto object-contain drop-shadow-[0_20px_40px_rgba(109,40,217,0.18)]"
+                className="relative z-10 block w-full max-w-[480px] sm:max-w-[500px] h-auto object-contain drop-shadow-[0_25px_50px_rgba(109,40,217,0.22)] transition-transform duration-300 hover:scale-[1.02]"
                 loading="lazy"
               />
             </div>
