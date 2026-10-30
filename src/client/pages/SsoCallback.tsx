@@ -65,7 +65,7 @@ export function SsoCallbackPage() {
         saveSession(response.data.token, response.data.user);
 
         if (!cancelled) {
-          window.location.replace(import.meta.env.BASE_URL);
+          window.location.replace('/penelitian');
         }
       } catch (err: any) {
         if (!cancelled) {
@@ -95,21 +95,21 @@ export function SsoCallbackPage() {
             <p className="text-sm text-slate-600 mb-6">{error}</p>
             <Link
               to="/login"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-700 text-white text-sm font-bold hover:bg-emerald-800 transition-all"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-violet-700 text-white text-sm font-bold hover:bg-violet-800 transition-all"
             >
               Kembali ke Halaman Login
             </Link>
           </>
         ) : (
           <>
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 mb-4">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-violet-50 text-violet-700 mb-4">
               <Loader2 className="w-7 h-7 animate-spin" />
             </div>
             <h1 className="text-lg font-bold text-slate-900 mb-2">Memverifikasi Sesi SSO</h1>
             <p className="text-sm text-slate-600">
-              Mohon tunggu, Malin sedang menghubungkan akun ONE UNUSU Sanak...
+              Mohon tunggu, sedang menghubungkan akun ONE UNUSU Anda...
             </p>
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-emerald-700 font-medium">
+            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-violet-700 font-medium">
               <ShieldCheck className="w-4 h-4" />
               Token sekali pakai • berlaku 5 menit
             </div>

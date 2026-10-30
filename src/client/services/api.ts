@@ -92,9 +92,21 @@ export interface PublikasiItem {
 }
 
 export const fetchPenelitian = () => api.get<{ success: boolean; data: PenelitianItem[] }>('/penelitian');
+export const getPenelitian = (id: number | string) => api.get<{ success: boolean; data: PenelitianItem }>(`/penelitian/${id}`);
 export const createPenelitian = (data: any) => api.post('/penelitian', data);
+export const updatePenelitian = (id: number | string, data: any) => api.put(`/penelitian/${id}`, data);
+export const deletePenelitian = (id: number | string) => api.delete(`/penelitian/${id}`);
+
 export const fetchPengabdian = () => api.get<{ success: boolean; data: PengabdianItem[] }>('/pengabdian');
+export const getPengabdian = (id: number | string) => api.get<{ success: boolean; data: PengabdianItem }>(`/pengabdian/${id}`);
 export const createPengabdian = (data: any) => api.post('/pengabdian', data);
+export const updatePengabdian = (id: number | string, data: any) => api.put(`/pengabdian/${id}`, data);
+export const deletePengabdian = (id: number | string) => api.delete(`/pengabdian/${id}`);
+
 export const fetchPublikasi = () => api.get<{ success: boolean; data: PublikasiItem[] }>('/publikasi');
+export const getPublikasi = (id: number | string) => api.get<{ success: boolean; data: PublikasiItem }>(`/publikasi/${id}`);
+export const createPublikasi = (data: any) => api.post('/publikasi', data);
+export const updatePublikasi = (id: number | string, data: any) => api.put(`/publikasi/${id}`, data);
+export const deletePublikasi = (id: number | string) => api.delete(`/publikasi/${id}`);
 
 export default api;

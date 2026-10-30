@@ -170,9 +170,20 @@ app.get("/api/penelitian", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/api/penelitian/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const item = await prisma.penelitian.findUnique({ where: { id } });
+    if (!item) return res.status(404).json({ success: false, message: "Penelitian tidak ditemukan" });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mengambil data penelitian" });
+  }
+});
+
 app.post("/api/penelitian", async (req: Request, res: Response) => {
   try {
-    const { judul, ketua, nidn, anggota, skema, bidangFokus, danaDisetujui, sumberDana, tahun } = req.body;
+    const { judul, ketua, nidn, anggota, skema, bidangFokus, danaDisetujui, sumberDana, tahun, status } = req.body;
     const item = await prisma.penelitian.create({
       data: {
         judul,
@@ -184,11 +195,47 @@ app.post("/api/penelitian", async (req: Request, res: Response) => {
         danaDisetujui: danaDisetujui ? Number(danaDisetujui) : null,
         sumberDana: sumberDana || "Internal UNUSU",
         tahun: Number(tahun) || new Date().getFullYear(),
+        status: status || "Disetujui",
       }
     });
     res.json({ success: true, data: item, message: "Proposal penelitian berhasil diajukan" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mengajukan penelitian" });
+  }
+});
+
+app.put("/api/penelitian/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { judul, ketua, nidn, anggota, skema, bidangFokus, danaDisetujui, sumberDana, tahun, status } = req.body;
+    const item = await prisma.penelitian.update({
+      where: { id },
+      data: {
+        judul,
+        ketua,
+        nidn,
+        anggota,
+        skema,
+        bidangFokus,
+        danaDisetujui: danaDisetujui ? Number(danaDisetujui) : null,
+        sumberDana,
+        tahun: Number(tahun),
+        status,
+      }
+    });
+    res.json({ success: true, data: item, message: "Data penelitian berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui data penelitian" });
+  }
+});
+
+app.delete("/api/penelitian/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.penelitian.delete({ where: { id } });
+    res.json({ success: true, message: "Data penelitian berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal menghapus data penelitian" });
   }
 });
 
@@ -204,9 +251,20 @@ app.get("/api/pengabdian", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/api/pengabdian/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const item = await prisma.pengabdian.findUnique({ where: { id } });
+    if (!item) return res.status(404).json({ success: false, message: "Pengabdian tidak ditemukan" });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mengambil detail pengabdian" });
+  }
+});
+
 app.post("/api/pengabdian", async (req: Request, res: Response) => {
   try {
-    const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun } = req.body;
+    const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun, status } = req.body;
     const item = await prisma.pengabdian.create({
       data: {
         judul,
@@ -217,11 +275,46 @@ app.post("/api/pengabdian", async (req: Request, res: Response) => {
         lokasi,
         danaDisetujui: danaDisetujui ? Number(danaDisetujui) : null,
         tahun: Number(tahun) || new Date().getFullYear(),
+        status: status || "Disetujui",
       }
     });
     res.json({ success: true, data: item, message: "Kegiatan pengabdian berhasil dicatat" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mencatat pengabdian" });
+  }
+});
+
+app.put("/api/pengabdian/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun, status } = req.body;
+    const item = await prisma.pengabdian.update({
+      where: { id },
+      data: {
+        judul,
+        ketua,
+        nidn,
+        anggota,
+        mitra,
+        lokasi,
+        danaDisetujui: danaDisetujui ? Number(danaDisetujui) : null,
+        tahun: Number(tahun),
+        status,
+      }
+    });
+    res.json({ success: true, data: item, message: "Data pengabdian berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui pengabdian" });
+  }
+});
+
+app.delete("/api/pengabdian/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.pengabdian.delete({ where: { id } });
+    res.json({ success: true, message: "Data pengabdian berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal menghapus pengabdian" });
   }
 });
 
@@ -234,6 +327,71 @@ app.get("/api/publikasi", async (req: Request, res: Response) => {
     res.json({ success: true, data: list });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mengambil data publikasi" });
+  }
+});
+
+app.get("/api/publikasi/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const item = await prisma.publikasi.findUnique({ where: { id } });
+    if (!item) return res.status(404).json({ success: false, message: "Publikasi tidak ditemukan" });
+    res.json({ success: true, data: item });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mengambil detail publikasi" });
+  }
+});
+
+app.post("/api/publikasi", async (req: Request, res: Response) => {
+  try {
+    const { judul, penulis, jenis, namaJurnal, volumeIssue, tahun, doiUrl, sintaScore } = req.body;
+    const item = await prisma.publikasi.create({
+      data: {
+        judul,
+        penulis,
+        jenis: jenis || "Jurnal Nasional",
+        namaJurnal,
+        volumeIssue,
+        tahun: Number(tahun) || new Date().getFullYear(),
+        doiUrl,
+        sintaScore: sintaScore || "SINTA 3",
+      }
+    });
+    res.json({ success: true, data: item, message: "Publikasi jurnal berhasil dicatat" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mencatat publikasi" });
+  }
+});
+
+app.put("/api/publikasi/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { judul, penulis, jenis, namaJurnal, volumeIssue, tahun, doiUrl, sintaScore } = req.body;
+    const item = await prisma.publikasi.update({
+      where: { id },
+      data: {
+        judul,
+        penulis,
+        jenis,
+        namaJurnal,
+        volumeIssue,
+        tahun: Number(tahun),
+        doiUrl,
+        sintaScore,
+      }
+    });
+    res.json({ success: true, data: item, message: "Data publikasi berhasil diperbarui" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui publikasi" });
+  }
+});
+
+app.delete("/api/publikasi/:id", async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.publikasi.delete({ where: { id } });
+    res.json({ success: true, message: "Data publikasi berhasil dihapus" });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal menghapus publikasi" });
   }
 });
 
