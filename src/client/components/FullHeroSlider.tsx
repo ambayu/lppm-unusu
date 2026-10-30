@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
+import { assetUrl } from "../lib/assets";
 
 export interface HeroSlideItem {
   id: number;
@@ -14,8 +15,8 @@ export interface HeroSlideItem {
 const defaultHeroSlides: HeroSlideItem[] = [
   {
     id: 1,
-    image: "/assets/hero/lppm-hero-1.png",
-    imageMobile: "/assets/hero/lppm-hero-1.png",
+    image: assetUrl("/assets/hero/lppm-hero-1.png"),
+    imageMobile: assetUrl("/assets/hero/lppm-hero-1.png"),
     title: "Laboratorium Riset Terapan UNUSU",
     badge: "Riset Ilmiah & Inovasi",
     headline: "Pusat Riset Terapan & Inovasi Teknologi",
@@ -23,8 +24,8 @@ const defaultHeroSlides: HeroSlideItem[] = [
   },
   {
     id: 2,
-    image: "/assets/hero/lppm-hero-2.png",
-    imageMobile: "/assets/hero/lppm-hero-2.png",
+    image: assetUrl("/assets/hero/lppm-hero-2.png"),
+    imageMobile: assetUrl("/assets/hero/lppm-hero-2.png"),
     title: "Kolaborasi Dosen dan Peneliti Muda",
     badge: "Hibah Kompetitif Nasional",
     headline: "Penguatan Kapasitas Peneliti & PKM",
@@ -32,8 +33,8 @@ const defaultHeroSlides: HeroSlideItem[] = [
   },
   {
     id: 3,
-    image: "/assets/hero/lppm-hero-3.png",
-    imageMobile: "/assets/hero/lppm-hero-3.png",
+    image: assetUrl("/assets/hero/lppm-hero-3.png"),
+    imageMobile: assetUrl("/assets/hero/lppm-hero-3.png"),
     title: "Pemberdayaan Masyarakat di Lapangan",
     badge: "Dampak Nyata Komunitas",
     headline: "Pengabdian Berbasis Kemitraan Umat",
@@ -41,8 +42,8 @@ const defaultHeroSlides: HeroSlideItem[] = [
   },
   {
     id: 4,
-    image: "/assets/hero/lppm-hero-4.png",
-    imageMobile: "/assets/hero/lppm-hero-4.png",
+    image: assetUrl("/assets/hero/lppm-hero-4.png"),
+    imageMobile: assetUrl("/assets/hero/lppm-hero-4.png"),
     title: "Pusat Studi & Repositori Ilmiah",
     badge: "Scopus & SINTA Terakreditasi",
     headline: "Publikasi Bereputasi & Perolehan HKI",
