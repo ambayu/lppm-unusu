@@ -70,9 +70,13 @@ interface AuthRequest extends Request {
 
 const SSO_ROLE_MAP: Record<string, string> = {
   SUPERADMIN: "admin",
+  ADMIN_LPPM: "admin",
   DOSEN: "dosen",
   MAHASISWA: "mahasiswa",
 };
+
+/** Role SSO yang diizinkan mengakses panel LPPM (Admin & Dosen) */
+const ALLOWED_SSO_ROLES = new Set(["SUPERADMIN", "ADMIN_LPPM", "DOSEN"]);
 
 const mapSsoRole = (role: string): string => SSO_ROLE_MAP[role] ?? "mahasiswa";
 
@@ -134,6 +138,14 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: ssoPayload?.message || "Verifikasi token SSO gagal" });
     }
 
+    // Tolak login jika role SSO tidak diizinkan di LPPM
+    if (!ALLOWED_SSO_ROLES.has(ssoUser.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Akses ditolak. Hanya Administrator LPPM dan Dosen yang diizinkan masuk ke panel ini.",
+      });
+    }
+
     const sessionUser: SsoSession = {
       id: ssoUser.id,
       username: ssoUser.username,
@@ -158,6 +170,19 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
 // Seluruh API di bawah ini wajib membawa JWT sesi lokal (hasil SSO).
 app.use("/api", authenticate);
 
+/** Middleware otorisasi — hanya role tertentu yang boleh lewat. */
+const requireRole = (...allowed: string[]) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const role = (req as AuthRequest).user?.role;
+    if (!role || !allowed.includes(role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Akses ditolak. Anda tidak memiliki izin untuk operasi ini.",
+      });
+    }
+    next();
+  };
+
 // 1. Penelitian
 app.get("/api/penelitian", async (req: Request, res: Response) => {
   try {
@@ -181,7 +206,7 @@ app.get("/api/penelitian/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/penelitian", async (req: Request, res: Response) => {
+app.post("/api/penelitian", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const { judul, ketua, nidn, anggota, skema, bidangFokus, danaDisetujui, sumberDana, tahun, status } = req.body;
     const item = await prisma.penelitian.create({
@@ -204,7 +229,7 @@ app.post("/api/penelitian", async (req: Request, res: Response) => {
   }
 });
 
-app.put("/api/penelitian/:id", async (req: Request, res: Response) => {
+app.put("/api/penelitian/:id", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { judul, ketua, nidn, anggota, skema, bidangFokus, danaDisetujui, sumberDana, tahun, status } = req.body;
@@ -229,7 +254,7 @@ app.put("/api/penelitian/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.delete("/api/penelitian/:id", async (req: Request, res: Response) => {
+app.delete("/api/penelitian/:id", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.penelitian.delete({ where: { id } });
@@ -262,7 +287,7 @@ app.get("/api/pengabdian/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/pengabdian", async (req: Request, res: Response) => {
+app.post("/api/pengabdian", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun, status } = req.body;
     const item = await prisma.pengabdian.create({
@@ -284,7 +309,7 @@ app.post("/api/pengabdian", async (req: Request, res: Response) => {
   }
 });
 
-app.put("/api/pengabdian/:id", async (req: Request, res: Response) => {
+app.put("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun, status } = req.body;
@@ -308,7 +333,7 @@ app.put("/api/pengabdian/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.delete("/api/pengabdian/:id", async (req: Request, res: Response) => {
+app.delete("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.pengabdian.delete({ where: { id } });
@@ -341,7 +366,7 @@ app.get("/api/publikasi/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/publikasi", async (req: Request, res: Response) => {
+app.post("/api/publikasi", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const { judul, penulis, jenis, namaJurnal, volumeIssue, tahun, doiUrl, sintaScore } = req.body;
     const item = await prisma.publikasi.create({
@@ -362,7 +387,7 @@ app.post("/api/publikasi", async (req: Request, res: Response) => {
   }
 });
 
-app.put("/api/publikasi/:id", async (req: Request, res: Response) => {
+app.put("/api/publikasi/:id", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { judul, penulis, jenis, namaJurnal, volumeIssue, tahun, doiUrl, sintaScore } = req.body;
@@ -385,7 +410,7 @@ app.put("/api/publikasi/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.delete("/api/publikasi/:id", async (req: Request, res: Response) => {
+app.delete("/api/publikasi/:id", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.publikasi.delete({ where: { id } });
