@@ -11,37 +11,38 @@ generator client {
 }
 
 model Penelitian {
-  id          Int      @id @default(autoincrement())
-  judul       String   @db.Text
-  ketua       String   // Nama Dosen Ketua Peneliti
-  nidn        String   @db.VarChar(50)
-  anggota     String?  @db.Text
-  skema       String   @default("Penelitian Dosen Pemula (PDP)") // PDP, Terapan, Kerjasama, Mandiri
-  bidangFokus String   // AI, Teknologi Informasi, Pendidikan, Aswaja
-  danaDisetujui Decimal? @db.Decimal(12, 2)
-  sumberDana  String   @default("Internal UNUSU") // Kemendikbud, Internal, Mandiri
-  tahun       Int      @default(2026)
-  status      String   @default("Disetujui") // Pengajuan, Review, Disetujui, Selesai
-  laporanUrl  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int               @id @default(autoincrement())
+  judul           String            @db.Text
+  ketua           String            // Nama Dosen Ketua Peneliti
+  nidn            String            @db.VarChar(50)
+  anggota         String?           @db.Text
+  bidangFokus     String            // AI, Teknologi Informasi, Pendidikan, Aswaja
+  danaDisetujui   Decimal?          @db.Decimal(12, 2)
+  sumberDana      String            @default("Internal UNUSU") // Kemendikbud, Internal, Mandiri
+  tahun           Int               @default(2026)
+  status          String            @default("Disetujui") // Pengajuan, Review, Disetujui, Selesai
+  laporanUrl      String?
+  monevRecords    MonitoringEvaluasi[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@map("lppm_penelitian")
 }
 
 model Pengabdian {
-  id          Int      @id @default(autoincrement())
-  judul       String   @db.Text
-  ketua       String
-  nidn        String   @db.VarChar(50)
-  anggota     String?  @db.Text
-  mitra       String   // SMK NU, Pesantren, UMKM Binaan
-  lokasi      String   // Medan, Deli Serdang, dsb.
-  danaDisetujui Decimal? @db.Decimal(12, 2)
-  tahun       Int      @default(2026)
-  status      String   @default("Disetujui")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int               @id @default(autoincrement())
+  judul           String            @db.Text
+  ketua           String
+  nidn            String            @db.VarChar(50)
+  anggota         String?           @db.Text
+  mitra           String            // SMK NU, Pesantren, UMKM Binaan
+  lokasi          String            // Medan, Deli Serdang, dsb.
+  danaDisetujui   Decimal?          @db.Decimal(12, 2)
+  tahun           Int               @default(2026)
+  status          String            @default("Disetujui")
+  monevRecords    MonitoringEvaluasi[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   @@map("lppm_pengabdian")
 }
@@ -61,3 +62,114 @@ model Publikasi {
 
   @@map("lppm_publikasi")
 }
+
+model Role {
+  id          Int              @id @default(autoincrement())
+  kode        String           @unique @db.VarChar(50) // misal: SUPERADMIN, ADMIN_LPPM, DOSEN, REVIEWER
+  nama        String           @db.VarChar(100)
+  deskripsi   String?          @db.Text
+  permissions RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("lppm_roles")
+}
+
+model Permission {
+  id          Int              @id @default(autoincrement())
+  kode        String           @unique @db.VarChar(100) // misal: penelitian.view, penelitian.create
+  nama        String           @db.VarChar(150)
+  modul       String           @db.VarChar(50) // Penelitian, Pengabdian, Publikasi, Manajemen Pengguna, Sistem
+  deskripsi   String?          @db.Text
+  roles       RolePermission[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@map("lppm_permissions")
+}
+
+model RolePermission {
+  id           Int        @id @default(autoincrement())
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@unique([roleId, permissionId])
+  @@map("lppm_role_permissions")
+}
+
+
+enum JenisProgramMonev {
+  PENELITIAN
+  PENGABDIAN
+}
+
+enum TahapMonev {
+  MONEV_ANTARA    // Monev Tengah / Kemajuan (Kemajuan 50-70%)
+  MONEV_AKHIR     // Monev Akhir / Pasca Pelaksanaan
+  MONEV_LAPANGAN  // Monev Visitasi Lapangan Langsung
+}
+
+enum StatusMonev {
+  DIJADWALKAN     // Baru dijadwalkan reviewer/admin
+  SEDANG_DITELAAH // Penelaahan berkas & capaian
+  PERLU_REVISI    // Terdapat catatan perbaikan target luaran
+  DISETUJUI       // Hasil telaah memenuhi syarat kelayakan
+  DITOLAK         // Tidak memenuhi syarat kelayakan luaran
+}
+
+enum RekomendasiMonev {
+  LANJUT_PENUH    // Pencairan termin lanjutan 100%
+  LANJUT_BERSYARAT// Pencairan dengan revisi/perbaikan luaran
+  TUNDA           // Penundaan dana termin hingga perbaikan selesai
+  HENTIKAN        // Penghentian pendanaan karena wanprestasi
+}
+
+model MonitoringEvaluasi {
+  id               Int                @id @default(autoincrement())
+  kodeMonev        String             @unique @db.VarChar(50) // misal: MNV-PEN-2026-001
+  jenisProgram     JenisProgramMonev  // PENELITIAN / PENGABDIAN
+  tahap            TahapMonev         @default(MONEV_ANTARA)
+  status           StatusMonev        @default(DIJADWALKAN)
+  rekomendasi      RekomendasiMonev?  @default(LANJUT_PENUH)
+  
+  // Relasi Polimorfik ke Penelitian atau Pengabdian
+  penelitianId     Int?
+  penelitian       Penelitian?        @relation(fields: [penelitianId], references: [id], onDelete: Cascade)
+  pengabdianId     Int?
+  pengabdian       Pengabdian?        @relation(fields: [pengabdianId], references: [id], onDelete: Cascade)
+
+  // Aspek Monev & Reviewer
+  namaReviewer     String             @db.VarChar(150)
+  nidnReviewer     String?            @db.VarChar(50)
+  tanggalJadwal    DateTime           @db.Date
+  tanggalMonev     DateTime?          @db.Date
+  lokasiMonev      String?            @db.VarChar(255) // Daring Zoom / Ruang Sidang LPPM / Lapangan Desa Mitra
+
+  // Indikator Kemajuan Tridharma (Skala / Persentase)
+  persentaseKemajuan Int              @default(0) // 0 - 100%
+  persentaseDanaTerpakai Int          @default(0) // 0 - 100%
+  skorSubstansi    Decimal?           @db.Decimal(5, 2) // Skor nilai review misal: 87.50
+  
+  // Capaian Target & Catatan Evaluasi
+  targetLuaranWajib   String?         @db.Text // Artikel Jurnal, Prosiding, Buku Ajar, Video, Mitra UMKM
+  capaianLuaran       String?         @db.Text // Draft submitted, LoA, Prototype, dsb.
+  catatanReviewer     String?         @db.Text
+  tindakLanjut        String?         @db.Text
+  beritaAcaraUrl      String?         @db.VarChar(255)
+  buktiDokumentasiUrl String?         @db.VarChar(255)
+
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([penelitianId])
+  @@index([pengabdianId])
+  @@index([jenisProgram, status])
+  @@index([tahap])
+  @@map("lppm_monitoring_evaluasi")
+}
+
+
+

@@ -7,6 +7,11 @@ import { PengabdianPage } from './pages/Pengabdian';
 import { PengabdianFormPage } from './pages/PengabdianForm';
 import { PublikasiPage } from './pages/Publikasi';
 import { PublikasiFormPage } from './pages/PublikasiForm';
+import { PenggunaPage } from './pages/Pengguna';
+import { PeranPage } from './pages/Peran';
+import { IzinPage } from './pages/Izin';
+import { MonevPage } from './pages/Monev';
+import { MonevFormPage } from './pages/MonevForm';
 import { LoginPage } from './pages/Login';
 import { SsoCallbackPage } from './pages/SsoCallback';
 import { SidebarLayout } from './components/SidebarLayout';
@@ -39,12 +44,22 @@ export function App() {
       <Router basename={routerBasename}>
         <div className="min-h-screen flex flex-col bg-[#F1F5F9] text-slate-900 font-sans">
           <Routes>
-            {/* Landing page publik tanpa sidebar */}
+            {/* Landing page publik tanpa sidebar (tidak ada redirect default ke /admin) */}
             <Route path="/" element={<LandingPage />} />
 
             {/* SSO & Auth */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/sso/callback" element={<SsoCallbackPage />} />
+
+            {/* Rute /admin: Jika sudah login & role admin, arahkan ke /penelitian; selain itu arahkan ke /login */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute>
+                  <Navigate to="/penelitian" replace />
+                </ProtectedRoute>
+              }
+            />
 
             {/* Panel Manajemen Admin Ber-Sidebar (Standar LPM UNUSU) */}
             {/* 1. Penelitian Dosen */}
@@ -138,6 +153,74 @@ export function App() {
                 <ProtectedRoute>
                   <SidebarLayout>
                     <PublikasiFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 4. Manajemen Pengguna */}
+            <Route
+              path="/pengguna"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <PenggunaPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 5. Manajemen Peran & Hak Akses */}
+            <Route
+              path="/peran"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <PeranPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 6. Katalog Hak Izin (Permissions) */}
+            <Route
+              path="/izin"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <IzinPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 7. Monitoring & Evaluasi (Monev) (Full Pages CRUD) */}
+            <Route
+              path="/monev"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev/tambah"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevFormPage />
                   </SidebarLayout>
                 </ProtectedRoute>
               }

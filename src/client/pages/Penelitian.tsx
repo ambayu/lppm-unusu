@@ -13,6 +13,7 @@ import {
   ArrowPathIcon,
   PencilSquareIcon,
   TrashIcon,
+  ArrowDownTrayIcon,
 } from '@heroicons/react/24/outline';
 
 export const PenelitianPage: React.FC = () => {
@@ -20,14 +21,17 @@ export const PenelitianPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [selectedSkema, setSelectedSkema] = useState('SEMUA');
+  const [selectedBidangFokus, setSelectedBidangFokus] = useState('SEMUA');
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const loadData = () => {
     setLoading(true);
     setError(null);
     fetchPenelitian()
-      .then((res) => setList(res.data.data))
+      .then((res) => {
+        const rawData = res.data?.data;
+        setList(Array.isArray(rawData) ? rawData : []);
+      })
       .catch((err) => {
         console.error(err);
         setError(err.response?.data?.message || 'Gagal memuat data penelitian.');
@@ -39,8 +43,8 @@ export const PenelitianPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (id: number, judul: string) => {
-    if (!window.confirm(`Yakin ingin menghapus proposal penelitian "${judul}"?`)) return;
+  const handleDelete = async (id: number, judul?: string) => {
+    if (!window.confirm(`Yakin ingin menghapus proposal penelitian "${judul || 'ini'}"?`)) return;
     setDeletingId(id);
     try {
       await deletePenelitian(id);
@@ -53,21 +57,99 @@ export const PenelitianPage: React.FC = () => {
   };
 
   const filteredList = list.filter((item) => {
+    if (!item) return false;
+    const q = (search || '').trim().toLowerCase();
+    const judul = String(item.judul || '').toLowerCase();
+    const ketua = String(item.ketua || '').toLowerCase();
+    const nidn = String(item.nidn || '').toLowerCase();
+    const bidangFokus = String(item.bidangFokus || '').toLowerCase();
+    const sumberDana = String(item.sumberDana || '').toLowerCase();
+
     const matchSearch =
-      item.judul.toLowerCase().includes(search.toLowerCase()) ||
-      item.ketua.toLowerCase().includes(search.toLowerCase()) ||
-      item.nidn.toLowerCase().includes(search.toLowerCase()) ||
-      item.bidangFokus.toLowerCase().includes(search.toLowerCase());
-    const matchSkema =
-      selectedSkema === 'SEMUA' || item.skema.toLowerCase().includes(selectedSkema.toLowerCase());
-    return matchSearch && matchSkema;
+      !q ||
+      judul.includes(q) ||
+      ketua.includes(q) ||
+      nidn.includes(q) ||
+      bidangFokus.includes(q) ||
+      sumberDana.includes(q);
+
+    const matchBidang =
+      selectedBidangFokus === 'SEMUA' ||
+      bidangFokus.includes(selectedBidangFokus.toLowerCase());
+
+    return matchSearch && matchBidang;
   });
 
   // KPI Calculations
   const totalPenelitian = list.length;
-  const countPdp = list.filter((p) => p.skema.toLowerCase().includes('pdp') || p.skema.toLowerCase().includes('pemula')).length;
-  const countTerapan = list.filter((p) => p.skema.toLowerCase().includes('terapan') || p.skema.toLowerCase().includes('unggulan')).length;
-  const totalDana = list.reduce((acc, curr) => acc + Number(curr.danaDisetujui || 0), 0);
+  const countIT = list.filter((p) => {
+    const bf = String(p?.bidangFokus || '').toLowerCase();
+    return bf.includes('teknologi') || bf.includes('ai');
+  }).length;
+  const countPendidikan = list.filter((p) => {
+    const bf = String(p?.bidangFokus || '').toLowerCase();
+    return bf.includes('pendidikan') || bf.includes('aswaja');
+  }).length;
+  const totalDana = list.reduce((acc, curr) => {
+    const val = Number(curr?.danaDisetujui);
+    return acc + (isNaN(val) ? 0 : val);
+  }, 0);
+
+  const handleExportExcel = () => {
+    if (filteredList.length === 0) {
+      alert('Tidak ada data penelitian untuk diekspor.');
+      return;
+    }
+
+    const headers = [
+      'No',
+      'Judul Penelitian',
+      'Bidang Fokus',
+      'Ketua Peneliti',
+      'NIDN',
+      'Anggota Peneliti',
+      'Sumber Dana',
+      'Dana Disetujui (Rp)',
+      'Tahun',
+      'Status',
+      'Tanggal Dibuat',
+    ];
+
+    const escapeCsv = (val: any) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
+    const rows = filteredList.map((item, idx) => [
+      idx + 1,
+      escapeCsv(item?.judul || '-'),
+      escapeCsv(item?.bidangFokus || '-'),
+      escapeCsv(item?.ketua || '-'),
+      escapeCsv(item?.nidn ? `\t${item.nidn}` : '-'),
+      escapeCsv(item?.anggota || '-'),
+      escapeCsv(item?.sumberDana || '-'),
+      item?.danaDisetujui ? Number(item.danaDisetujui) : 0,
+      item?.tahun || '-',
+      escapeCsv(item?.status || '-'),
+      escapeCsv(item?.createdAt ? String(item.createdAt).substring(0, 10) : '-'),
+    ]);
+
+    const csvContent =
+      '\uFEFF' +
+      [headers.map((h) => `"${h}"`).join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const timestamp = new Date().toISOString().slice(0, 10);
+    link.href = url;
+    link.setAttribute('download', `data-penelitian-lppm-unusu-${timestamp}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <AdminPanelTemplate
@@ -82,6 +164,15 @@ export const PenelitianPage: React.FC = () => {
             title="Segarkan Data"
           >
             <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={handleExportExcel}
+            disabled={loading || filteredList.length === 0}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-bold transition-all shadow-2xs hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            title="Export Data ke Excel (.csv)"
+          >
+            <ArrowDownTrayIcon className="w-5 h-5 text-emerald-600" />
+            <span>Export Excel</span>
           </button>
           <Link
             to="/penelitian/tambah"
@@ -107,21 +198,21 @@ export const PenelitianPage: React.FC = () => {
 
         <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-slate-500">Dosen Pemula (PDP)</p>
-            <p className="mt-1 text-2xl font-bold text-violet-700">{countPdp}</p>
+            <p className="text-xs font-medium text-slate-500">Teknologi & AI</p>
+            <p className="mt-1 text-2xl font-bold text-violet-700">{countIT}</p>
           </div>
           <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs">
-            PDP
+            IT
           </div>
         </div>
 
         <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
           <div>
-            <p className="text-xs font-medium text-slate-500">Riset Terapan / Unggulan</p>
-            <p className="mt-1 text-2xl font-bold text-amber-600">{countTerapan}</p>
+            <p className="text-xs font-medium text-slate-500">Pendidikan & Aswaja</p>
+            <p className="mt-1 text-2xl font-bold text-amber-600">{countPendidikan}</p>
           </div>
           <div className="w-10 h-10 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
-            PTR
+            EDU
           </div>
         </div>
 
@@ -155,18 +246,20 @@ export const PenelitianPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 text-xs font-semibold text-slate-600 flex-shrink-0">
               <AdjustmentsHorizontalIcon className="w-4 h-4" />
-              <span>Skema:</span>
+              <span>Bidang Fokus:</span>
             </div>
             <select
-              value={selectedSkema}
-              onChange={(e) => setSelectedSkema(e.target.value)}
+              value={selectedBidangFokus}
+              onChange={(e) => setSelectedBidangFokus(e.target.value)}
               className="px-3 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-violet-600 transition-colors"
             >
-              <option value="SEMUA">Semua Skema</option>
-              <option value="PDP">Dosen Pemula (PDP)</option>
-              <option value="Terapan">Terapan Unggulan (PTR)</option>
-              <option value="Kerjasama">Kerjasama Antar-Lembaga</option>
-              <option value="Mandiri">Mandiri</option>
+              <option value="SEMUA">Semua Bidang</option>
+              <option value="Teknologi Informasi">Teknologi Informasi</option>
+              <option value="Kecerdasan Buatan (AI)">Kecerdasan Buatan (AI)</option>
+              <option value="Pendidikan & Aswaja">Pendidikan & Aswaja</option>
+              <option value="Sosial Humaniora">Sosial Humaniora</option>
+              <option value="Pertanian & Ketahanan Pangan">Pertanian & Ketahanan Pangan</option>
+              <option value="Kesehatan & Gizi">Kesehatan & Gizi</option>
             </select>
           </div>
         </div>
@@ -188,7 +281,7 @@ export const PenelitianPage: React.FC = () => {
           <EmptyState
             title="Tidak Ada Data Penelitian"
             description={
-              search || selectedSkema !== 'SEMUA'
+              search || selectedBidangFokus !== 'SEMUA'
                 ? 'Tidak ditemukan penelitian yang cocok dengan kriteria pencarian Anda.'
                 : 'Belum ada proposal penelitian tercatat di pangkalan LPPM.'
             }
@@ -210,7 +303,7 @@ export const PenelitianPage: React.FC = () => {
                   <th className="py-3 px-3.5 w-12 text-center">No</th>
                   <th className="py-3 px-4 min-w-[280px]">Judul Penelitian & Bidang Fokus</th>
                   <th className="py-3 px-4 min-w-[190px]">Ketua & NIDN</th>
-                  <th className="py-3 px-4 min-w-[150px]">Skema & Sumber Dana</th>
+                  <th className="py-3 px-4 min-w-[150px]">Sumber Dana</th>
                   <th className="py-3 px-4 min-w-[140px] text-right">Dana Disetujui</th>
                   <th className="py-3 px-4 min-w-[100px] text-center">Tahun / Status</th>
                   <th className="py-3 px-4 min-w-[120px]">Dibuat</th>
@@ -241,8 +334,7 @@ export const PenelitianPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-800">{item.skema}</div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">{item.sumberDana}</div>
+                      <div className="font-semibold text-slate-800">{item.sumberDana}</div>
                     </td>
                     <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
                       {item.danaDisetujui
@@ -257,7 +349,7 @@ export const PenelitianPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-slate-500 text-[11px] font-mono">
                       {/* Audit trail CreatedAt */}
-                      2026-10-31
+                      {item.createdAt ? String(item.createdAt).substring(0, 10) : '-'}
                     </td>
                     <td className="py-3.5 px-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">

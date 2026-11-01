@@ -6,6 +6,10 @@ import {
   BookOpenIcon,
   BeakerIcon,
   HeartIcon,
+  UsersIcon,
+  ShieldCheckIcon,
+  KeyIcon,
+  ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
   Bars3Icon,
   XMarkIcon,
@@ -31,7 +35,11 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     location.pathname === path ||
     (path === '/penelitian' && location.pathname.startsWith('/penelitian/')) ||
     (path === '/pengabdian' && location.pathname.startsWith('/pengabdian/')) ||
-    (path === '/publikasi' && location.pathname.startsWith('/publikasi/'));
+    (path === '/publikasi' && location.pathname.startsWith('/publikasi/')) ||
+    (path === '/monev' && location.pathname.startsWith('/monev')) ||
+    (path === '/peran' && location.pathname.startsWith('/peran')) ||
+    (path === '/izin' && location.pathname.startsWith('/izin')) ||
+    (path === '/pengguna' && location.pathname.startsWith('/pengguna'));
 
   const navItems = [
     {
@@ -52,6 +60,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       icon: BookOpenIcon,
       desc: 'Scopus, SINTA & Diseminasi',
     },
+    {
+      path: '/monev',
+      label: 'Monitoring & Evaluasi',
+      icon: ClipboardDocumentCheckIcon,
+      desc: 'Kemajuan Riset & Telaah Luaran',
+    },
   ];
 
   const getBreadcrumbLabel = (path: string) => {
@@ -64,6 +78,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/publikasi') return 'Publikasi Artikel Ilmiah & Jurnal';
     if (path === '/publikasi/tambah') return 'Catat Publikasi Baru';
     if (path.startsWith('/publikasi/edit/')) return 'Edit Data Publikasi';
+    if (path === '/monev') return 'Monitoring & Evaluasi (Monev) Tridharma';
+    if (path === '/monev/tambah') return 'Jadwalkan Monev Riset Baru';
+    if (path.startsWith('/monev/edit/')) return 'Edit Penilaian Monev';
+    if (path === '/peran') return 'Manajemen Peran & Hak Akses';
+    if (path === '/izin') return 'Katalog Izin (Permissions)';
+    if (path === '/pengguna') return 'Manajemen Pengguna & Peneliti';
     return 'Lembaga Penelitian & Pengabdian Masyarakat';
   };
 
@@ -146,6 +166,113 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                 );
               })}
             </nav>
+          </div>
+
+          <div>
+            {!isCollapsed && (
+              <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                MANAJEMEN ADMIN
+              </p>
+            )}
+            <div className="space-y-1.5">
+              <Link
+                to="/pengguna"
+                onClick={() => setMobileOpen(false)}
+                title={isCollapsed ? 'Pengguna' : undefined}
+                aria-current={isActive('/pengguna') ? 'page' : undefined}
+                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
+                } ${
+                  isActive('/pengguna')
+                    ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isActive('/pengguna')
+                      ? 'bg-violet-700 text-white shadow-2xs'
+                      : 'bg-[#EDE8F5] text-violet-700'
+                  }`}
+                >
+                  <UsersIcon className="w-4 h-4" />
+                </div>
+                {!isCollapsed && (
+                  <div className="truncate">
+                    <div className="leading-tight">Pengguna</div>
+                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                      Daftar Dosen & Akses SSO
+                    </div>
+                  </div>
+                )}
+              </Link>
+
+              {/* Menu Peran */}
+              <Link
+                to="/peran"
+                onClick={() => setMobileOpen(false)}
+                title={isCollapsed ? 'Peran' : undefined}
+                aria-current={isActive('/peran') ? 'page' : undefined}
+                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
+                } ${
+                  isActive('/peran')
+                    ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isActive('/peran')
+                      ? 'bg-violet-700 text-white shadow-2xs'
+                      : 'bg-[#EDE8F5] text-violet-700'
+                  }`}
+                >
+                  <ShieldCheckIcon className="w-4 h-4" />
+                </div>
+                {!isCollapsed && (
+                  <div className="truncate">
+                    <div className="leading-tight">Peran</div>
+                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                      Kelola Hak Akses & Role
+                    </div>
+                  </div>
+                )}
+              </Link>
+
+              {/* Menu Izin */}
+              <Link
+                to="/izin"
+                onClick={() => setMobileOpen(false)}
+                title={isCollapsed ? 'Izin' : undefined}
+                aria-current={isActive('/izin') ? 'page' : undefined}
+                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
+                } ${
+                  isActive('/izin')
+                    ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
+                    : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                    isActive('/izin')
+                      ? 'bg-violet-700 text-white shadow-2xs'
+                      : 'bg-[#EDE8F5] text-violet-700'
+                  }`}
+                >
+                  <KeyIcon className="w-4 h-4" />
+                </div>
+                {!isCollapsed && (
+                  <div className="truncate">
+                    <div className="leading-tight">Izin</div>
+                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                      Katalog Permissions Sistem
+                    </div>
+                  </div>
+                )}
+              </Link>
+            </div>
           </div>
 
           <div>
@@ -348,6 +475,30 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   >
                     <HomeIcon className="w-4 h-4 text-slate-400" />
                     <span>Halaman Depan LPPM</span>
+                  </Link>
+                  <Link
+                    to="/pengguna"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                  >
+                    <UsersIcon className="w-4 h-4 text-slate-400" />
+                    <span>Pengguna</span>
+                  </Link>
+                  <Link
+                    to="/peran"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                  >
+                    <ShieldCheckIcon className="w-4 h-4 text-slate-400" />
+                    <span>Peran</span>
+                  </Link>
+                  <Link
+                    to="/izin"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                  >
+                    <KeyIcon className="w-4 h-4 text-slate-400" />
+                    <span>Izin</span>
                   </Link>
                   <button
                     onClick={() => {

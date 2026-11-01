@@ -41,15 +41,15 @@ export function LoginPage() {
               Masuk ke <span className="text-violet-700">LPPM UNUSU</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
-              Akses manajemen proposal riset, luaran penelitian, dan program pengabdian masyarakat melalui gerbang SSO terpadu.
+              Akses manajemen proposal riset, luaran penelitian, dan program pengabdian masyarakat melalui gerbang SSO terpadu ONE UNUSU.
             </p>
           </div>
 
-          {/* Logo ONE UNUSU — Bisa Ditekan, Mengarah ke ONE UNUSU */}
+          {/* Logo ONE UNUSU — Bisa Ditekan, Mengarah ke ONE UNUSU / Aksi Masuk SSO */}
           <div className="flex flex-col items-center space-y-3">
             <AnimatedFlatSsoLogo
               size={210}
-              onClick={() => { window.location.href = ONE_UNUSU_URL; }}
+              onClick={handleSsoLogin}
             />
             <div className="text-center space-y-1">
               <div className="flex items-center justify-center space-x-1.5">
@@ -71,9 +71,16 @@ export function LoginPage() {
             onClick={handleSsoLogin}
             className="w-full flex items-center justify-center space-x-3 py-4 px-6 rounded-2xl bg-violet-700 hover:bg-violet-800 text-white font-black text-sm shadow-xl hover:shadow-2xl transition-all transform active:scale-98 cursor-pointer group"
           >
-            <span>Masuk dengan ONE UNUSU</span>
+            <span>Masuk melalui ONE UNUSU</span>
             <ArrowRightIcon className="w-4 h-4 text-amber-400 group-hover:translate-x-1.5 transition-transform" />
           </button>
+          
+          <div className="pt-2 text-center">
+            <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Terhubung dengan SSO Gateway: <span className="font-mono text-slate-600">{ONE_UNUSU_URL}</span>
+            </span>
+          </div>
         </div>
 
         {/* Footer */}

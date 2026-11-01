@@ -27,7 +27,6 @@ export const PenelitianFormPage: React.FC = () => {
   const [ketua, setKetua] = useState('');
   const [nidn, setNidn] = useState('');
   const [anggota, setAnggota] = useState('');
-  const [skema, setSkema] = useState('Penelitian Dosen Pemula (PDP)');
   const [bidangFokus, setBidangFokus] = useState('Teknologi Informasi');
   const [danaDisetujui, setDanaDisetujui] = useState<number | string>(15000000);
   const [sumberDana, setSumberDana] = useState('Internal UNUSU');
@@ -44,7 +43,6 @@ export const PenelitianFormPage: React.FC = () => {
           setKetua(data.ketua);
           setNidn(data.nidn);
           setAnggota(data.anggota || '');
-          setSkema(data.skema);
           setBidangFokus(data.bidangFokus);
           setDanaDisetujui(data.danaDisetujui || 0);
           setSumberDana(data.sumberDana || 'Internal UNUSU');
@@ -69,7 +67,6 @@ export const PenelitianFormPage: React.FC = () => {
       ketua,
       nidn,
       anggota: anggota || null,
-      skema,
       bidangFokus,
       danaDisetujui: danaDisetujui ? Number(danaDisetujui) : null,
       sumberDana,
@@ -95,7 +92,7 @@ export const PenelitianFormPage: React.FC = () => {
   return (
     <AdminPanelTemplate
       title={isEdit ? 'Edit Proposal Penelitian' : 'Tambah Proposal Riset Baru'}
-      description="Formulir pencatatan lengkap proposal penelitian, skema pendanaan, dan tim peneliti civitas akademika UNUSU."
+      description="Formulir pencatatan lengkap proposal penelitian, pendanaan, dan tim peneliti civitas akademika UNUSU."
       actions={
         <Link
           to="/penelitian"
@@ -183,26 +180,10 @@ export const PenelitianFormPage: React.FC = () => {
           </CardContainer>
 
           <CardContainer
-            title="Skema Pendanaan & Fokus Riset"
-            subtitle="Kategori hibah, sumber pembiayaan, dan target tahun pelaksanaan"
+            title="Pendanaan & Fokus Riset"
+            subtitle="Bidang fokus, sumber pembiayaan, alokasi dana, dan target tahun pelaksanaan"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Skema Riset <span className="text-rose-500">*</span>
-                </label>
-                <select
-                  value={skema}
-                  onChange={(e) => setSkema(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-[12px] border border-[#CBD5E1] text-xs sm:text-sm focus:outline-none focus:border-violet-600 transition-colors"
-                >
-                  <option value="Penelitian Dosen Pemula (PDP)">Penelitian Dosen Pemula (PDP)</option>
-                  <option value="Penelitian Terapan Unggulan (PTR)">Penelitian Terapan Unggulan (PTR)</option>
-                  <option value="Riset Kerjasama Kolaborasi">Riset Kerjasama Kolaborasi</option>
-                  <option value="Penelitian Mandiri">Penelitian Mandiri</option>
-                </select>
-              </div>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
                   Bidang Fokus Riset <span className="text-rose-500">*</span>

@@ -9,6 +9,10 @@ import {
   Bars3Icon,
   XMarkIcon,
   DocumentTextIcon,
+  SparklesIcon,
+  CpuChipIcon,
+  GlobeAltIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import { FullHeroSlider } from '../components/FullHeroSlider';
@@ -27,6 +31,9 @@ export const LandingPage: React.FC = () => {
       target: 'Dosen Asisten Ahli & Lektor',
       luaran: 'Jurnal Nasional Terakreditasi SINTA 3-6',
       badge: 'Riset Pemula',
+      icon: SparklesIcon,
+      bgColor: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     },
     {
       kode: 'PTR',
@@ -34,6 +41,9 @@ export const LandingPage: React.FC = () => {
       target: 'Dosen Lektor & Lektor Kepala',
       luaran: 'Prototipe TKT 4-6, HKI Paten/Hak Cipta',
       badge: 'Hilirisasi Inovasi',
+      icon: CpuChipIcon,
+      bgColor: 'bg-blue-50 text-blue-600 border-blue-200',
+      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
     },
     {
       kode: 'PKM-M',
@@ -41,6 +51,9 @@ export const LandingPage: React.FC = () => {
       target: 'Kelompok Dosen Multi-Disiplin',
       luaran: 'Peningkatan Kapasitas Mitra & Publikasi PKM',
       badge: 'Pemberdayaan Umat',
+      icon: UserGroupIcon,
+      bgColor: 'bg-amber-50 text-amber-600 border-amber-200',
+      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
     },
     {
       kode: 'P-KOLAB',
@@ -48,6 +61,9 @@ export const LandingPage: React.FC = () => {
       target: 'Peneliti Utama UNUSU & Mitra Eksternal',
       luaran: 'Publikasi Scopus / WOS Bereputasi',
       badge: 'Internasional',
+      icon: GlobeAltIcon,
+      bgColor: 'bg-purple-50 text-purple-600 border-purple-200',
+      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
     },
   ];
 
@@ -108,6 +124,12 @@ export const LandingPage: React.FC = () => {
             aria-label="Navigasi utama"
           >
             <a
+              href="#profil"
+              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
+            >
+              Tentang
+            </a>
+            <a
               href="#layanan"
               className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
             >
@@ -167,6 +189,13 @@ export const LandingPage: React.FC = () => {
         {/* Mobile Dropdown Menu */}
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-3">
+            <a
+              href="#profil"
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-xs font-medium text-slate-700 py-1.5"
+            >
+              Tentang
+            </a>
             <a
               href="#layanan"
               onClick={() => setMobileMenuOpen(false)}
@@ -356,34 +385,42 @@ export const LandingPage: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {skemaPenelitian.map((skema) => (
-              <div
-                key={skema.kode}
-                className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:border-violet-600 transition-all flex flex-col justify-between"
-              >
-                <div className="space-y-3">
-                  <div className="w-12 h-12 rounded-xl bg-violet-700 text-amber-400 font-mono font-bold text-base flex items-center justify-center">
-                    {skema.kode}
+            {skemaPenelitian.map((skema) => {
+              const SchemeIcon = skema.icon;
+              return (
+                <div
+                  key={skema.kode}
+                  className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:border-violet-600 transition-all flex flex-col justify-between"
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-xs ${skema.bgColor}`}>
+                        <SchemeIcon className="w-6 h-6 stroke-[2]" />
+                      </div>
+                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                        {skema.kode}
+                      </span>
+                    </div>
+                    <h4 className="font-bold text-base text-slate-900 leading-snug">{skema.nama}</h4>
+                    <div className="text-xs text-slate-500 space-y-1.5 pt-1">
+                      <div>
+                        <span className="text-slate-400">Sasaran: </span>
+                        <strong className="text-slate-700 font-semibold">{skema.target}</strong>
+                      </div>
+                      <div>
+                        <span className="text-slate-400">Target Luaran: </span>
+                        <strong className="text-violet-700 font-semibold">{skema.luaran}</strong>
+                      </div>
+                    </div>
                   </div>
-                  <h4 className="font-bold text-base text-slate-900">{skema.nama}</h4>
-                  <div className="text-xs text-slate-500 space-y-1">
-                    <div>
-                      <span className="text-slate-400">Sasaran: </span>
-                      <strong className="text-slate-700">{skema.target}</strong>
-                    </div>
-                    <div>
-                      <span className="text-slate-400">Target Luaran: </span>
-                      <strong className="text-violet-700">{skema.luaran}</strong>
-                    </div>
+                  <div className="pt-3 border-t border-slate-100">
+                    <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border ${skema.badgeColor}`}>
+                      {skema.badge}
+                    </span>
                   </div>
                 </div>
-                <div className="pt-3 border-t border-slate-100">
-                  <span className="inline-block text-[10px] font-semibold text-violet-800 bg-violet-50 px-2 py-0.5 rounded-md border border-violet-100">
-                    {skema.badge}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -500,18 +537,23 @@ export const LandingPage: React.FC = () => {
               <h5 className="text-xs font-bold uppercase tracking-wider text-amber-400">Tautan Satelit</h5>
               <ul className="text-xs text-slate-400 space-y-2">
                 <li>
-                  <a href="http://localhost:5173" className="hover:text-violet-400 transition-colors">
+                  <a href={ONE_UNUSU_URL} className="hover:text-violet-400 transition-colors">
                     Portal ONE UNUSU
                   </a>
                 </li>
                 <li>
                   <a href="http://localhost:5177" className="hover:text-violet-400 transition-colors">
-                    LPM Mutu Akademik
+                    LPM Penjaminan Mutu
+                  </a>
+                </li>
+                <li>
+                  <a href="http://localhost:5175" className="hover:text-violet-400 transition-colors">
+                    E-Surat & Tata Naskah
                   </a>
                 </li>
                 <li>
                   <a href="http://localhost:3001" className="hover:text-violet-400 transition-colors">
-                    LMS Pembelajaran Daring
+                    LMS Perkuliahan Daring
                   </a>
                 </li>
               </ul>

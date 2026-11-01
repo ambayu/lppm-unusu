@@ -57,13 +57,15 @@ export interface PenelitianItem {
   judul: string;
   ketua: string;
   nidn: string;
-  anggota?: string;
-  skema: string;
+  anggota?: string | null;
   bidangFokus: string;
-  danaDisetujui?: number;
+  danaDisetujui?: number | null;
   sumberDana: string;
   tahun: number;
   status: string;
+  laporanUrl?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PengabdianItem {
@@ -108,5 +110,132 @@ export const getPublikasi = (id: number | string) => api.get<{ success: boolean;
 export const createPublikasi = (data: any) => api.post('/publikasi', data);
 export const updatePublikasi = (id: number | string, data: any) => api.put(`/publikasi/${id}`, data);
 export const deletePublikasi = (id: number | string) => api.delete(`/publikasi/${id}`);
+
+export interface RoleItem {
+  id: number;
+  kode: string;
+  nama: string;
+  deskripsi?: string | null;
+  permissions?: {
+    permissionId: number;
+    permission: PermissionItem;
+  }[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface PermissionItem {
+  id: number;
+  kode: string;
+  nama: string;
+  modul: string;
+  deskripsi?: string | null;
+  roles?: {
+    roleId: number;
+    role: { id: number; kode: string; nama: string };
+  }[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const fetchRoles = () => api.get<{ success: boolean; data: RoleItem[] }>('/roles');
+export const createRole = (data: { kode: string; nama: string; deskripsi?: string; permissionIds?: number[] }) =>
+  api.post<{ success: boolean; data: RoleItem; message?: string }>('/roles', data);
+export const updateRole = (id: number | string, data: { nama: string; deskripsi?: string; permissionIds?: number[] }) =>
+  api.put<{ success: boolean; data: RoleItem; message?: string }>(`/roles/${id}`, data);
+export const deleteRole = (id: number | string) => api.delete<{ success: boolean; message?: string }>(`/roles/${id}`);
+
+export const fetchPermissions = () => api.get<{ success: boolean; data: PermissionItem[] }>('/permissions');
+export const createPermission = (data: { kode: string; nama: string; modul: string; deskripsi?: string }) =>
+  api.post<{ success: boolean; data: PermissionItem; message?: string }>('/permissions', data);
+export const updatePermission = (id: number | string, data: { nama: string; modul: string; deskripsi?: string }) =>
+  api.put<{ success: boolean; data: PermissionItem; message?: string }>(`/permissions/${id}`, data);
+export const deletePermission = (id: number | string) =>
+  api.delete<{ success: boolean; message?: string }>(`/permissions/${id}`);
+
+// ==========================================
+// MONITORING & EVALUASI (MONEV) API
+// ==========================================
+export type JenisProgramMonev = 'PENELITIAN' | 'PENGABDIAN';
+export type TahapMonev = 'MONEV_ANTARA' | 'MONEV_AKHIR' | 'MONEV_LAPANGAN';
+export type StatusMonev = 'DIJADWALKAN' | 'SEDANG_DITELAAH' | 'PERLU_REVISI' | 'DISETUJUI' | 'DITOLAK';
+export type RekomendasiMonev = 'LANJUT_PENUH' | 'LANJUT_BERSYARAT' | 'TUNDA' | 'HENTIKAN';
+
+export interface MonevItem {
+  id: number;
+  kodeMonev: string;
+  jenisProgram: JenisProgramMonev;
+  tahap: TahapMonev;
+  status: StatusMonev;
+  rekomendasi?: RekomendasiMonev | null;
+  penelitianId?: number | null;
+  pengabdianId?: number | null;
+  penelitian?: {
+    id: number;
+    judul: string;
+    ketua: string;
+    nidn: string;
+    tahun: number;
+  } | null;
+  pengabdian?: {
+    id: number;
+    judul: string;
+    ketua: string;
+    nidn: string;
+    mitra: string;
+    tahun: number;
+  } | null;
+  namaReviewer: string;
+  nidnReviewer?: string | null;
+  tanggalJadwal: string;
+  tanggalMonev?: string | null;
+  lokasiMonev?: string | null;
+  persentaseKemajuan: number;
+  persentaseDanaTerpakai: number;
+  skorSubstansi?: number | null;
+  targetLuaranWajib?: string | null;
+  capaianLuaran?: string | null;
+  catatanReviewer?: string | null;
+  tindakLanjut?: string | null;
+  beritaAcaraUrl?: string | null;
+  buktiDokumentasiUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MonevPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface MonevResponse {
+  success: boolean;
+  data: MonevItem[];
+  pagination: MonevPagination;
+}
+
+export const fetchMonev = (params?: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  jenisProgram?: string;
+  tahap?: string;
+  tahun?: number;
+}) => api.get<MonevResponse>('/monev', { params });
+
+export const getMonev = (id: number | string) =>
+  api.get<{ success: boolean; data: MonevItem }>(`/monev/${id}`);
+
+export const createMonev = (data: Partial<MonevItem>) =>
+  api.post<{ success: boolean; data: MonevItem; message?: string }>('/monev', data);
+
+export const updateMonev = (id: number | string, data: Partial<MonevItem>) =>
+  api.put<{ success: boolean; data: MonevItem; message?: string }>(`/monev/${id}`, data);
+
+export const deleteMonev = (id: number | string) =>
+  api.delete<{ success: boolean; message?: string }>(`/monev/${id}`);
 
 export default api;
