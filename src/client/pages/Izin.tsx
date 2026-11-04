@@ -36,7 +36,7 @@ const MODUL_OPTIONS = [
 ];
 
 export const IzinPage: React.FC = () => {
-  const { user } = useAuth();
+  const { canManageSystem } = useAuth();
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +55,7 @@ export const IzinPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = canManageSystem;
 
   const loadData = async () => {
     setLoading(true);

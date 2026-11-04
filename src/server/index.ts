@@ -9,6 +9,16 @@ import {
   updateMonevSchema,
   queryMonevSchema,
 } from "./validations/monev.validation.js";
+import {
+  queryListSchema,
+  resolvePagination,
+  resolveOrder,
+  buildPaginationMeta,
+} from "./validations/list.validation.js";
+import {
+  createAuditLogger,
+  queryAuditSchema,
+} from "./lib/auditLog.js";
 
 dotenv.config();
 
@@ -68,6 +78,9 @@ interface SsoSession {
   email: string | null;
   role: string;
   ssoRole: string;
+  /** Cakupan aplikasi penerbit sesi — selalu "lppm" untuk aplikasi ini. */
+  app: string;
+  appName: string;
   nim: string | null;
   nidn: string | null;
   prodi: string | null;
@@ -78,6 +91,16 @@ interface AuthRequest extends Request {
   user?: SsoSession;
 }
 
+/**
+ * PEMISAHAN ADMIN PER APLIKASI
+ * ---------------------------
+ * Setiap aplikasi cabang ONE UNUSU menerbitkan sesinya sendiri. Aplikasi ini
+ * hanya boleh menerima peran miliknya; peran admin aplikasi lain (mis. LPM)
+ * ditolak walaupun token SSO-nya sah secara global.
+ */
+const APP_SCOPE = "lppm";
+const APP_NAME = "LPPM UNUSU";
+
 const SSO_ROLE_MAP: Record<string, string> = {
   SUPERADMIN: "admin",
   ADMIN_LPPM: "admin",
@@ -85,8 +108,24 @@ const SSO_ROLE_MAP: Record<string, string> = {
   MAHASISWA: "mahasiswa",
 };
 
-/** Role SSO yang diizinkan mengakses panel LPPM (Admin & Dosen) */
-const ALLOWED_SSO_ROLES = new Set(["SUPERADMIN", "ADMIN_LPPM", "DOSEN"]);
+/** Role SSO yang sah untuk panel LPPM (Admin LPPM, Superadmin, Dosen). */
+const LPPM_ALLOWED_SSO_ROLES = new Set(["SUPERADMIN", "ADMIN_LPPM", "DOSEN"]);
+
+/** Peran admin aplikasi cabang lain → label aplikasi pemiliknya. */
+const FOREIGN_APP_ADMIN_ROLES: Record<string, string> = {
+  ADMIN_LPM: "LPM UNUSU",
+  ADMIN_ESURAT: "E-Surat UNUSU",
+  ADMIN_SARPRAS: "Sarpras UNUSU",
+  ADMIN_AKREDITASI: "Akreditasi UNUSU",
+  ADMIN_LMS: "LMS UNUSU",
+  ADMIN_SSO: "ONE UNUSU",
+};
+
+/** Peran yang boleh mengelola data master LPPM (bukan dosen peneliti). */
+const LPPM_ADMIN_SSO_ROLES = new Set(["SUPERADMIN", "ADMIN_LPPM"]);
+
+const isLppmAdminSession = (user?: SsoSession | null): boolean =>
+  !!user && (LPPM_ADMIN_SSO_ROLES.has(user.ssoRole) || (!user.ssoRole && user.role === "admin"));
 
 const mapSsoRole = (role: string): string => SSO_ROLE_MAP[role] ?? "mahasiswa";
 
@@ -100,18 +139,48 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
-    (req as AuthRequest).user = {
+
+    // Tolak token yang diterbitkan untuk aplikasi cabang lain (mis. LPM).
+    const tokenApp = typeof decoded.app === "string" ? decoded.app : APP_SCOPE;
+    if (tokenApp !== APP_SCOPE) {
+      return res.status(403).json({
+        success: false,
+        code: "FOREIGN_APP_TOKEN",
+        app: APP_SCOPE,
+        message: `Sesi ini milik aplikasi "${tokenApp}". Panel ${APP_NAME} hanya menerima sesi aplikasi ${APP_SCOPE}.`,
+      });
+    }
+
+    const session: SsoSession = {
       id: Number(decoded.id),
       username: String(decoded.username ?? ""),
       nama: String(decoded.nama ?? ""),
       email: typeof decoded.email === "string" ? decoded.email : null,
       role: String(decoded.role ?? "mahasiswa"),
       ssoRole: String(decoded.ssoRole ?? ""),
+      app: APP_SCOPE,
+      appName: APP_NAME,
       nim: typeof decoded.nim === "string" ? decoded.nim : null,
       nidn: typeof decoded.nidn === "string" ? decoded.nidn : null,
       prodi: typeof decoded.prodi === "string" ? decoded.prodi : null,
       fakultas: typeof decoded.fakultas === "string" ? decoded.fakultas : null,
     };
+
+    // Peran admin aplikasi lain tidak boleh memakai API LPPM sama sekali.
+    const foreignApp = FOREIGN_APP_ADMIN_ROLES[session.ssoRole];
+    if (foreignApp || (session.ssoRole && !LPPM_ALLOWED_SSO_ROLES.has(session.ssoRole))) {
+      return res.status(403).json({
+        success: false,
+        code: "FOREIGN_APP_ADMIN",
+        app: APP_SCOPE,
+        foreignApp: foreignApp ?? null,
+        message: foreignApp
+          ? `Akun administrator ${foreignApp} tidak memiliki akses ke API ${APP_NAME}.`
+          : `Peran "${session.ssoRole}" tidak terdaftar pada aplikasi ${APP_NAME}.`,
+      });
+    }
+
+    (req as AuthRequest).user = session;
     next();
   } catch {
     return res.status(401).json({ success: false, message: "Sesi login telah kedaluwarsa" });
@@ -148,11 +217,27 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: ssoPayload?.message || "Verifikasi token SSO gagal" });
     }
 
-    // Tolak login jika role SSO tidak diizinkan di LPPM
-    if (!ALLOWED_SSO_ROLES.has(ssoUser.role)) {
+    // Tolak admin aplikasi cabang lain (mis. ADMIN_LPM) — panel terpisah per aplikasi
+    const foreignApp = FOREIGN_APP_ADMIN_ROLES[ssoUser.role];
+    if (foreignApp) {
       return res.status(403).json({
         success: false,
-        message: "Akses ditolak. Hanya Administrator LPPM dan Dosen yang diizinkan masuk ke panel ini.",
+        code: "FOREIGN_APP_ADMIN",
+        app: APP_SCOPE,
+        foreignApp,
+        role: ssoUser.role,
+        message: `Akun administrator ${foreignApp} tidak dapat masuk ke panel ${APP_NAME}. Setiap aplikasi ONE UNUSU memiliki panel terpisah — silakan kelola ${foreignApp} melalui panel aplikasinya.`,
+      });
+    }
+
+    // Tolak login jika role SSO tidak diizinkan di LPPM
+    if (!LPPM_ALLOWED_SSO_ROLES.has(ssoUser.role)) {
+      return res.status(403).json({
+        success: false,
+        code: "ROLE_NOT_ALLOWED",
+        app: APP_SCOPE,
+        role: ssoUser.role,
+        message: `Akses ditolak. Hanya Administrator LPPM dan Dosen yang diizinkan masuk ke panel ${APP_NAME}.`,
       });
     }
 
@@ -163,6 +248,8 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       email: ssoUser.email ?? null,
       role: mapSsoRole(ssoUser.role),
       ssoRole: ssoUser.role,
+      app: APP_SCOPE,
+      appName: APP_NAME,
       nim: ssoUser.nim ?? null,
       nidn: ssoUser.nidn ?? null,
       prodi: ssoUser.prodi ?? null,
@@ -179,6 +266,42 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
 
 // Seluruh API di bawah ini wajib membawa JWT sesi lokal (hasil SSO).
 app.use("/api", authenticate);
+// Jejak audit: catat setiap mutasi sukses ke tabel append-only lppm_audit_log.
+app.use("/api", createAuditLogger(prisma));
+
+/**
+ * Info sesi + cakupan aplikasi. Dipakai klien untuk memvalidasi ulang hak akses
+ * (mis. setelah peran pengguna diubah di ONE UNUSU) sebelum merender panel.
+ */
+app.get("/api/auth/session", (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  if (!user) {
+    return res.status(401).json({ success: false, message: "Sesi tidak ditemukan" });
+  }
+
+  const isAdmin = isLppmAdminSession(user);
+  const permissions = isAdmin
+    ? [
+        "penelitian.view", "penelitian.create", "penelitian.update", "penelitian.delete",
+        "pengabdian.view", "pengabdian.create", "pengabdian.update", "pengabdian.delete",
+        "publikasi.view", "publikasi.create", "publikasi.update", "publikasi.delete",
+        "monev.view", "monev.create", "monev.update", "monev.delete",
+        "pengguna.view", "peran.view", "izin.view",
+      ]
+    : ["penelitian.view", "pengabdian.view", "publikasi.view", "monev.view"];
+
+  res.json({
+    success: true,
+    data: {
+      ...user,
+      app: APP_SCOPE,
+      appName: APP_NAME,
+      isAdmin,
+      canManageSystem: isAdmin,
+      permissions,
+    },
+  });
+});
 
 /** Middleware otorisasi — hanya role tertentu yang boleh lewat. */
 const requireRole = (...allowed: string[]) =>
@@ -196,10 +319,49 @@ const requireRole = (...allowed: string[]) =>
 // 1. Penelitian
 app.get("/api/penelitian", async (req: Request, res: Response) => {
   try {
-    const list = await prisma.penelitian.findMany({
-      orderBy: { createdAt: "desc" }
+    const parsed = queryListSchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Parameter filter tidak valid",
+        errors: parsed.error.issues,
+      });
+    }
+
+    const { page, limit, search, tahun, status, sort } = parsed.data;
+
+    // Filter memakai kolom ber-index: tahun+status, bidangFokus, nidn.
+    const where: any = {};
+    if (tahun) where.tahun = tahun;
+    if (status && status !== "SEMUA") where.status = status;
+    if (search) {
+      where.OR = [
+        { judul: { contains: search } },
+        { ketua: { contains: search } },
+        { nidn: { contains: search } },
+        { bidangFokus: { contains: search } },
+      ];
+    }
+
+    const orderBy = resolveOrder(sort);
+    const pagination = resolvePagination(parsed.data);
+
+    // Tanpa ?limit -> perilaku lama (seluruh data) agar tabel client tetap kompatibel.
+    if (!pagination) {
+      const list = await prisma.penelitian.findMany({ where, orderBy });
+      return res.json({ success: true, data: list });
+    }
+
+    const [total, data] = await prisma.$transaction([
+      prisma.penelitian.count({ where }),
+      prisma.penelitian.findMany({ where, orderBy, ...pagination }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: buildPaginationMeta(page, pagination.take, total),
     });
-    res.json({ success: true, data: list });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mengambil data penelitian" });
   }
@@ -277,10 +439,49 @@ app.delete("/api/penelitian/:id", requireRole("admin"), async (req: Request, res
 // 2. Pengabdian (PKM)
 app.get("/api/pengabdian", async (req: Request, res: Response) => {
   try {
-    const list = await prisma.pengabdian.findMany({
-      orderBy: { createdAt: "desc" }
+    const parsed = queryListSchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Parameter filter tidak valid",
+        errors: parsed.error.issues,
+      });
+    }
+
+    const { page, limit, search, tahun, status, sort } = parsed.data;
+
+    // Filter memakai kolom ber-index: tahun+status, mitra, nidn.
+    const where: any = {};
+    if (tahun) where.tahun = tahun;
+    if (status && status !== "SEMUA") where.status = status;
+    if (search) {
+      where.OR = [
+        { judul: { contains: search } },
+        { ketua: { contains: search } },
+        { nidn: { contains: search } },
+        { mitra: { contains: search } },
+        { lokasi: { contains: search } },
+      ];
+    }
+
+    const orderBy = resolveOrder(sort);
+    const pagination = resolvePagination(parsed.data);
+
+    if (!pagination) {
+      const list = await prisma.pengabdian.findMany({ where, orderBy });
+      return res.json({ success: true, data: list });
+    }
+
+    const [total, data] = await prisma.$transaction([
+      prisma.pengabdian.count({ where }),
+      prisma.pengabdian.findMany({ where, orderBy, ...pagination }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: buildPaginationMeta(page, pagination.take, total),
     });
-    res.json({ success: true, data: list });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mengambil data pengabdian" });
   }
@@ -356,10 +557,50 @@ app.delete("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res
 // 3. Publikasi Jurnal
 app.get("/api/publikasi", async (req: Request, res: Response) => {
   try {
-    const list = await prisma.publikasi.findMany({
-      orderBy: { tahun: "desc" }
+    const parsed = queryListSchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Parameter filter tidak valid",
+        errors: parsed.error.issues,
+      });
+    }
+
+    const { page, limit, search, tahun, sort } = parsed.data;
+
+    // Filter memakai kolom ber-index: tahun, jenis+tahun, penulis.
+    const where: any = {};
+    if (tahun) where.tahun = tahun;
+    if (search) {
+      where.OR = [
+        { judul: { contains: search } },
+        { penulis: { contains: search } },
+        { namaJurnal: { contains: search } },
+        { jenis: { contains: search } },
+      ];
+    }
+
+    // Urutan utama publikasi adalah tahun terbit (bukan createdAt),
+    // dengan `id` sebagai tie-breaker agar pagination stabil.
+    const direction: "asc" | "desc" = sort === "terlama" ? "asc" : "desc";
+    const orderBy = [{ tahun: direction, id: direction }];
+    const pagination = resolvePagination(parsed.data);
+
+    if (!pagination) {
+      const list = await prisma.publikasi.findMany({ where, orderBy });
+      return res.json({ success: true, data: list });
+    }
+
+    const [total, data] = await prisma.$transaction([
+      prisma.publikasi.count({ where }),
+      prisma.publikasi.findMany({ where, orderBy, ...pagination }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: buildPaginationMeta(page, pagination.take, total),
     });
-    res.json({ success: true, data: list });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal mengambil data publikasi" });
   }
@@ -431,7 +672,7 @@ app.delete("/api/publikasi/:id", requireRole("admin"), async (req: Request, res:
 });
 
 // 4. Role & Permission Management
-app.get("/api/roles", async (req: Request, res: Response) => {
+app.get("/api/roles", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const list = await prisma.role.findMany({
       include: {
@@ -546,7 +787,7 @@ app.delete("/api/roles/:id", requireRole("admin"), async (req: Request, res: Res
 });
 
 // Permissions API
-app.get("/api/permissions", async (req: Request, res: Response) => {
+app.get("/api/permissions", requireRole("admin"), async (req: Request, res: Response) => {
   try {
     const list = await prisma.permission.findMany({
       orderBy: [{ modul: "asc" }, { kode: "asc" }],
@@ -616,6 +857,69 @@ app.delete("/api/permissions/:id", requireRole("admin"), async (req: Request, re
   }
 });
 
+// 4b. Audit Trail (append-only) — hanya admin
+app.get("/api/audit-log", requireRole("admin"), async (req: Request, res: Response) => {
+  try {
+    const parsed = queryAuditSchema.safeParse(req.query);
+    if (!parsed.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Parameter filter audit tidak valid",
+        errors: parsed.error.issues,
+      });
+    }
+
+    const { page, limit, entitas, aksi, aktor, search, dari, sampai } = parsed.data;
+
+    const where: any = {};
+    if (entitas && entitas !== "SEMUA") where.entitas = entitas;
+    if (aksi) where.aksi = aksi;
+
+    if (dari || sampai) {
+      where.createdAt = {
+        ...(dari ? { gte: new Date(`${dari}T00:00:00.000Z`) } : {}),
+        ...(sampai ? { lte: new Date(`${sampai}T23:59:59.999Z`) } : {}),
+      };
+    }
+
+    // Filter aktor & pencarian bebas digabung AND agar tidak saling menimpa.
+    const andConditions: any[] = [];
+    if (aktor) {
+      andConditions.push({
+        OR: [{ aktorNidn: { contains: aktor } }, { aktorNama: { contains: aktor } }],
+      });
+    }
+    if (search) {
+      andConditions.push({
+        OR: [
+          { path: { contains: search } },
+          { entitas: { contains: search } },
+          { ringkasan: { contains: search } },
+        ],
+      });
+    }
+    if (andConditions.length > 0) where.AND = andConditions;
+
+    const [total, data] = await prisma.$transaction([
+      prisma.auditLog.count({ where }),
+      prisma.auditLog.findMany({
+        where,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data,
+      pagination: buildPaginationMeta(page, limit, total),
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mengambil jejak audit" });
+  }
+});
+
 // 5. Monitoring & Evaluasi (Monev) API
 app.get("/api/monev", async (req: Request, res: Response) => {
   try {
@@ -630,7 +934,11 @@ app.get("/api/monev", async (req: Request, res: Response) => {
 
     const { page, limit, search, status, jenisProgram, tahap, tahun } = parseQuery.data;
 
+    // Filter dikelompokkan dengan AND eksplisit. Sebelumnya `tahun` di-OR-kan
+    // dengan blok pencarian sehingga hasil bisa lolos walau tahun tidak cocok.
     const where: any = {};
+    const andConditions: any[] = [];
+
     if (status && status !== 'SEMUA') {
       where.status = status;
     }
@@ -641,21 +949,25 @@ app.get("/api/monev", async (req: Request, res: Response) => {
       where.tahap = tahap;
     }
     if (search) {
-      where.OR = [
-        { kodeMonev: { contains: search } },
-        { namaReviewer: { contains: search } },
-        { targetLuaranWajib: { contains: search } },
-        { catatanReviewer: { contains: search } },
-        { penelitian: { judul: { contains: search } } },
-        { pengabdian: { judul: { contains: search } } },
-      ];
+      andConditions.push({
+        OR: [
+          { kodeMonev: { contains: search } },
+          { namaReviewer: { contains: search } },
+          { targetLuaranWajib: { contains: search } },
+          { catatanReviewer: { contains: search } },
+          { penelitian: { judul: { contains: search } } },
+          { pengabdian: { judul: { contains: search } } },
+        ],
+      });
     }
     if (tahun) {
-      where.OR = [
-        ...(where.OR || []),
-        { penelitian: { tahun } },
-        { pengabdian: { tahun } },
-      ];
+      // Tahun ada di tabel induk (relasi polimorfik), bukan di tabel monev.
+      andConditions.push({
+        OR: [{ penelitian: { tahun } }, { pengabdian: { tahun } }],
+      });
+    }
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const total = await prisma.monitoringEvaluasi.count({ where });
@@ -669,7 +981,9 @@ app.get("/api/monev", async (req: Request, res: Response) => {
           select: { id: true, judul: true, ketua: true, nidn: true, mitra: true, tahun: true }
         }
       },
-      orderBy: { createdAt: "desc" },
+      // `id` sebagai tie-breaker agar offset pagination tidak menggeser baris
+      // ketika beberapa record memiliki createdAt identik.
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       skip: (page - 1) * limit,
       take: limit,
     });

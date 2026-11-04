@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { ssoLogin } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { accessDeniedUrl } from '../lib/appAccess';
 
 type SsoExchangeResult = Awaited<ReturnType<typeof ssoLogin>>;
 
@@ -69,8 +70,25 @@ export function SsoCallbackPage() {
         }
       } catch (err: any) {
         if (!cancelled) {
+          const data = err.response?.data;
+          const code = data?.code as string | undefined;
+
+          // Penolakan lintas aplikasi (mis. admin LPM) diarahkan ke halaman 403
+          // yang menjelaskan alasan, bukan sekadar pesan error generik.
+          if (code === 'FOREIGN_APP_ADMIN' || code === 'ROLE_NOT_ALLOWED') {
+            window.location.replace(
+              accessDeniedUrl({
+                reason: code === 'FOREIGN_APP_ADMIN' ? 'foreign-app' : 'role-not-allowed',
+                role: data?.role ?? null,
+                app: data?.foreignApp ?? data?.app ?? null,
+                from: '/sso/callback',
+              })
+            );
+            return;
+          }
+
           setError(
-            err.response?.data?.message ||
+            data?.message ||
             err.message ||
             'Gagal memverifikasi token SSO. Token mungkin sudah kedaluwarsa.'
           );

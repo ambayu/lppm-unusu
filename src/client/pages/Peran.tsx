@@ -27,7 +27,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 export const PeranPage: React.FC = () => {
-  const { user } = useAuth();
+  const { canManageSystem } = useAuth();
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export const PeranPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = canManageSystem;
 
   const loadData = async () => {
     setLoading(true);

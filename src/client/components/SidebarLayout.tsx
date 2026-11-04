@@ -26,7 +26,7 @@ interface SidebarLayoutProps {
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, canManageSystem, roleLabel } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -168,6 +168,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             </nav>
           </div>
 
+          {/* Blok Manajemen Admin hanya untuk Admin LPPM / Superadmin.
+              Dosen peneliti tidak boleh melihat menu pengguna, peran & izin. */}
+          {canManageSystem && (
           <div>
             {!isCollapsed && (
               <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
@@ -274,6 +277,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               </Link>
             </div>
           </div>
+          )}
 
           <div>
             {!isCollapsed && (
@@ -450,7 +454,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   <div className="text-xs font-bold text-slate-800 truncate max-w-[120px]">
                     {user?.nama || 'Peneliti Dosen'}
                   </div>
-                  <div className="text-[10px] text-violet-700 font-semibold">{user?.role || 'Dosen Peneliti'}</div>
+                  <div className="text-[10px] text-violet-700 font-semibold">{roleLabel}</div>
                 </div>
                 <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" />
               </button>
@@ -465,7 +469,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     <p className="font-bold text-slate-900">{user?.nama || 'Peneliti Dosen'}</p>
                     <p className="text-[11px] text-slate-500 font-normal">{user?.email || 'lppm@unusu.ac.id'}</p>
                     <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-violet-50 text-violet-900 text-[10px] font-bold border border-violet-200">
-                      {user?.role || 'Dosen Peneliti'}
+                      {roleLabel}
+                    </span>
+                    <span className="inline-block mt-1 ml-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold border border-[#CBD5E1]">
+                      Akses: LPPM
                     </span>
                   </div>
                   <Link
@@ -476,30 +483,34 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     <HomeIcon className="w-4 h-4 text-slate-400" />
                     <span>Halaman Depan LPPM</span>
                   </Link>
-                  <Link
-                    to="/pengguna"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                  >
-                    <UsersIcon className="w-4 h-4 text-slate-400" />
-                    <span>Pengguna</span>
-                  </Link>
-                  <Link
-                    to="/peran"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                  >
-                    <ShieldCheckIcon className="w-4 h-4 text-slate-400" />
-                    <span>Peran</span>
-                  </Link>
-                  <Link
-                    to="/izin"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                  >
-                    <KeyIcon className="w-4 h-4 text-slate-400" />
-                    <span>Izin</span>
-                  </Link>
+                  {canManageSystem && (
+                    <>
+                      <Link
+                        to="/pengguna"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                      >
+                        <UsersIcon className="w-4 h-4 text-slate-400" />
+                        <span>Pengguna</span>
+                      </Link>
+                      <Link
+                        to="/peran"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                      >
+                        <ShieldCheckIcon className="w-4 h-4 text-slate-400" />
+                        <span>Peran</span>
+                      </Link>
+                      <Link
+                        to="/izin"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                      >
+                        <KeyIcon className="w-4 h-4 text-slate-400" />
+                        <span>Izin</span>
+                      </Link>
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       setProfileDropdownOpen(false);

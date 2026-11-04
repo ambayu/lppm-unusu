@@ -26,6 +26,11 @@ model Penelitian {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
+  // --- Index kinerja query daftar/filter (lihat docs/database/INDEX_STRATEGY.md) ---
+  @@index([createdAt])            // GET /api/penelitian -> ORDER BY createdAt DESC
+  @@index([tahun, status])        // filter tahun + status sekaligus
+  @@index([bidangFokus])          // filter bidang fokus
+  @@index([nidn])                 // pencarian usulan milik dosen tertentu
   @@map("lppm_penelitian")
 }
 
@@ -44,6 +49,11 @@ model Pengabdian {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
+  // --- Index kinerja query daftar/filter (lihat docs/database/INDEX_STRATEGY.md) ---
+  @@index([createdAt])            // GET /api/pengabdian -> ORDER BY createdAt DESC
+  @@index([tahun, status])        // filter tahun + status sekaligus
+  @@index([mitra])                // filter/rekap per mitra
+  @@index([nidn])                 // pencarian kegiatan milik dosen tertentu
   @@map("lppm_pengabdian")
 }
 
@@ -60,6 +70,10 @@ model Publikasi {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // --- Index kinerja query daftar/filter (lihat docs/database/INDEX_STRATEGY.md) ---
+  @@index([tahun])          // GET /api/publikasi -> ORDER BY tahun DESC
+  @@index([jenis, tahun])   // filter jenis publikasi per tahun
+  @@index([penulis])        // pencarian riwayat publikasi penulis
   @@map("lppm_publikasi")
 }
 
@@ -85,6 +99,7 @@ model Permission {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
+  @@index([modul])   // GET /api/permissions -> ORDER BY modul, kode
   @@map("lppm_permissions")
 }
 
@@ -168,7 +183,47 @@ model MonitoringEvaluasi {
   @@index([pengabdianId])
   @@index([jenisProgram, status])
   @@index([tahap])
+  // --- Index tambahan untuk pagination & penjadwalan monev ---
+  @@index([createdAt])          // GET /api/monev -> ORDER BY createdAt DESC + skip/take
+  @@index([tanggalJadwal])      // kalender/agenda monev terdekat
+  @@index([nidnReviewer])       // riwayat penugasan reviewer
   @@map("lppm_monitoring_evaluasi")
+}
+
+// ==========================================
+// Audit Trail (jejak mutasi data)
+// ==========================================
+// Tabel append-only: hanya INSERT dari middleware, tanpa UPDATE/DELETE.
+// Tidak memakai foreign key ke tabel entitas agar log tetap utuh (immutable)
+// walaupun record sumbernya dihapus.
+
+enum AksiAudit {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+model AuditLog {
+  id         Int       @id @default(autoincrement())
+  aktorId    Int?      // id user SSO (ONE UNUSU)
+  aktorNidn  String?   @db.VarChar(50)
+  aktorNama  String?   @db.VarChar(150)
+  aktorRole  String?   @db.VarChar(50)
+  aksi       AksiAudit
+  entitas    String    @db.VarChar(50)  // penelitian | pengabdian | publikasi | monev | role | permission
+  entitasId  Int?      // id record yang dimutasi (null untuk koleksi)
+  metode     String    @db.VarChar(10)  // POST | PUT | PATCH | DELETE
+  path       String    @db.VarChar(255)
+  statusCode Int
+  ringkasan  String?   @db.Text         // ringkasan payload (dipotong, tanpa data sensitif)
+  ipAddress  String?   @db.VarChar(64)
+  createdAt  DateTime  @default(now())
+
+  @@index([createdAt])            // daftar log terbaru (ORDER BY createdAt DESC, id DESC)
+  @@index([entitas, entitasId])   // riwayat satu record
+  @@index([aktorNidn])            // aktivitas satu dosen/admin
+  @@index([aksi, createdAt])      // rekap CREATE/UPDATE/DELETE per periode
+  @@map("lppm_audit_log")
 }
 
 

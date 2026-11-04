@@ -14,11 +14,24 @@ import { MonevPage } from './pages/Monev';
 import { MonevFormPage } from './pages/MonevForm';
 import { LoginPage } from './pages/Login';
 import { SsoCallbackPage } from './pages/SsoCallback';
+import { AksesDitolakPage } from './pages/AksesDitolak';
 import { SidebarLayout } from './components/SidebarLayout';
+import { AppScopeGuard } from './components/AppScopeGuard';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { evaluatePanelAccess } from './lib/appAccess';
 
+/**
+ * Rute panel LPPM. Menolak sesi yang bukan milik aplikasi ini (mis. admin LPM)
+ * dengan halaman 403 yang menjelaskan alasan penolakan.
+ */
 function ProtectedRoute({ children }: { children: React.ReactElement }) {
+  return <AppScopeGuard>{children}</AppScopeGuard>;
+}
+
+/** Pintu masuk /admin — arahkan sesuai peran, tolak peran aplikasi lain. */
+function AdminEntryRoute() {
   const { user, loading } = useAuth();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center p-12 text-center text-slate-500 font-semibold text-sm">
@@ -29,10 +42,37 @@ function ProtectedRoute({ children }: { children: React.ReactElement }) {
   if (!user) {
     return <Navigate to="/login" replace />;
   }
-  return children;
+  if (!evaluatePanelAccess(user).allowed) {
+    return <AksesDitolakPage />;
+  }
+  return <Navigate to="/penelitian" replace />;
 }
 
 const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
+
+/**
+ * Rute khusus Admin LPPM (Pengguna, Peran, Izin). Dosen peneliti yang mengetik
+ * URL langsung dikembalikan ke pangkalan data penelitian, bukan melihat menu
+ * manajemen sistem.
+ */
+function AdminOnlyRoute({ children }: { children: React.ReactElement }) {
+  const { user, loading, canManageSystem } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#F1F5F9] flex items-center justify-center p-12 text-center text-slate-500 font-semibold text-sm">
+        Memeriksa hak administrasi...
+      </div>
+    );
+  }
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (!canManageSystem) {
+    return <Navigate to="/penelitian" replace />;
+  }
+  return children;
+}
 
 export function App() {
   const currentPath = window.location.pathname;
@@ -51,15 +91,11 @@ export function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/sso/callback" element={<SsoCallbackPage />} />
 
-            {/* Rute /admin: Jika sudah login & role admin, arahkan ke /penelitian; selain itu arahkan ke /login */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <Navigate to="/penelitian" replace />
-                </ProtectedRoute>
-              }
-            />
+            {/* Halaman 403 — penolakan akses lintas aplikasi (mis. admin LPM) */}
+            <Route path="/akses-ditolak" element={<AksesDitolakPage />} />
+
+            {/* Rute /admin: hanya untuk sesi ber-cakupan LPPM, lalu ke /penelitian */}
+            <Route path="/admin" element={<AdminEntryRoute />} />
 
             {/* Panel Manajemen Admin Ber-Sidebar (Standar LPM UNUSU) */}
             {/* 1. Penelitian Dosen */}
@@ -158,38 +194,44 @@ export function App() {
               }
             />
 
-            {/* 4. Manajemen Pengguna */}
+            {/* 4. Manajemen Pengguna — khusus Admin LPPM */}
             <Route
               path="/pengguna"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PenggunaPage />
-                  </SidebarLayout>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <PenggunaPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
                 </ProtectedRoute>
               }
             />
 
-            {/* 5. Manajemen Peran & Hak Akses */}
+            {/* 5. Manajemen Peran & Hak Akses — khusus Admin LPPM */}
             <Route
               path="/peran"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PeranPage />
-                  </SidebarLayout>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <PeranPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
                 </ProtectedRoute>
               }
             />
 
-            {/* 6. Katalog Hak Izin (Permissions) */}
+            {/* 6. Katalog Hak Izin (Permissions) — khusus Admin LPPM */}
             <Route
               path="/izin"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <IzinPage />
-                  </SidebarLayout>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <IzinPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
                 </ProtectedRoute>
               }
             />

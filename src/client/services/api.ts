@@ -18,6 +18,9 @@ export interface SessionUser {
   email: string | null;
   role: string;
   ssoRole: string;
+  /** Cakupan aplikasi penerbit sesi — harus "lppm" untuk panel ini. */
+  app?: string;
+  appName?: string;
   nim?: string | null;
   nidn?: string | null;
   prodi?: string | null;
@@ -40,6 +43,23 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const path = window.location.pathname;
+    const code = error.response?.data?.code as string | undefined;
+
+    // Sesi milik aplikasi lain (mis. admin LPM) tidak boleh dipakai di panel ini:
+    // bersihkan sesi lalu tampilkan halaman 403 yang menjelaskan alasannya.
+    if (status === 403 && (code === 'FOREIGN_APP_TOKEN' || code === 'FOREIGN_APP_ADMIN')) {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      const base = import.meta.env.BASE_URL || '/';
+      const deniedUrl = `${base}${base.endsWith('/') ? '' : '/'}akses-ditolak?reason=${
+        code === 'FOREIGN_APP_ADMIN' ? 'foreign-app' : 'invalid-scope'
+      }`;
+      if (!path.endsWith('/akses-ditolak')) {
+        window.location.replace(deniedUrl);
+      }
+      return Promise.reject(error);
+    }
+
     if (status === 401 && path !== import.meta.env.BASE_URL + 'login' && path !== import.meta.env.BASE_URL + 'sso/callback') {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
@@ -51,6 +71,20 @@ api.interceptors.response.use(
 
 export const ssoLogin = (client_id: string, token: string) =>
   api.post<{ success: boolean; token: string; user: SessionUser; message?: string }>('/auth/sso', { client_id, token });
+
+export interface SessionScopeInfo {
+  app: string;
+  appName: string;
+  role: string;
+  ssoRole: string;
+  isAdmin: boolean;
+  canManageSystem: boolean;
+  permissions: string[];
+}
+
+/** Validasi ulang sesi + cakupan aplikasi langsung ke server. */
+export const fetchSession = () =>
+  api.get<{ success: boolean; data: SessionUser & SessionScopeInfo }>('/auth/session');
 
 export interface PenelitianItem {
   id: number;

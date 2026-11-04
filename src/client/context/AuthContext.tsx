@@ -1,9 +1,31 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { SessionUser } from '../services/api';
+import {
+  APP_SCOPE,
+  canAccessLppmPanel,
+  canManageSystem as canManageSystemFor,
+  evaluatePanelAccess,
+  isDosenPeneliti,
+  isLppmAdmin,
+  isSuperadmin as isSuperadminSubject,
+  roleBadgeLabel,
+} from '../lib/appAccess';
 
 interface AuthContextValue {
   user: SessionUser | null;
   loading: boolean;
+  /** Cakupan aplikasi sesi aktif (selalu "lppm" untuk aplikasi ini). */
+  appScope: string;
+  /** True bila sesi berhak membuka panel LPPM. */
+  hasPanelAccess: boolean;
+  /** True untuk admin LPPM / superadmin. */
+  isAdmin: boolean;
+  /** Alias semantik: boleh mengelola data master, pengguna, peran & izin. */
+  canManageSystem: boolean;
+  /** True untuk dosen peneliti (akses baca & pengusulan). */
+  isDosen: boolean;
+  isSuperadmin: boolean;
+  roleLabel: string;
   saveSession: (token: string, user: SessionUser) => void;
   logout: () => void;
 }
@@ -23,7 +45,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (token && raw) {
       try {
-        setUser(JSON.parse(raw) as SessionUser);
+        const parsed = JSON.parse(raw) as SessionUser;
+        // Sesi lama tanpa penanda aplikasi dilengkapi cakupan LPPM agar
+        // pengguna sah tidak ter-logout hanya karena migrasi skema.
+        setUser({ ...parsed, app: parsed.app ?? APP_SCOPE });
       } catch {
         localStorage.removeItem(USER_KEY);
       }
@@ -32,9 +57,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const saveSession = (token: string, sessionUser: SessionUser) => {
+    const scopedUser: SessionUser = { ...sessionUser, app: sessionUser.app ?? APP_SCOPE };
     localStorage.setItem(TOKEN_KEY, token);
-    localStorage.setItem(USER_KEY, JSON.stringify(sessionUser));
-    setUser(sessionUser);
+    localStorage.setItem(USER_KEY, JSON.stringify(scopedUser));
+    setUser(scopedUser);
   };
 
   const logout = () => {
@@ -43,11 +69,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  return (
-    <AuthContext.Provider value={{ user, loading, saveSession, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      loading,
+      appScope: user?.app || APP_SCOPE,
+      hasPanelAccess: canAccessLppmPanel(user),
+      isAdmin: isLppmAdmin(user),
+      canManageSystem: canManageSystemFor(user),
+      isDosen: isDosenPeneliti(user),
+      isSuperadmin: isSuperadminSubject(user),
+      roleLabel: roleBadgeLabel(user),
+      saveSession,
+      logout,
+    }),
+    [user, loading]
   );
+
+  // Penolakan akses lintas aplikasi tidak boleh senyap — catat untuk diagnosis.
+  useEffect(() => {
+    if (!user) return;
+    const decision = evaluatePanelAccess(user);
+    if (!decision.allowed) {
+      console.warn('[LPPM Access]', decision.code, decision.message);
+    }
+  }, [user]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

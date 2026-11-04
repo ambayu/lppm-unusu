@@ -25,7 +25,16 @@ import {
   BookOpenIcon,
   IdentificationIcon,
   EnvelopeIcon,
+  LockClosedIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
+import {
+  APP_NAME,
+  FOREIGN_APP_ADMIN_ROLES,
+  LPPM_ALLOWED_SSO_ROLES,
+  foreignAppForRole,
+  labelForSsoRole,
+} from '../lib/appAccess';
 
 export interface UserSummaryItem {
   id: string;
@@ -367,6 +376,82 @@ export const PenggunaPage: React.FC = () => {
         </div>
       </CardContainer>
 
+      {/* 3b. Cakupan Aplikasi — pemisahan admin per aplikasi (LPPM ≠ LPM) */}
+      <CardContainer
+        title="Cakupan Aplikasi & Pemisahan Admin"
+        subtitle={`Sesi ini terikat pada aplikasi ${APP_NAME}. Peran admin aplikasi cabang lain tidak dapat memakai panel ini.`}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {/* Peran yang sah di LPPM */}
+          <div className="rounded-[12px] border border-emerald-200 bg-emerald-50/60 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ShieldCheckIcon className="w-4 h-4 text-emerald-700" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
+                Peran sah · Panel LPPM
+              </h3>
+            </div>
+            <ul className="flex flex-wrap gap-1.5">
+              {LPPM_ALLOWED_SSO_ROLES.map((code) => (
+                <li
+                  key={code}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-emerald-300 text-[11px] font-bold text-emerald-800"
+                >
+                  <LockClosedIcon className="w-3 h-3" aria-hidden="true" />
+                  {labelForSsoRole(code)}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2.5 text-[11px] text-emerald-900/80 leading-relaxed">
+              Admin LPPM dan Superadmin mengelola data master; Dosen peneliti hanya membaca dan mengusulkan.
+            </p>
+          </div>
+
+          {/* Peran admin aplikasi lain yang ditolak */}
+          <div className="rounded-[12px] border border-rose-200 bg-rose-50/60 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ExclamationTriangleIcon className="w-4 h-4 text-rose-700" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-rose-800">
+                Ditolak di panel ini
+              </h3>
+            </div>
+            <ul className="flex flex-wrap gap-1.5">
+              {Object.entries(FOREIGN_APP_ADMIN_ROLES).map(([code, appName]) => (
+                <li
+                  key={code}
+                  title={`Gunakan panel ${appName}`}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-rose-300 text-[11px] font-semibold text-rose-800"
+                >
+                  {labelForSsoRole(code)}
+                  <span className="text-rose-500 font-normal">· {appName}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-2.5 text-[11px] text-rose-900/80 leading-relaxed">
+              Login dan setiap panggilan API memverifikasi cakupan aplikasi di server, sehingga admin LPM
+              tidak dapat membuka panel LPPM walau memegang token SSO yang sah.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 px-4 py-3">
+          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
+            Sesi Anda
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-700 text-white text-[11px] font-bold w-fit">
+            <ShieldCheckIcon className="w-3 h-3" aria-hidden="true" />
+            {currentAuthUser?.ssoRole ? labelForSsoRole(currentAuthUser.ssoRole) : 'Pengguna LPPM'}
+          </span>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#CBD5E1] text-[11px] font-semibold text-slate-700 w-fit">
+            Akses: {APP_NAME}
+          </span>
+          {foreignAppForRole(currentAuthUser?.ssoRole) && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-800 w-fit">
+              Peran ini milik {foreignAppForRole(currentAuthUser?.ssoRole)}
+            </span>
+          )}
+        </div>
+      </CardContainer>
+
       {/* 4. Tabel Manajemen Pengguna */}
       <CardContainer
         title="Daftar Pengguna & Peneliti Terdaftar"
@@ -436,8 +521,29 @@ export const PenggunaPage: React.FC = () => {
                         <div className="font-bold text-xs text-slate-800">
                           {item.role}
                         </div>
-                        <div className="text-[10px] font-mono text-slate-400 mt-0.5">
-                          SSO: {item.ssoRole}
+                        <div className="mt-1 flex flex-col items-center gap-1">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                              foreignAppForRole(item.ssoRole)
+                                ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                            }`}
+                            title={
+                              foreignAppForRole(item.ssoRole)
+                                ? `Peran milik ${foreignAppForRole(item.ssoRole)} — tidak dapat memakai panel LPPM`
+                                : 'Peran sah untuk panel LPPM'
+                            }
+                          >
+                            {foreignAppForRole(item.ssoRole) ? (
+                              <ExclamationTriangleIcon className="w-3 h-3" aria-hidden="true" />
+                            ) : (
+                              <ShieldCheckIcon className="w-3 h-3" aria-hidden="true" />
+                            )}
+                            {foreignAppForRole(item.ssoRole) ? 'Ditolak di LPPM' : 'Akses LPPM'}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-400">
+                            SSO: {item.ssoRole}
+                          </span>
                         </div>
                       </td>
                       <td className="py-3.5 px-4 text-center">

@@ -1,11 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
+import { ArrowRightIcon, ChevronLeftIcon, ShieldExclamationIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
 import { AnimatedFlatSsoLogo } from '../components/AnimatedFlatSsoLogo';
 import { assetUrl } from '../lib/assets';
 
 const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'http://localhost:5173';
 const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || 'lppm-unusu';
+/** Panel LPM UNUSU — aplikasi cabang terpisah (admin LPM tidak dapat masuk LPPM). */
+const LPM_PANEL_URL = import.meta.env.VITE_LPM_URL || 'http://localhost:5177';
 
 export function LoginPage() {
   const handleSsoLogin = () => {
@@ -80,6 +82,30 @@ export function LoginPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
               Terhubung dengan SSO Gateway: <span className="font-mono text-slate-600">{ONE_UNUSU_URL}</span>
             </span>
+          </div>
+
+          {/* Pemisahan admin per aplikasi — transparan sejak halaman login */}
+          <div className="rounded-2xl border border-[#CBD5E1] bg-slate-50/80 p-4 text-left">
+            <div className="flex items-start gap-2.5">
+              <ShieldExclamationIcon className="w-4 h-4 text-violet-700 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-slate-800">
+                  Panel ini khusus LPPM UNUSU
+                </p>
+                <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
+                  Akun administrator LPM, E-Surat, Sarpras, Akreditasi, dan LMS tidak dapat masuk ke panel ini.
+                  Gunakan panel aplikasi Anda masing-masing — hak akses diverifikasi ulang oleh server pada
+                  setiap permintaan.
+                </p>
+                <a
+                  href={LPM_PANEL_URL}
+                  className="mt-2.5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 rounded-xl bg-white border border-[#CBD5E1] text-[11px] font-bold text-violet-800 hover:bg-violet-50 hover:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 transition-colors"
+                >
+                  <span>Buka panel LPM UNUSU</span>
+                  <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
