@@ -70,7 +70,11 @@ export function SsoCallbackPage() {
         saveSession(response.data.token, response.data.user);
 
         if (!cancelled) {
-          window.location.replace('/penelitian');
+          // Setelah login sukses SELALU mendarat di dashboard panel, bukan di
+          // menu modul (dulu '/penelitian'). BASE_URL dipertahankan supaya
+          // tetap benar bila aplikasi di-deploy di subfolder.
+          const dashboardPath = `${import.meta.env.BASE_URL.replace(/\/$/, '')}/dashboard`;
+          window.location.replace(dashboardPath);
         }
       } catch (err: any) {
         if (!cancelled) {
