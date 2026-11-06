@@ -32,12 +32,19 @@ export function resolvePagination(input: QueryListInput): { skip: number; take: 
  * Tanpa tie-breaker, baris dengan createdAt identik bisa berpindah halaman
  * (offset pagination) sehingga data tampak duplikat/hilang.
  * Urutan ini juga selaras dengan index `*_createdAt_idx` pada schema.prisma.
+ *
+ * PENTING: Prisma menolak `orderBy` yang menaruh DUA kunci dalam SATU objek
+ * (`[{ createdAt, id }]`) untuk model di repo ini — hasilnya
+ * "Argument `orderBy`: Invalid value provided. Expected
+ *  <Model>OrderByWithRelationInput". Setiap kunci harus menjadi elemen array
+ * tersendiri (`[{ createdAt }, { id }]`). Kesalahan bentuk ini membuat
+ * seluruh endpoint daftar gagal 500 dengan pesan "Gagal mengambil data ...".
  */
 export function resolveOrder(
   sort: QueryListInput["sort"],
-): Array<{ createdAt: "asc" | "desc"; id: "asc" | "desc" }> {
+): Array<{ createdAt: "asc" | "desc" } | { id: "asc" | "desc" }> {
   const direction = sort === "terlama" ? "asc" : "desc";
-  return [{ createdAt: direction, id: direction }];
+  return [{ createdAt: direction }, { id: direction }];
 }
 
 /** Bentuk metadata pagination yang konsisten dengan endpoint /api/monev. */

@@ -13,11 +13,9 @@ import {
   StatusMonev,
   RekomendasiMonev,
 } from '../services/api';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
+import { FormPageTemplate } from '../components/FormPageTemplate';
 import { CardContainer } from '../components/CardContainer';
 import {
-  ArrowLeftIcon,
-  CheckIcon,
   ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
@@ -158,31 +156,23 @@ export const MonevFormPage: React.FC = () => {
   };
 
   return (
-    <AdminPanelTemplate
+    <FormPageTemplate
       title={isEdit ? 'Edit Evaluasi Monev' : 'Jadwalkan Monev Baru'}
       description="Formulir pengelolaan jadwal penilaian kemajuan riset, telaah luaran, dan rekomendasi monev LPPM UNUSU."
-      actions={
-        <Link
-          to="/monev"
-          className="inline-flex items-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
-        >
-          <ArrowLeftIcon className="w-4 h-4 text-slate-500" />
-          <span>Kembali</span>
-        </Link>
-      }
+      backTo="/monev"
+      isEdit={isEdit}
+      submitLabel={isEdit ? 'Simpan Perubahan' : 'Jadwalkan Monev'}
+      submitting={submitting}
+      error={error}
+      onSubmit={handleSubmit}
+      accentClassName="bg-violet-700 hover:bg-violet-800"
     >
-      {error && (
-        <div className="p-4 mb-4 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm font-medium">
-          {error}
-        </div>
-      )}
-
       {loading ? (
         <div className="py-16 text-center text-slate-400 font-semibold text-sm">
           Memuat formulir Monev...
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           {/* Bagian 1: Parameter Program & Objek Monev */}
           <CardContainer
             title="1. Identitas Program & Objek Monev"
@@ -467,26 +457,8 @@ export const MonevFormPage: React.FC = () => {
               </div>
             </div>
           </CardContainer>
-
-          {/* Tombol Aksi */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Link
-              to="/monev"
-              className="px-5 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 text-sm font-semibold transition shadow-2xs"
-            >
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition shadow-2xs hover:shadow-md disabled:opacity-60 cursor-pointer"
-            >
-              <CheckIcon className="w-4 h-4 stroke-[2.5]" />
-              <span>{submitting ? 'Menyimpan...' : isEdit ? 'Simpan Perubahan' : 'Jadwalkan Monev'}</span>
-            </button>
-          </div>
-        </form>
+        </div>
       )}
-    </AdminPanelTemplate>
+    </FormPageTemplate>
   );
 };

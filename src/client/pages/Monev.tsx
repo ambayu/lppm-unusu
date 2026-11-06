@@ -8,16 +8,10 @@ import {
   TahapMonev,
   StatusMonev,
 } from '../services/api';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
-import { CardContainer } from '../components/CardContainer';
-import { EmptyState } from '../components/EmptyState';
-import { ErrorState } from '../components/ErrorState';
+import { ListPageTemplate } from '../components/ListPageTemplate';
 import {
   ClipboardDocumentCheckIcon,
   PlusIcon,
-  MagnifyingGlassIcon,
-  AdjustmentsHorizontalIcon,
-  ArrowPathIcon,
   PencilSquareIcon,
   TrashIcon,
   ArrowDownTrayIcon,
@@ -59,10 +53,15 @@ export const MonevPage: React.FC = () => {
     loadData();
   }, [selectedJenis, selectedTahap, selectedStatus]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    loadData();
-  };
+  // Pencarian dikirim ke server, sehingga perubahan kata kunci harus memicu
+  // muat ulang data. Diberi jeda 350 ms agar tidak membanjiri API per ketikan.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      loadData();
+    }, 350);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const handleDelete = async (id: number, kode: string) => {
     if (!window.confirm(`Yakin ingin menghapus agenda Monev "${kode}"?`)) return;
@@ -187,11 +186,16 @@ export const MonevPage: React.FC = () => {
   };
 
   return (
-    <AdminPanelTemplate
+    <ListPageTemplate<MonevItem>
       title="Monitoring & Evaluasi (Monev)"
       description="Instrumen pemantauan kemajuan riset dosen dan pengabdian masyarakat UNUSU serta penilaian luaran berkala."
+      badge={
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-violet-100 text-violet-800 uppercase tracking-wider">
+          Monev Tridharma
+        </span>
+      }
       actions={
-        <div className="flex items-center gap-2.5">
+        <>
           <button
             onClick={handleExportCsv}
             className="inline-flex items-center gap-2 px-3.5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
@@ -207,325 +211,299 @@ export const MonevPage: React.FC = () => {
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
             <span>Jadwal Monev Baru</span>
           </Link>
+        </>
+      }
+      stats={
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-[12px] bg-[#EDE8F5] flex items-center justify-center text-violet-700 flex-shrink-0">
+              <ClipboardDocumentCheckIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Total Agenda Monev
+              </div>
+              <div className="text-2xl font-extrabold text-slate-900 mt-0.5">{totalAgenda}</div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-[12px] bg-blue-50 flex items-center justify-center text-blue-700 flex-shrink-0">
+              <ClipboardDocumentCheckIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Monev Penelitian
+              </div>
+              <div className="text-2xl font-extrabold text-slate-900 mt-0.5">{countPenelitian}</div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-[12px] bg-emerald-50 flex items-center justify-center text-emerald-700 flex-shrink-0">
+              <ClipboardDocumentCheckIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Monev Pengabdian
+              </div>
+              <div className="text-2xl font-extrabold text-slate-900 mt-0.5">{countPengabdian}</div>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-[12px] bg-amber-50 flex items-center justify-center text-amber-700 flex-shrink-0">
+              <ChartBarIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Rata-rata Kemajuan
+              </div>
+              <div className="text-2xl font-extrabold text-slate-900 mt-0.5">{avgKemajuan}%</div>
+            </div>
+          </div>
         </div>
       }
-    >
-      {/* 1. KPI Highlight Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-[12px] bg-[#EDE8F5] flex items-center justify-center text-violet-700 flex-shrink-0">
-            <ClipboardDocumentCheckIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Total Agenda Monev
-            </div>
-            <div className="text-2xl font-black text-slate-900 mt-0.5">{totalAgenda}</div>
-          </div>
-        </div>
+      searchValue={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Cari kode, reviewer, atau catatan..."
+      filters={
+        <>
+          <select
+            value={selectedJenis}
+            onChange={(e) => setSelectedJenis(e.target.value)}
+            aria-label="Filter jenis program"
+            className="px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-600 min-h-[44px]"
+          >
+            <option value="SEMUA">Semua Program Tridharma</option>
+            <option value="PENELITIAN">Riset & Penelitian</option>
+            <option value="PENGABDIAN">Pengabdian Masyarakat (PKM)</option>
+          </select>
 
-        <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-[12px] bg-blue-50 flex items-center justify-center text-blue-700 flex-shrink-0">
-            <ClipboardDocumentCheckIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Monev Penelitian
-            </div>
-            <div className="text-2xl font-black text-slate-900 mt-0.5">{countPenelitian}</div>
-          </div>
-        </div>
+          <select
+            value={selectedTahap}
+            onChange={(e) => setSelectedTahap(e.target.value)}
+            aria-label="Filter tahap monev"
+            className="px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-600 min-h-[44px]"
+          >
+            <option value="SEMUA">Semua Tahap Monev</option>
+            <option value="MONEV_ANTARA">Monev Antara (Kemajuan)</option>
+            <option value="MONEV_AKHIR">Monev Akhir (Pasca)</option>
+            <option value="MONEV_LAPANGAN">Monev Lapangan (Visitasi)</option>
+          </select>
 
-        <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-[12px] bg-emerald-50 flex items-center justify-center text-emerald-700 flex-shrink-0">
-            <ClipboardDocumentCheckIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Monev Pengabdian
-            </div>
-            <div className="text-2xl font-black text-slate-900 mt-0.5">{countPengabdian}</div>
-          </div>
-        </div>
+          <select
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            aria-label="Filter status monev"
+            className="px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-600 min-h-[44px]"
+          >
+            <option value="SEMUA">Semua Status Monev</option>
+            <option value="DIJADWALKAN">Dijadwalkan</option>
+            <option value="SEDANG_DITELAAH">Sedang Ditelaah</option>
+            <option value="PERLU_REVISI">Perlu Revisi</option>
+            <option value="DISETUJUI">Disetujui / Lolos</option>
+            <option value="DITOLAK">Ditolak / Gagal</option>
+          </select>
 
-        <div className="p-4 rounded-[16px] bg-white border border-[#CBD5E1] shadow-2xs flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-[12px] bg-amber-50 flex items-center justify-center text-amber-700 flex-shrink-0">
-            <ChartBarIcon className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-              Rata-rata Kemajuan
+          <button
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setSelectedJenis('SEMUA');
+              setSelectedTahap('SEMUA');
+              setSelectedStatus('SEMUA');
+            }}
+            className="px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer font-semibold min-h-[44px]"
+          >
+            Reset Filter
+          </button>
+        </>
+      }
+      tableTitle="Daftar Jadwal & Catatan Evaluasi Monev"
+      tableSubtitle={`Menampilkan ${list.length} rekaman agenda monitoring & evaluasi`}
+      tableBadge={
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-50 text-violet-800 border border-violet-200">
+          {list.length} Agenda
+        </span>
+      }
+      loading={loading}
+      error={error}
+      onRetry={loadData}
+      hasActiveFilter={Boolean(
+        search || selectedJenis !== 'SEMUA' || selectedTahap !== 'SEMUA' || selectedStatus !== 'SEMUA'
+      )}
+      emptyMessage="Belum ada agenda monitoring & evaluasi riset yang dijadwalkan."
+      noResultMessage="Tidak ditemukan agenda monev yang cocok dengan kriteria filter Anda."
+      rowKey={(item) => item.id}
+      rows={list}
+      columns={[
+        {
+          key: 'no',
+          header: 'No',
+          headerClassName: 'w-12 text-center',
+          cellClassName: 'text-center text-slate-400 font-mono text-xs',
+          render: (_item, idx) => idx + 1,
+        },
+        {
+          key: 'kodeMonev',
+          header: 'Kode & Program',
+          headerClassName: 'min-w-[160px]',
+          render: (item) => (
+            <>
+              <div className="font-mono font-bold text-violet-800">{item.kodeMonev}</div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span
+                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                    item.jenisProgram === 'PENELITIAN'
+                      ? 'bg-violet-50 text-violet-700 border-violet-200'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}
+                >
+                  {item.jenisProgram}
+                </span>
+                <span
+                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border ${formatTahapBadge(
+                    item.tahap
+                  )}`}
+                >
+                  {item.tahap.replace('MONEV_', '')}
+                </span>
+              </div>
+            </>
+          ),
+        },
+        {
+          key: 'judul',
+          header: 'Judul Kegiatan & Tim Pengusul',
+          headerClassName: 'min-w-[280px]',
+          render: (item) => {
+            const judul =
+              item.jenisProgram === 'PENELITIAN'
+                ? item.penelitian?.judul || 'Proposal Penelitian Belum Terpaut'
+                : item.pengabdian?.judul || 'Kegiatan Pengabdian Belum Terpaut';
+            const ketua =
+              item.jenisProgram === 'PENELITIAN'
+                ? item.penelitian?.ketua || '-'
+                : item.pengabdian?.ketua || '-';
+            const nidn =
+              item.jenisProgram === 'PENELITIAN'
+                ? item.penelitian?.nidn || '-'
+                : item.pengabdian?.nidn || '-';
+            return (
+              <>
+                <div className="font-bold text-slate-900 leading-snug line-clamp-2">{judul}</div>
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1">
+                  <span className="font-semibold text-slate-700">{ketua}</span>
+                  <span>•</span>
+                  <span className="font-mono">NIDN: {nidn}</span>
+                </div>
+              </>
+            );
+          },
+        },
+        {
+          key: 'namaReviewer',
+          header: 'Reviewer & Jadwal',
+          headerClassName: 'min-w-[180px]',
+          render: (item) => (
+            <>
+              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+                <UserIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                <span>{item.namaReviewer}</span>
+              </div>
+              <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1.5">
+                <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                <span>
+                  {item.tanggalJadwal
+                    ? new Date(item.tanggalJadwal).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : '-'}
+                </span>
+              </div>
+              {item.lokasiMonev && (
+                <div className="text-[10px] text-slate-400 truncate max-w-xs mt-0.5">
+                  {item.lokasiMonev}
+                </div>
+              )}
+            </>
+          ),
+        },
+        {
+          key: 'kemajuan',
+          header: 'Kemajuan & Serapan',
+          headerClassName: 'min-w-[130px] text-center',
+          cellClassName: 'text-center',
+          render: (item) => (
+            <div className="flex flex-col gap-1 items-center">
+              <div className="w-24 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
+                <div
+                  className="bg-violet-600 h-full rounded-full transition-all"
+                  style={{ width: `${Math.min(100, item.persentaseKemajuan || 0)}%` }}
+                />
+              </div>
+              <div className="text-[10px] font-semibold text-slate-600 font-mono">
+                Kemajuan: {item.persentaseKemajuan}% | Dana: {item.persentaseDanaTerpakai}%
+              </div>
             </div>
-            <div className="text-2xl font-black text-slate-900 mt-0.5">{avgKemajuan}%</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Filter & Pencarian */}
-      <CardContainer className="mb-6">
-        <form onSubmit={handleSearchSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Input Pencarian */}
-            <div className="relative">
-              <MagnifyingGlassIcon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Cari kode, reviewer, atau catatan..."
-                className="w-full pl-10 pr-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition"
-              />
-            </div>
-
-            {/* Filter Jenis Program */}
-            <div className="relative">
-              <select
-                value={selectedJenis}
-                onChange={(e) => setSelectedJenis(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition"
+          ),
+        },
+        {
+          key: 'status',
+          header: 'Status / Skor',
+          headerClassName: 'min-w-[130px] text-center',
+          cellClassName: 'text-center',
+          render: (item) => (
+            <>
+              <span
+                className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border ${formatStatusBadge(
+                  item.status
+                )}`}
               >
-                <option value="SEMUA">Semua Program Tridharma</option>
-                <option value="PENELITIAN">Riset & Penelitian</option>
-                <option value="PENGABDIAN">Pengabdian Masyarakat (PKM)</option>
-              </select>
-            </div>
-
-            {/* Filter Tahap Monev */}
-            <div className="relative">
-              <select
-                value={selectedTahap}
-                onChange={(e) => setSelectedTahap(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition"
-              >
-                <option value="SEMUA">Semua Tahap Monev</option>
-                <option value="MONEV_ANTARA">Monev Antara (Kemajuan)</option>
-                <option value="MONEV_AKHIR">Monev Akhir (Pasca)</option>
-                <option value="MONEV_LAPANGAN">Monev Lapangan (Visitasi)</option>
-              </select>
-            </div>
-
-            {/* Filter Status Monev */}
-            <div className="relative">
-              <select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                className="w-full px-3.5 py-2 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-violet-600 focus:border-transparent transition"
-              >
-                <option value="SEMUA">Semua Status Monev</option>
-                <option value="DIJADWALKAN">Dijadwalkan</option>
-                <option value="SEDANG_DITELAAH">Sedang Ditelaah</option>
-                <option value="PERLU_REVISI">Perlu Revisi</option>
-                <option value="DISETUJUI">Disetujui / Lolos</option>
-                <option value="DITOLAK">Ditolak / Gagal</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-1">
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <AdjustmentsHorizontalIcon className="w-4 h-4 text-violet-700" />
-              <span>Gunakan filter untuk menyeleksi jadwal monev Tridharma UNUSU</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setSearch('');
-                  setSelectedJenis('SEMUA');
-                  setSelectedTahap('SEMUA');
-                  setSelectedStatus('SEMUA');
-                }}
-                className="px-3 py-1.5 rounded-[10px] border border-[#CBD5E1] bg-white text-xs text-slate-600 hover:bg-slate-50 transition cursor-pointer font-medium"
-              >
-                Reset
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-1.5 rounded-[10px] bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold transition cursor-pointer"
-              >
-                Terapkan
-              </button>
-            </div>
-          </div>
-        </form>
-      </CardContainer>
-
-      {/* 3. Data Table dengan Horizontal Scroll & Audit Trail */}
-      <CardContainer
-        title="Daftar Jadwal & Catatan Evaluasi Monev"
-        subtitle={`Menampilkan ${list.length} rekaman agenda monitoring & evaluasi`}
-      >
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">
-            <ArrowPathIcon className="w-8 h-8 mx-auto animate-spin text-violet-700 mb-2" />
-            <p className="text-sm font-semibold">Memuat data monitoring evaluasi...</p>
-          </div>
-        ) : error ? (
-          <ErrorState description={error} onRetry={loadData} />
-        ) : list.length === 0 ? (
-          <EmptyState
-            title="Tidak Ada Agenda Monev"
-            description={
-              search || selectedJenis !== 'SEMUA' || selectedStatus !== 'SEMUA'
-                ? 'Tidak ditemukan agenda monev yang cocok dengan kriteria filter Anda.'
-                : 'Belum ada agenda monitoring & evaluasi riset yang dijadwalkan.'
-            }
-            action={
+                {item.status.replace('_', ' ')}
+              </span>
+              <div className="text-[11px] font-mono font-bold text-slate-700 mt-1">
+                {item.skorSubstansi ? `Skor: ${item.skorSubstansi}` : 'Skor: -'}
+              </div>
+            </>
+          ),
+        },
+        {
+          key: 'createdAt',
+          header: 'Dibuat',
+          headerClassName: 'min-w-[110px]',
+          cellClassName: 'text-slate-500 text-[11px] font-mono',
+          render: (item) => (item.createdAt ? item.createdAt.substring(0, 10) : '-'),
+        },
+        {
+          key: 'aksi',
+          header: 'Aksi',
+          headerClassName: 'w-28 text-center',
+          cellClassName: 'text-center',
+          render: (item) => (
+            <div className="flex items-center justify-center gap-1.5">
               <Link
-                to="/monev/tambah"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-violet-700 text-white text-xs font-bold hover:bg-violet-800 transition-colors"
+                to={`/monev/edit/${item.id}`}
+                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
+                title="Edit Monev"
               >
-                <PlusIcon className="w-4 h-4" />
-                <span>Jadwalkan Sekarang</span>
+                <PencilSquareIcon className="w-4 h-4" />
               </Link>
-            }
-          />
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1080px] text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#CBD5E1] text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70">
-                  <th className="py-3 px-3.5 w-12 text-center">No</th>
-                  <th className="py-3 px-4 min-w-[160px]">Kode & Program</th>
-                  <th className="py-3 px-4 min-w-[280px]">Judul Kegiatan & Tim Pengusul</th>
-                  <th className="py-3 px-4 min-w-[180px]">Reviewer & Jadwal</th>
-                  <th className="py-3 px-4 min-w-[130px] text-center">Kemajuan & Serapan</th>
-                  <th className="py-3 px-4 min-w-[130px] text-center">Status / Skor</th>
-                  <th className="py-3 px-4 min-w-[110px]">Dibuat</th>
-                  <th className="py-3 px-4 w-28 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs sm:text-[13px]">
-                {list.map((item, idx) => {
-                  const judul =
-                    item.jenisProgram === 'PENELITIAN'
-                      ? item.penelitian?.judul || 'Proposal Penelitian Belum Terpaut'
-                      : item.pengabdian?.judul || 'Kegiatan Pengabdian Belum Terpaut';
-
-                  const ketua =
-                    item.jenisProgram === 'PENELITIAN'
-                      ? item.penelitian?.ketua || '-'
-                      : item.pengabdian?.ketua || '-';
-
-                  const nidn =
-                    item.jenisProgram === 'PENELITIAN'
-                      ? item.penelitian?.nidn || '-'
-                      : item.pengabdian?.nidn || '-';
-
-                  return (
-                    <tr key={item.id} className="hover:bg-violet-50/30 transition-colors">
-                      <td className="py-3.5 px-3.5 text-center text-slate-400 font-mono text-xs">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-mono font-bold text-violet-800">{item.kodeMonev}</div>
-                        <div className="flex items-center gap-1.5 mt-1">
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                              item.jenisProgram === 'PENELITIAN'
-                                ? 'bg-violet-50 text-violet-700 border-violet-200'
-                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                            }`}
-                          >
-                            {item.jenisProgram}
-                          </span>
-                          <span
-                            className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border ${formatTahapBadge(
-                              item.tahap
-                            )}`}
-                          >
-                            {item.tahap.replace('MONEV_', '')}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900 leading-snug line-clamp-2">
-                          {judul}
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1">
-                          <span className="font-semibold text-slate-700">{ketua}</span>
-                          <span>•</span>
-                          <span className="font-mono">NIDN: {nidn}</span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                          <UserIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span>{item.namaReviewer}</span>
-                        </div>
-                        <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1.5">
-                          <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                          <span>
-                            {item.tanggalJadwal
-                              ? new Date(item.tanggalJadwal).toLocaleDateString('id-ID', {
-                                  year: 'numeric',
-                                  month: 'short',
-                                  day: 'numeric',
-                                })
-                              : '-'}
-                          </span>
-                        </div>
-                        {item.lokasiMonev && (
-                          <div className="text-[10px] text-slate-400 truncate max-w-xs mt-0.5">
-                            {item.lokasiMonev}
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex flex-col gap-1 items-center">
-                          <div className="w-24 bg-slate-100 rounded-full h-2 overflow-hidden border border-slate-200">
-                            <div
-                              className="bg-violet-600 h-full rounded-full transition-all"
-                              style={{ width: `${Math.min(100, item.persentaseKemajuan || 0)}%` }}
-                            />
-                          </div>
-                          <div className="text-[10px] font-semibold text-slate-600 font-mono">
-                            Kemajuan: {item.persentaseKemajuan}% | Dana: {item.persentaseDanaTerpakai}%
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border ${formatStatusBadge(
-                            item.status
-                          )}`}
-                        >
-                          {item.status.replace('_', ' ')}
-                        </span>
-                        <div className="text-[11px] font-mono font-bold text-slate-700 mt-1">
-                          {item.skorSubstansi ? `Skor: ${item.skorSubstansi}` : 'Skor: -'}
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-500 text-[11px] font-mono">
-                        {item.createdAt ? item.createdAt.substring(0, 10) : '-'}
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <Link
-                            to={`/monev/edit/${item.id}`}
-                            className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
-                            title="Edit Monev"
-                          >
-                            <PencilSquareIcon className="w-4 h-4" />
-                          </Link>
-                          <button
-                            onClick={() => handleDelete(item.id, item.kodeMonev)}
-                            disabled={deletingId === item.id}
-                            className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
-                            title="Hapus Monev"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContainer>
-    </AdminPanelTemplate>
+              <button
+                onClick={() => handleDelete(item.id, item.kodeMonev)}
+                disabled={deletingId === item.id}
+                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
+                title="Hapus Monev"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 };

@@ -38,6 +38,34 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+/**
+ * Rute publik yang boleh dibuka tanpa sesi.
+ *
+ * Interceptor TIDAK boleh "melempar" pengguna ke /login dari halaman-halaman
+ * ini. Dulu pengecekan dilakukan dengan membandingkan `window.location.pathname`
+ * terhadap string seperti `BASE_URL + 'login'`. Karena `BASE_URL` bernilai '/',
+ * hasilnya `'/login'` — cocok. Tetapi begitu aplikasi di-build dengan base lain
+ * (mis. '/lppm/'), nilai itu menjadi '/lppm/login' sementara pathname tetap
+ * '/lppm/login' hanya bila base konsisten; lebih rapuh lagi, `path` bisa
+ * berakhiran garis miring. Ketidakcocokan sekecil apa pun membuat halaman
+ * publik seperti '/' ikut terlempar ke /login saat ada respons 401 dari
+ * request lain di tab yang sama.
+ *
+ * Solusi: normalisasi pathname (buang BASE_URL, garis miring tepi, segmen
+ * indeks) lalu cocokkan ke daftar rute publik yang eksplisit.
+ */
+const PUBLIC_PATHS = ['/', '/login', '/sso/callback', '/akses-ditolak'];
+
+const isPublicPath = (pathname: string) => {
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+  let path = pathname;
+  if (base && path.startsWith(base)) {
+    path = path.slice(base.length);
+  }
+  path = path.replace(/\/+$/, '').replace(/\/index\.html$/, '');
+  return PUBLIC_PATHS.includes(path || '/');
+};
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -60,7 +88,7 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (status === 401 && path !== import.meta.env.BASE_URL + 'login' && path !== import.meta.env.BASE_URL + 'sso/callback') {
+    if (status === 401 && !isPublicPath(path)) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       window.location.replace(import.meta.env.BASE_URL + 'login');
@@ -113,6 +141,8 @@ export interface PengabdianItem {
   danaDisetujui?: number;
   tahun: number;
   status: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface PublikasiItem {
@@ -125,6 +155,8 @@ export interface PublikasiItem {
   tahun: number;
   doiUrl?: string;
   sintaScore?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export const fetchPenelitian = () => api.get<{ success: boolean; data: PenelitianItem[] }>('/penelitian');
@@ -271,5 +303,71 @@ export const updateMonev = (id: number | string, data: Partial<MonevItem>) =>
 
 export const deleteMonev = (id: number | string) =>
   api.delete<{ success: boolean; message?: string }>(`/monev/${id}`);
+
+// ==========================================
+// DASHBOARD (agregasi laporan LPPM)
+// ==========================================
+export interface DashboardKelompok {
+  label: string;
+  value: number;
+}
+
+export interface DashboardTrenTahunan {
+  tahun: number;
+  penelitian: number;
+  pengabdian: number;
+  publikasi: number;
+}
+
+export interface DashboardRecentPenelitian {
+  id: number;
+  judul: string;
+  ketua: string;
+  bidangFokus: string;
+  tahun: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface DashboardRecentPublikasi {
+  id: number;
+  judul: string;
+  penulis: string;
+  jenis: string;
+  namaJurnal: string;
+  tahun: number;
+  sintaScore?: string | null;
+  createdAt: string;
+}
+
+export interface DashboardStatsData {
+  diperbaruiPada: string;
+  ringkasan: {
+    totalPenelitian: number;
+    totalPengabdian: number;
+    totalPublikasi: number;
+    totalMonev: number;
+    totalKegiatan: number;
+    danaDisetujui: number;
+    monevJadwalMendatang: number;
+    monevRataKemajuan: number;
+    monevRataSerapanDana: number;
+    monevDinilai: number;
+  };
+  statusPenelitian: DashboardKelompok[];
+  bidangFokus: DashboardKelompok[];
+  sumberDana: DashboardKelompok[];
+  statusPengabdian: DashboardKelompok[];
+  mitraPengabdian: DashboardKelompok[];
+  jenisPublikasi: DashboardKelompok[];
+  sintaPublikasi: DashboardKelompok[];
+  trenTahunan: DashboardTrenTahunan[];
+  statusMonev: DashboardKelompok[];
+  recentPenelitian: DashboardRecentPenelitian[];
+  recentPublikasi: DashboardRecentPublikasi[];
+}
+
+export const fetchDashboardStats = () =>
+  api.get<{ success: boolean; data: DashboardStatsData }>('/dashboard/stats');
 
 export default api;

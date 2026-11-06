@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { LandingPage } from './pages/Landing';
+import { DashboardPage } from './pages/Dashboard';
 import { PenelitianPage } from './pages/Penelitian';
 import { PenelitianFormPage } from './pages/PenelitianForm';
 import { PengabdianPage } from './pages/Pengabdian';
@@ -8,10 +9,14 @@ import { PengabdianFormPage } from './pages/PengabdianForm';
 import { PublikasiPage } from './pages/Publikasi';
 import { PublikasiFormPage } from './pages/PublikasiForm';
 import { PenggunaPage } from './pages/Pengguna';
+import { PenggunaDetailPage } from './pages/PenggunaDetail';
 import { PeranPage } from './pages/Peran';
+import { PeranFormPage } from './pages/PeranForm';
+import { IzinFormPage } from './pages/IzinForm';
 import { IzinPage } from './pages/Izin';
 import { MonevPage } from './pages/Monev';
 import { MonevFormPage } from './pages/MonevForm';
+import { ProfilPage } from './pages/Profil';
 import { LoginPage } from './pages/Login';
 import { SsoCallbackPage } from './pages/SsoCallback';
 import { AksesDitolakPage } from './pages/AksesDitolak';
@@ -45,7 +50,7 @@ function AdminEntryRoute() {
   if (!evaluatePanelAccess(user).allowed) {
     return <AksesDitolakPage />;
   }
-  return <Navigate to="/penelitian" replace />;
+  return <Navigate to="/dashboard" replace />;
 }
 
 const BASE_PATH = import.meta.env.BASE_URL.replace(/\/$/, '');
@@ -69,7 +74,7 @@ function AdminOnlyRoute({ children }: { children: React.ReactElement }) {
     return <Navigate to="/login" replace />;
   }
   if (!canManageSystem) {
-    return <Navigate to="/penelitian" replace />;
+    return <Navigate to="/dashboard" replace />;
   }
   return children;
 }
@@ -94,8 +99,32 @@ export function App() {
             {/* Halaman 403 — penolakan akses lintas aplikasi (mis. admin LPM) */}
             <Route path="/akses-ditolak" element={<AksesDitolakPage />} />
 
-            {/* Rute /admin: hanya untuk sesi ber-cakupan LPPM, lalu ke /penelitian */}
+            {/* Rute /admin: hanya untuk sesi ber-cakupan LPPM, lalu ke /dashboard */}
             <Route path="/admin" element={<AdminEntryRoute />} />
+
+            {/* 0. Dashboard — laporan ringkas tiap menu panel */}
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <DashboardPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Profil Pengguna */}
+            <Route
+              path="/profil"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <ProfilPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
 
             {/* Panel Manajemen Admin Ber-Sidebar (Standar LPM UNUSU) */}
             {/* 1. Penelitian Dosen */}
@@ -207,6 +236,18 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/pengguna/:id"
+              element={
+                <ProtectedRoute>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <PenggunaDetailPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
+                </ProtectedRoute>
+              }
+            />
 
             {/* 5. Manajemen Peran & Hak Akses — khusus Admin LPPM */}
             <Route
@@ -221,6 +262,30 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="/peran/tambah"
+              element={
+                <ProtectedRoute>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <PeranFormPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/peran/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <PeranFormPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
+                </ProtectedRoute>
+              }
+            />
 
             {/* 6. Katalog Hak Izin (Permissions) — khusus Admin LPPM */}
             <Route
@@ -230,6 +295,30 @@ export function App() {
                   <AdminOnlyRoute>
                     <SidebarLayout>
                       <IzinPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/izin/tambah"
+              element={
+                <ProtectedRoute>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <IzinFormPage />
+                    </SidebarLayout>
+                  </AdminOnlyRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/izin/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <AdminOnlyRoute>
+                    <SidebarLayout>
+                      <IzinFormPage />
                     </SidebarLayout>
                   </AdminOnlyRoute>
                 </ProtectedRoute>

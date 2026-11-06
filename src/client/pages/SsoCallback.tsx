@@ -1,6 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Loader2, ShieldAlert, ShieldCheck } from 'lucide-react';
+import {
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  ShieldCheckIcon,
+} from '@heroicons/react/24/outline';
 import { ssoLogin } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { accessDeniedUrl } from '../lib/appAccess';
@@ -107,7 +111,7 @@ export function SsoCallbackPage() {
         {error ? (
           <>
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-rose-50 text-rose-600 mb-4">
-              <ShieldAlert className="w-7 h-7" />
+              <ExclamationTriangleIcon className="w-7 h-7" />
             </div>
             <h1 className="text-lg font-bold text-slate-900 mb-2">Login SSO Gagal</h1>
             <p className="text-sm text-slate-600 mb-6">{error}</p>
@@ -121,14 +125,14 @@ export function SsoCallbackPage() {
         ) : (
           <>
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-violet-50 text-violet-700 mb-4">
-              <Loader2 className="w-7 h-7 animate-spin" />
+              <ArrowPathIcon className="w-7 h-7 animate-spin" />
             </div>
             <h1 className="text-lg font-bold text-slate-900 mb-2">Memverifikasi Sesi SSO</h1>
             <p className="text-sm text-slate-600">
               Mohon tunggu, sedang menghubungkan akun ONE UNUSU Anda...
             </p>
             <div className="mt-6 flex items-center justify-center gap-2 text-xs text-violet-700 font-medium">
-              <ShieldCheck className="w-4 h-4" />
+              <ShieldCheckIcon className="w-4 h-4" />
               Token sekali pakai • berlaku 5 menit
             </div>
           </>

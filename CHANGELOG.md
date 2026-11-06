@@ -3,6 +3,28 @@
 Seluruh perubahan penting pada proyek **LPPM UNUSU** didokumentasikan di berkas ini.
 Format mengacu pada standar tanggal ISO (`YYYY-MM-DD`) dengan kategori: `Added`, `Changed`, `Fixed`, `Removed`, dan `Documentation`.
 
+## [2026-11-04]
+
+### Added
+- **`src/client/components/Navbar.tsx`** — navbar publik LPPM dengan struktur baku ekosistem ONE UNUSU: brand di kiri (logo violet + nama + subteks), menu di tengah (Beranda, Penelitian, Pengabdian, Publikasi, Monev) dengan `aria-current="page"`, dan aksi di kanan ("Website Kampus" + "Masuk SSO", atau identitas pengguna + "Panel" + "Keluar" bila sudah login). `sticky top-0`, baris `h-16`, seluruh kontrol `min-h-[44px]`, hamburger mobile dengan `aria-expanded`. Navbar lama yang tertanam di dalam `Landing.tsx` dihapus agar tidak ada navbar ganda.
+- **Daftar terbaru pada dashboard**: "Penelitian Terbaru" dan "Publikasi Terbaru" (masing-masing 5 baris) beserta agregasi server pendukungnya.
+- Dokumentasi §6b (Dashboard Page Template) dan §6c (Navbar Landing Page) pada `docs/design-system/PAGE_TEMPLATES.md`.
+
+### Changed
+- **`src/client/pages/Dashboard.tsx` diselaraskan dengan pola E-Surat**: banner sapaan dinamis (`Selamat pagi/siang/sore/malam` dari `user?.nama`), tombol aksi modul inti, kartu ringkasan dengan tombol `Segarkan` berputar, skeleton `animate-pulse`, kartu metrik berfooter `Daftar →`, laporan chart, lalu daftar terbaru. Palet violet/amber repo dipertahankan.
+- **`GET /api/dashboard/stats` kini melakukan agregasi di server** (`count`, `aggregate` untuk total dana disetujui dan rata-rata kemajuan/serapan dana monev, `groupBy` per status/bidang fokus/sumber dana/mitra/jenis publikasi/skor SINTA, tren 5 tahun, serta `findMany` + `take: 5` untuk data terbaru). Sebelumnya dashboard menarik empat endpoint daftar penuh lalu menghitung rata-rata di klien.
+- Semua kartu dashboard kini menampilkan field yang dikirim server; tidak ada lagi angka yang dihitung dari data tidak lengkap.
+
+### Fixed
+- **İkon `lucide-react` pada `SsoCallback.tsx` diganti Heroicons** (`ArrowPathIcon`, `ExclamationTriangleIcon`, `ShieldCheckIcon`) agar mematuhi aturan ikon repo. `src/client` kini 100% bebas `lucide-react`.
+
+### Removed
+- **Kartu informasi akun (`UserAuthorityCard`) dihapus dari dashboard** dan dari `SidebarLayout.tsx` (yang tadinya merendernya secara global di seluruh halaman panel). Identitas pengguna tetap tampil di topbar dan sidebar.
+- İkon Sparkles tidak lagi ada di seluruh `src/client`.
+
+### Documentation
+- `docs/design-system/PAGE_TEMPLATES.md` mencatat aturan mengikat dashboard: data wajib dari API nyata, dilarang membuang field yang dikirim server, dilarang `Math.random()`, larangan library chart baru, dan larangan membungkus template dengan container `max-w-*`/`mx-auto`.
+
 ## [2026-11-03]
 
 ### Added

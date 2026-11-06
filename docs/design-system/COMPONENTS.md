@@ -16,7 +16,8 @@ Dokumen ini mendaftarkan seluruh komponen bersama (shared components) yang terse
 | `FullHeroSlider` | `src/client/components/FullHeroSlider.tsx` | **Aktif (Landing Page)** | Carousel banner beranda dengan rasio 80% gambar visual dan 20% teks ringkas, auto-advance 6 detik, indikator titik, dan tombol navigasi slide. |
 | `AnimatedFlatSsoLogo` | `src/client/components/AnimatedFlatSsoLogo.tsx` | **Aktif (Login Page)** | Logo SVG interaktif ONE UNUSU dengan 6 satelit berputar mengelilingi badge angka "1" statis. |
 | `OneUnusuMark` | `src/client/components/OneUnusuMark.tsx` | Cadangan / Utilitas | Emblem SVG ringkas ONE UNUSU berukuran default `96px` yang mendukung `@media (prefers-reduced-motion: reduce)`. |
-| `Navbar` | `src/client/components/Navbar.tsx` | **Tidak Dipakai (Legacy)** | Header navigasi horizontal lama yang masih menggunakan ikon `lucide-react`. Jangan digunakan pada halaman baru; gunakan `SidebarLayout` untuk halaman admin. |
+| `UserAuthorityCard` | `src/client/components/UserAuthorityCard.tsx` | **Aktif (Wajib di Panel Admin)** | Kartu otoritas pengguna berisi `USERNAME`, `HAK AKSES`, `UNIT KERJA`, dan `STATUS AKUN`. Dirender otomatis oleh `SidebarLayout` di atas konten halaman sehingga seluruh panel LPPM menampilkan identitas sesi secara seragam. |
+| `Navbar` | — (berkas dihapus) | **Dihapus** | Header navigasi horizontal lama berbasis `lucide-react` yang tidak pernah dirender. Berkas `src/client/components/Navbar.tsx` telah dihapus; navbar landing page kini inline di `src/client/pages/Landing.tsx`. |
 
 ---
 
@@ -88,6 +89,22 @@ interface SidebarLayoutProps {
 }
 ```
 - **Aturan Pakai**: Membungkus rute terproteksi (`<ProtectedRoute>`) di `src/client/App.tsx`. Jika menambahkan rute modul baru, perbarui array `navItems`, fungsi `isActive`, dan fungsi `getBreadcrumbLabel` di dalam `SidebarLayout.tsx`.
+- **Kartu Otoritas Sesi**: `SidebarLayout` merender `UserAuthorityCard` secara otomatis di atas `{children}` pada elemen `<main>`. Halaman anak **tidak boleh** merender kartu serupa agar tidak terjadi duplikasi.
+
+### 2.6 `UserAuthorityCard`
+**Berkas**: `src/client/components/UserAuthorityCard.tsx`
+
+```tsx
+interface UserAuthorityCardProps {
+  user: AuthorityCardUser | null;
+  roleLabel?: string;   // label hak akses terpetakan (menimpa user.roleLabel)
+  className?: string;
+}
+```
+- **Aturan Data**: `UNIT KERJA` diambil berurutan `unitKerja → prodi → fakultas`; bila kosong tampil "Belum terhubung unit". `STATUS AKUN` default `Aktif` kecuali bernilai `nonaktif`.
+- **Ikon**: `@heroicons/react/24/outline` (`UserCircleIcon`, `ShieldCheckIcon`, `BuildingOffice2Icon`, `CheckBadgeIcon`) — patuh aturan Anti-Lucide pada `AGENTS.md`.
+- **Styling**: `bg-white border border-[#CBD5E1] rounded-[16px]`, aksen `violet-50`/`violet-100`.
+- **Larangan**: Dilarang menduplikasi markup empat baris identitas ini di halaman lain.
 
 ---
 
@@ -123,3 +140,40 @@ Beberapa elemen berulang belum diekstrak menjadi file komponen terpisah namun me
 - **Dilarang** membuat komponen pembungkus kartu baru jika `CardContainer` sudah memenuhi kebutuhan.
 - **Dilarang** membuat layout halaman admin tanpa `SidebarLayout` dan `AdminPanelTemplate`.
 - **Dilarang** mengimpor `Navbar.tsx` ke halaman panel manajemen karena seluruh halaman manajemen wajib menggunakan navigasi `SidebarLayout`.
+
+---
+
+## 4. Komponen Laporan & Grafik
+
+### `LaporanCharts` (`src/client/components/LaporanCharts.tsx`)
+- **Tanggung Jawab**: Kumpulan komponen grafik ringkas untuk dashboard panel, dibangun **murni dengan SVG dan CSS** — tanpa library chart eksternal, sehingga ukuran bundle tetap ringan dan tidak menambah dependensi baru.
+- **Alasan tidak memakai library**: grafik dashboard bersifat ringkasan (bukan analitik interaktif), dan palette harus mengikuti warna aplikasi masing-masing.
+- **Komponen yang tersedia**:
+  | Komponen | Kegunaan |
+  | --- | --- |
+  | `ReportCard` | Kartu pembungkus laporan (judul + subjudul + aksi opsional) |
+  | `MetricTile` | Kartu metrik angka besar dengan ikon & aksen warna |
+  | `DonutChart` | Proporsi antar kategori (mis. status surat, kondisi fasilitas) |
+  | `BarChart` | Perbandingan kategori dengan bar horizontal |
+  | `ColumnChart` | Tren per periode dengan kolom vertikal |
+  | `TrendChart` | Tren waktu dengan area lembut (SVG path) |
+  | `StackedBar` | Komposisi satu batang bertingkat |
+  | `GaugeRing` | Capaian persentase tunggal berbentuk cincin |
+  | `ActivityFeed` | Daftar kejadian terbaru bersusun waktu |
+- **Aksesibilitas**: Setiap grafik memakai `role="img"` + `aria-label` yang merangkum datanya; nilai juga tetap ditampilkan sebagai teks sehingga tidak bergantung pada warna saja.
+- **Aturan Pemakaian**: Dashboard setiap aplikasi **wajib** menampilkan laporan/grafik ringkas untuk tiap menu, dan **dilarang** menyertakan panel aksi cepat (tombol pintas tambah/input) di dashboard. Navigasi tetap melalui sidebar.
+
+---
+
+## 5. Komponen Landing Page
+
+### Seksi "Tentang LPPM" (`src/client/pages/Landing.tsx`, anchor `#tentang`)
+- **Status**: ditulis langsung di `Landing.tsx`. Komponen pembungkus `TentangPlatform.tsx` **dibatalkan dan dihapus** karena hanya memiliki satu pemakaian; pola baku tetap dipertahankan agar identik dengan ONE UNUSU.
+- **Grid**: `lg:grid-cols-12` dengan pembagian **6:6** seimbang (`lg:col-span-6` pada kedua kolom), `items-center`.
+- **Kolom kiri**: eyebrow *Tentang Platform* (`text-violet-700 bg-violet-50 border-violet-200`), judul `h2#tentang-title` *Mengenal LPPM UNUSU* (`text-2xl sm:text-4xl font-bold text-slate-950`), dua paragraf narasi (`text-sm sm:text-base text-slate-600`), dan tiga poin centang berikon Heroicons `CheckIcon` dalam bulatan `bg-violet-700 text-amber-300`.
+- **Kolom kanan**: foto potret `public/assets/profil-peneliti.png` di atas plakat `rounded-[40px]` setinggi **86%** dengan gradasi `from-violet-100/90 via-amber-100/70 to-transparent` dan border `border-violet-100`, plus `drop-shadow-[0_25px_50px_rgba(109,40,217,0.22)]` dan hover `scale-[1.02]`.
+- **Section background**: `bg-white` dengan `border-b border-slate-200/70`.
+- **Aturan Aset**:
+  - Potret **wajib PNG ber-alpha channel** (latar transparan) agar plakat gradasi tembus di sekitar siluet. Aset saat ini `1024×958` ARGB, sudut `alpha=0`.
+  - Path **wajib** melalui `assetUrl()` dari `src/client/lib/assets.ts` agar tidak jatuh ke root domain pada sub-path `/lppm/`.
+  - Dilarang memakai gambar yang memuat branding institusi lain.
