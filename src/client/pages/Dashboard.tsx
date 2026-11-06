@@ -5,7 +5,6 @@ import {
   HeartIcon,
   BookOpenIcon,
   ClipboardDocumentCheckIcon,
-  ArrowPathIcon,
   ArrowRightIcon,
   BanknotesIcon,
   UserIcon,
@@ -16,7 +15,6 @@ import {
 } from '@heroicons/react/24/outline';
 import { fetchDashboardStats, DashboardStatsData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
 import { ErrorState } from '../components/ErrorState';
 import {
   ReportCard,
@@ -194,51 +192,7 @@ export const DashboardPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 2. KARTU RINGKASAN */}
-      <AdminPanelTemplate
-        badge={
-          <span className="inline-flex items-center rounded-md bg-[#EDE8F5] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-violet-900">
-            Panel LPPM
-          </span>
-        }
-        title="Ringkasan Kinerja Tridharma"
-        description="Pantau pergerakan proposal riset, kegiatan PKM, luaran publikasi, dan hasil monitoring evaluasi dosen UNUSU."
-        actions={
-          <div className="flex flex-wrap items-center gap-2.5">
-            <button
-              type="button"
-              onClick={loadData}
-              disabled={loading}
-              aria-label="Segarkan ringkasan dashboard"
-              className="min-h-[44px] min-w-[44px] inline-flex items-center px-3.5 py-2.5 rounded-[12px] bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition disabled:opacity-60"
-            >
-              <ArrowPathIcon className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-              <span>Segarkan</span>
-            </button>
-            <Link
-              to="/publikasi"
-              className="min-h-[44px] inline-flex items-center rounded-[12px] bg-violet-700 hover:bg-violet-800 px-4 py-2.5 text-white font-bold text-xs shadow-xs transition-colors"
-            >
-              <BookOpenIcon className="w-3.5 h-3.5 mr-1.5" aria-hidden="true" />
-              <span>Repositori Publikasi</span>
-            </Link>
-          </div>
-        }
-      >
-        <p className="text-xs text-slate-600 leading-relaxed">
-          Seluruh angka di bawah dihitung langsung di server dari basis data LPPM
-          (penelitian, pengabdian, publikasi, dan monitoring evaluasi).
-          {stats?.diperbaruiPada && (
-            <>
-              {' '}Terakhir diagregasi:{' '}
-              <span className="font-semibold text-slate-800">{tanggalId(stats.diperbaruiPada)}</span>.
-            </>
-          )}{' '}
-          Bila status belum bergerak, gunakan tombol Segarkan untuk mengambil kondisi terbaru.
-        </p>
-      </AdminPanelTemplate>
-
-      {/* 3. ERROR STATE */}
+      {/* 2. ERROR STATE */}
       {error && (
         <div className="bg-white border border-[#CBD5E1] rounded-[16px]">
           <ErrorState
