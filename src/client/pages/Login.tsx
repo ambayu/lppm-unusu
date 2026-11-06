@@ -2,16 +2,46 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRightIcon, ChevronLeftIcon } from '@heroicons/react/24/outline';
 import { AnimatedFlatSsoLogo } from '../components/AnimatedFlatSsoLogo';
+import { SsoLoadingScreen } from '../components/SsoLoadingScreen';
 import { assetUrl } from '../lib/assets';
 
-const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'http://localhost:5173';
-const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || 'lppm-unusu';
+const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'https://unusu.bpp-developer.com/sso';
+const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || 'clic7253b77530672d5';
 
 export function LoginPage() {
+  // Penanda bahwa pengalihan ke Portal ONE UNUSU sedang berlangsung. Dipakai
+  // untuk menampilkan layar tunggu penuh agar pengguna tidak menekan tombol
+  // berulang kali selama browser berpindah domain.
+  const [redirecting, setRedirecting] = React.useState(false);
+
   const handleSsoLogin = () => {
+    if (redirecting) return;
+    // Hanya menyalakan layar tunggu. Perpindahan ke Portal ONE UNUSU baru
+    // dijalankan oleh `onReady` setelah jeda animasi terlewati, sehingga logo
+    // SSO sempat terlihat utuh alih-alih berkedip sepersekian detik.
+    setRedirecting(true);
+  };
+
+  const goToPortal = () => {
+  // Langsung ke /authorize, tanpa melewati halaman login portal.
+  // Portal sendiri yang menentukan: bila sesi SSO masih aktif, tiket diterbitkan
+  // dan pengguna mendarat di panel aplikasi ini; bila tidak, portal menampilkan
+  // form login lalu melanjutkan ke /authorize secara otomatis. Dengan begitu
+  // pengguna yang sudah login di ONE UNUSU tidak melihat form login dua kali.
     const target = `${ONE_UNUSU_URL}/authorize?client_id=${encodeURIComponent(SSO_CLIENT_ID)}`;
     window.location.href = target;
   };
+
+  if (redirecting) {
+    return (
+      <SsoLoadingScreen
+        title="Menghubungkan ke ONE UNUSU"
+        description="Mengalihkan Anda ke Portal Single Sign-On kampus. Jangan tutup halaman ini."
+        delayMs={1400}
+        onReady={goToPortal}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-white relative selection:bg-violet-700 selection:text-white">

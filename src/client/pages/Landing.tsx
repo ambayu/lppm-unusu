@@ -19,7 +19,7 @@ import { assetUrl } from '../lib/assets';
 import { fetchPenelitian, fetchPengabdian, fetchPublikasi } from '../services/api';
 import { useReveal, useCountUp } from '../hooks/useReveal';
 
-const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'http://localhost:5173';
+const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'https://unusu.bpp-developer.com/sso';
 
 /**
  * Tautan satelit ekosistem dikendalikan lewat env var agar tidak pernah
