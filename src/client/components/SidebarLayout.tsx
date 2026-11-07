@@ -17,8 +17,12 @@ import {
   ChevronDoubleRightIcon,
   HomeIcon,
   ChevronDownIcon,
+<<<<<<< HEAD
   GlobeAltIcon,
   IdentificationIcon,
+=======
+  UserCircleIcon,
+>>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -32,16 +36,87 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileMenuRef = React.useRef<HTMLDivElement | null>(null);
 
-  const isActive = (path: string) =>
-    location.pathname === path ||
-    (path === '/penelitian' && location.pathname.startsWith('/penelitian/')) ||
-    (path === '/pengabdian' && location.pathname.startsWith('/pengabdian/')) ||
-    (path === '/publikasi' && location.pathname.startsWith('/publikasi/')) ||
-    (path === '/monev' && location.pathname.startsWith('/monev')) ||
-    (path === '/peran' && location.pathname.startsWith('/peran')) ||
-    (path === '/izin' && location.pathname.startsWith('/izin')) ||
-    (path === '/pengguna' && location.pathname.startsWith('/pengguna'));
+  /** Tutup dropdown akun saat klik di luar, tekan Escape, atau pindah rute. */
+  React.useEffect(() => {
+    const onDocClick = (event: MouseEvent) => {
+      if (!profileMenuRef.current) return;
+      if (!profileMenuRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setProfileDropdownOpen(false);
+    };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  React.useEffect(() => {
+    setProfileDropdownOpen(false);
+  }, [location.pathname]);
+
+  /**
+   * isActive — hanya SATU menu yang boleh aktif.
+   *
+   * Bug sebelumnya: `/monev`, `/peran`, `/izin`, `/pengguna` memakai
+   * `startsWith` tanpa batas segmen, sehingga rute seperti `/peran/tambah`
+   * ikut menyalakan `/peran` — tetapi prefix pendek juga bisa menyalakan
+   * menu lain bila rute bertumpuk. Solusi: cocokkan path persis ATAU
+   * path diikuti "/" (batas segmen), dan pakai kecocokan TERPANJANG.
+   */
+  const isActive = (path: string) => {
+    const current = location.pathname;
+
+    if (current === path) return true;
+
+    // Cocokkan batas segmen: '/penelitian' cocok dengan '/penelitian/tambah',
+    // tapi '/peran' tidak akan cocok dengan '/perangkat'.
+    if (!current.startsWith(`${path}/`)) return false;
+
+    // Jika ada menu lain yang juga berprefiks sama dan lebih panjang, maka
+    // menu dengan path lebih panjang itulah yang berhak aktif.
+    const allPaths = [
+      '/dashboard',
+      '/penelitian',
+      '/pengabdian',
+      '/publikasi',
+      '/monev',
+      '/pengguna',
+      '/peran',
+      '/izin',
+      '/profil',
+    ];
+    const longerMatch = allPaths.find(
+      (p) => p.length > path.length && (current === p || current.startsWith(`${p}/`))
+    );
+
+    return !longerMatch;
+  };
+
+  /**
+   * Menu umum: selalu tampil untuk semua peran (tidak bergantung RBAC).
+   * Profil diletakkan tepat di bawah Dashboard, mengikuti pola ONE UNUSU.
+   */
+  const utamaItems = [
+    {
+      path: '/dashboard',
+      label: 'Dashboard Laporan',
+      icon: HomeIcon,
+      desc: 'Ringkasan Grafik Tiap Menu',
+    },
+    {
+      path: '/profil',
+      label: 'Profil',
+      icon: UserCircleIcon,
+      desc: 'Biodata akun yang sedang aktif',
+    },
+  ];
 
   const navItems = [
     {
@@ -71,6 +146,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   ];
 
   const getBreadcrumbLabel = (path: string) => {
+    if (path === '/dashboard') return 'Dashboard Laporan LPPM';
     if (path === '/penelitian') return 'Pangkalan Data Penelitian Dosen';
     if (path === '/penelitian/tambah') return 'Tambah Proposal Riset Baru';
     if (path.startsWith('/penelitian/edit/')) return 'Edit Proposal Riset';
@@ -83,9 +159,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/monev') return 'Monitoring & Evaluasi (Monev) Tridharma';
     if (path === '/monev/tambah') return 'Jadwalkan Monev Riset Baru';
     if (path.startsWith('/monev/edit/')) return 'Edit Penilaian Monev';
-    if (path === '/peran') return 'Manajemen Peran & Hak Akses';
-    if (path === '/izin') return 'Katalog Izin (Permissions)';
-    if (path === '/pengguna') return 'Manajemen Pengguna & Peneliti';
+    if (path === '/peran') return 'Peran';
+    if (path === '/izin') return 'Izin';
+    if (path === '/pengguna') return 'Manajemen Pengguna';
+    if (path === '/profil') return 'Profil Pengguna';
     return 'Lembaga Penelitian & Pengabdian Masyarakat';
   };
 
@@ -122,6 +199,55 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
         {/* Navigation Section */}
         <div className="flex-1 py-5 px-3 space-y-6 overflow-y-auto">
+          {/* Menu umum: Dashboard + Profil (paling atas, tanpa guard peran) */}
+          <div>
+            {!isCollapsed && (
+              <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                UTAMA
+              </p>
+            )}
+            <nav className="space-y-1.5" role="navigation" aria-label="Menu utama akun">
+              {utamaItems.map((item) => {
+                const Icon = item.icon;
+                const active = isActive(item.path);
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    onClick={() => setMobileOpen(false)}
+                    title={isCollapsed ? item.label : undefined}
+                    aria-current={active ? 'page' : undefined}
+                    className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                      isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
+                    } ${
+                      active
+                        ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
+                        : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                    }`}
+                  >
+                    <div
+                      className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                        active
+                          ? 'bg-violet-700 text-white shadow-2xs'
+                          : 'bg-[#EDE8F5] text-violet-700'
+                      }`}
+                    >
+                      <Icon className="w-4 h-4" aria-hidden="true" />
+                    </div>
+                    {!isCollapsed && (
+                      <div className="truncate">
+                        <div className="leading-tight">{item.label}</div>
+                        <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                          {item.desc}
+                        </div>
+                      </div>
+                    )}
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+
           <div>
             {!isCollapsed && (
               <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
@@ -139,7 +265,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     onClick={() => setMobileOpen(false)}
                     title={isCollapsed ? item.label : undefined}
                     aria-current={active ? 'page' : undefined}
-                    className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                    className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
                       isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                     } ${
                       active
@@ -154,7 +280,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                           : 'bg-[#EDE8F5] text-violet-700'
                       }`}
                     >
-                      <Icon className="w-4 h-4" />
+                      <Icon className="w-4 h-4" aria-hidden="true" />
                     </div>
                     {!isCollapsed && (
                       <div className="truncate">
@@ -176,16 +302,16 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           <div>
             {!isCollapsed && (
               <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                MANAJEMEN ADMIN
+                TATA KELOLA
               </p>
             )}
             <div className="space-y-1.5">
               <Link
                 to="/pengguna"
                 onClick={() => setMobileOpen(false)}
-                title={isCollapsed ? 'Pengguna' : undefined}
+                title={isCollapsed ? 'Manajemen Pengguna' : undefined}
                 aria-current={isActive('/pengguna') ? 'page' : undefined}
-                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
                   isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                 } ${
                   isActive('/pengguna')
@@ -200,13 +326,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       : 'bg-[#EDE8F5] text-violet-700'
                   }`}
                 >
-                  <UsersIcon className="w-4 h-4" />
+                  <UsersIcon className="w-4 h-4" aria-hidden="true" />
                 </div>
                 {!isCollapsed && (
                   <div className="truncate">
-                    <div className="leading-tight">Pengguna</div>
+                    <div className="leading-tight">Manajemen Pengguna</div>
                     <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
-                      Daftar Dosen & Akses SSO
+                      Akun pengguna &amp; status aktif
                     </div>
                   </div>
                 )}
@@ -218,7 +344,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                 onClick={() => setMobileOpen(false)}
                 title={isCollapsed ? 'Peran' : undefined}
                 aria-current={isActive('/peran') ? 'page' : undefined}
-                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
                   isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                 } ${
                   isActive('/peran')
@@ -233,13 +359,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       : 'bg-[#EDE8F5] text-violet-700'
                   }`}
                 >
-                  <ShieldCheckIcon className="w-4 h-4" />
+                  <ShieldCheckIcon className="w-4 h-4" aria-hidden="true" />
                 </div>
                 {!isCollapsed && (
                   <div className="truncate">
                     <div className="leading-tight">Peran</div>
                     <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
-                      Kelola Hak Akses & Role
+                      Daftar peran &amp; jumlah pemegang
                     </div>
                   </div>
                 )}
@@ -251,7 +377,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                 onClick={() => setMobileOpen(false)}
                 title={isCollapsed ? 'Izin' : undefined}
                 aria-current={isActive('/izin') ? 'page' : undefined}
-                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
                   isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                 } ${
                   isActive('/izin')
@@ -266,13 +392,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       : 'bg-[#EDE8F5] text-violet-700'
                   }`}
                 >
-                  <KeyIcon className="w-4 h-4" />
+                  <KeyIcon className="w-4 h-4" aria-hidden="true" />
                 </div>
                 {!isCollapsed && (
                   <div className="truncate">
                     <div className="leading-tight">Izin</div>
                     <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
-                      Katalog Permissions Sistem
+                      Katalog permission per peran
                     </div>
                   </div>
                 )}
@@ -290,13 +416,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             <div className="space-y-1.5">
               <Link
                 to="/"
-                className={`w-full flex items-center rounded-[12px] text-[13.5px] font-medium transition-all ${
+                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-medium transition-all ${
                   isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                 } text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900`}
                 title={isCollapsed ? 'Halaman Depan LPPM' : undefined}
               >
                 <div className="w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 bg-[#EDE8F5] text-violet-700">
-                  <HomeIcon className="w-4 h-4" />
+                  <HomeIcon className="w-4 h-4" aria-hidden="true" />
                 </div>
                 {!isCollapsed && (
                   <div className="truncate">
@@ -329,9 +455,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               {/* Logout button */}
               <button
                 onClick={logout}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-[12px] bg-white hover:bg-rose-50 border border-[#CBD5E1] hover:border-rose-200 text-xs font-semibold text-slate-700 hover:text-rose-700 shadow-2xs transition-colors cursor-pointer"
+                className="w-full flex items-center justify-center gap-2 min-h-[44px] py-2 px-3 rounded-[12px] bg-white hover:bg-rose-50 border border-[#CBD5E1] hover:border-rose-200 text-xs font-semibold text-slate-700 hover:text-rose-700 shadow-2xs transition-colors cursor-pointer"
               >
-                <ArrowRightOnRectangleIcon className="w-4 h-4" />
+                <ArrowRightOnRectangleIcon className="w-4 h-4" aria-hidden="true" />
                 <span>Keluar Akun</span>
               </button>
             </>
@@ -340,9 +466,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               onClick={logout}
               title="Keluar dari LPPM UNUSU"
               aria-label="Keluar dari LPPM UNUSU"
-              className="p-2.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-[12px] transition-colors mx-auto cursor-pointer block border border-[#CBD5E1] bg-white shadow-2xs"
+              className="min-h-[44px] min-w-[44px] p-2.5 text-slate-600 hover:text-rose-600 hover:bg-rose-50 rounded-[12px] transition-colors mx-auto cursor-pointer flex items-center justify-center border border-[#CBD5E1] bg-white shadow-2xs"
             >
-              <ArrowRightOnRectangleIcon className="w-4 h-4" />
+              <ArrowRightOnRectangleIcon className="w-4 h-4" aria-hidden="true" />
             </button>
           )}
         </div>
@@ -357,10 +483,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         <div className="flex items-center space-x-2.5">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-[10px] border border-[#CBD5E1] text-slate-600 hover:bg-slate-100 focus:outline-none"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-[10px] border border-[#CBD5E1] text-slate-600 hover:bg-slate-100 focus:outline-none"
             aria-label="Buka menu navigasi"
           >
-            <Bars3Icon className="w-6 h-6" />
+            <Bars3Icon className="w-6 h-6" aria-hidden="true" />
           </button>
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 rounded-[10px] bg-violet-700 flex items-center justify-center text-white ring-1 ring-violet-600">
@@ -375,7 +501,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
         <Link
           to="/"
-          className="text-xs font-semibold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-[10px] border border-violet-200"
+          className="min-h-[44px] inline-flex items-center text-xs font-semibold text-violet-700 bg-violet-50 px-3 py-1.5 rounded-[10px] border border-violet-200"
         >
           Beranda
         </Link>
@@ -392,10 +518,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             <div className="absolute top-3 right-3 z-20">
               <button
                 onClick={() => setMobileOpen(false)}
-                className="p-1.5 rounded-[10px] bg-white/90 text-slate-600 hover:bg-white shadow-xs border border-[#CBD5E1]"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center p-1.5 rounded-[10px] bg-white/90 text-slate-600 hover:bg-white shadow-xs border border-[#CBD5E1]"
                 aria-label="Tutup menu navigasi"
               >
-                <XMarkIcon className="w-5 h-5" />
+                <XMarkIcon className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
             {renderSidebar(false)}
@@ -421,13 +547,14 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setCollapsed(!collapsed)}
-              className="p-2 rounded-[10px] border border-[#CBD5E1] text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900 transition-colors cursor-pointer"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 rounded-[10px] border border-[#CBD5E1] text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900 transition-colors cursor-pointer"
               title={collapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
+              aria-label={collapsed ? 'Perluas Sidebar' : 'Ciutkan Sidebar'}
             >
               {collapsed ? (
-                <ChevronDoubleRightIcon className="w-4 h-4" />
+                <ChevronDoubleRightIcon className="w-4 h-4" aria-hidden="true" />
               ) : (
-                <ChevronDoubleLeftIcon className="w-4 h-4" />
+                <ChevronDoubleLeftIcon className="w-4 h-4" aria-hidden="true" />
               )}
             </button>
 
@@ -444,11 +571,17 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           {/* Right Controls: User Profile Dropdown */}
           <div className="flex items-center gap-3 relative">
             {/* User Profile Pill */}
-            <div className="relative">
+            <div className="relative" ref={profileMenuRef}>
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+<<<<<<< HEAD
                 className="flex items-center gap-2.5 px-3 py-1.5 min-h-[44px] border-x border-[#CBD5E1] bg-transparent hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none"
+=======
+                aria-haspopup="menu"
+                aria-expanded={profileDropdownOpen}
+                className="flex items-center gap-2.5 p-1.5 pr-3 min-h-[44px] rounded-full border border-[#CBD5E1] bg-white hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+>>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
               >
                 <div className="w-8 h-8 rounded-full bg-violet-700 text-white flex items-center justify-center font-bold text-xs ring-1 ring-violet-600">
                   {user?.nama ? user.nama.charAt(0).toUpperCase() : 'P'}
@@ -459,7 +592,11 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   </div>
                   <div className="text-[10px] text-violet-700 font-semibold">{roleLabel}</div>
                 </div>
+<<<<<<< HEAD
                 <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
+=======
+                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
+>>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
               </button>
 
               {/* Profile Dropdown Popup */}
@@ -468,7 +605,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   role="menu"
                   aria-label="Menu akun panel LPPM"
                   className="absolute right-0 mt-2 w-60 rounded-[14px] bg-white shadow-md border border-[#CBD5E1] py-1.5 z-50 text-xs"
+<<<<<<< HEAD
                   onMouseLeave={() => setProfileDropdownOpen(false)}
+=======
+>>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
                 >
                   <div className="px-4 py-2 border-b border-slate-100">
                     <p className="font-bold text-slate-900">{user?.nama || 'Peneliti Dosen'}</p>
@@ -480,6 +620,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       Akses: LPPM
                     </span>
                   </div>
+<<<<<<< HEAD
                   <div className="py-1">
                     <Link
                       to="/"
@@ -511,6 +652,34 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       <span>Keluar dari Akun</span>
                     </button>
                   </div>
+=======
+                  <Link
+                    to="/"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 min-h-[44px] text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                  >
+                    <HomeIcon className="w-4 h-4 text-slate-400" aria-hidden="true" />
+                    <span>Halaman Depan LPPM</span>
+                  </Link>
+                  <Link
+                    to="/profil"
+                    onClick={() => setProfileDropdownOpen(false)}
+                    className="flex items-center gap-2 px-4 min-h-[44px] text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
+                  >
+                    <UserCircleIcon className="w-4 h-4 text-slate-400" aria-hidden="true" />
+                    <span>Profil</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      logout();
+                    }}
+                    className="w-full flex items-center gap-2 px-4 min-h-[44px] text-rose-700 hover:bg-rose-50 transition-colors text-left font-semibold cursor-pointer border-t border-slate-100"
+                  >
+                    <ArrowRightOnRectangleIcon className="w-4 h-4" aria-hidden="true" />
+                    <span>Keluar Akun</span>
+                  </button>
+>>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
                 </div>
               )}
             </div>
@@ -518,7 +687,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         </header>
 
         {/* Page Content Canvas */}
-        <main className="flex-1 p-5 sm:p-7 min-w-0 w-full">{children}</main>
+        <main className="flex-1 p-5 sm:p-7 min-w-0 w-full space-y-6">
+          {children}
+        </main>
 
         {/* Subtle Clean Footer */}
         <footer className="py-5 px-6 text-center text-xs text-slate-500 border-t border-[#CBD5E1] bg-white">

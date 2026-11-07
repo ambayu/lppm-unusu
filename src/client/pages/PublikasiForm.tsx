@@ -5,11 +5,9 @@ import {
   getPublikasi,
   updatePublikasi,
 } from '../services/api';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
+import { FormPageTemplate } from '../components/FormPageTemplate';
 import { CardContainer } from '../components/CardContainer';
 import {
-  ArrowLeftIcon,
-  CheckIcon,
   BookOpenIcon,
 } from '@heroicons/react/24/outline';
 
@@ -87,31 +85,23 @@ export const PublikasiFormPage: React.FC = () => {
   };
 
   return (
-    <AdminPanelTemplate
+    <FormPageTemplate
       title={isEdit ? 'Edit Data Publikasi' : 'Tambah Publikasi Baru'}
       description="Pencatatan artikel ilmiah dosen pada jurnal nasional terakreditasi SINTA, Scopus, prosiding konferensi, dan buku referensi."
-      actions={
-        <Link
-          to="/publikasi"
-          className="inline-flex items-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
-        >
-          <ArrowLeftIcon className="w-4 h-4 text-slate-500" />
-          <span>Kembali</span>
-        </Link>
-      }
+      backTo="/publikasi"
+      isEdit={isEdit}
+      submitLabel={isEdit ? 'Perbarui Data' : 'Simpan Publikasi'}
+      submitting={submitting}
+      error={error}
+      onSubmit={handleSubmit}
+      accentClassName="bg-violet-700 hover:bg-violet-800"
     >
-      {error && (
-        <div className="p-4 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm">
-          {error}
-        </div>
-      )}
-
       {loading ? (
         <div className="py-16 text-center text-slate-400 font-semibold text-sm">
           Memuat formulir publikasi...
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           <CardContainer
             title="Artikel & Identitas Penulis"
             subtitle="Rincian judul artikel ilmiah dan susunan penulis"
@@ -245,26 +235,8 @@ export const PublikasiFormPage: React.FC = () => {
               </div>
             </div>
           </CardContainer>
-
-          {/* Action Button Row */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Link
-              to="/publikasi"
-              className="px-5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-98 cursor-pointer disabled:opacity-50"
-            >
-              <CheckIcon className="w-4 h-4 text-amber-400" />
-              <span>{submitting ? 'Menyimpan...' : isEdit ? 'Perbarui Data' : 'Simpan Publikasi'}</span>
-            </button>
-          </div>
-        </form>
+        </div>
       )}
-    </AdminPanelTemplate>
+    </FormPageTemplate>
   );
 };

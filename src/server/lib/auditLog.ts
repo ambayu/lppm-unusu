@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import type { PrismaClient, AksiAudit } from "@prisma/client";
 import { z } from "zod";
 
 /**
@@ -87,12 +88,16 @@ export function ringkasPayload(body: unknown): string | null {
   return teks.length > MAX_RINGKASAN ? `${teks.slice(0, MAX_RINGKASAN)}…` : teks;
 }
 
-/** Subset PrismaClient yang dibutuhkan logger (memudahkan unit test tanpa DB). */
-export interface AuditWriter {
-  auditLog: {
-    create: (args: { data: Record<string, unknown> }) => Promise<unknown>;
-  };
-}
+/**
+ * Subset PrismaClient yang dibutuhkan logger.
+ *
+ * Diturunkan langsung dari PrismaClient (bukan antarmuka buatan sendiri) karena
+ * metode `create` Prisma bersifat generik: tanda tangan yang ditulis manual
+ * tidak akan pernah cocok. Dengan cara ini `createAuditLogger(prisma)` lolos
+ * pemeriksaan tipe, sementara pengujian tetap bisa menyuntikkan objek tiruan
+ * yang berbentuk sama.
+ */
+export type AuditWriter = Pick<PrismaClient, "auditLog">;
 
 interface AktorAudit {
   id?: number | null;
@@ -119,7 +124,8 @@ export function createAuditLogger(writer: AuditWriter) {
       const aktor = ((req as Request & { user?: AktorAudit }).user || {}) as AktorAudit;
       const { entitas, entitasId } = deriveEntitas(req.originalUrl || req.url || "");
 
-      const aksi = metode === "POST" ? "CREATE" : metode === "DELETE" ? "DELETE" : "UPDATE";
+      // `aksi` bertipe enum `AksiAudit` di Prisma, bukan string bebas.
+      const aksi: AksiAudit = metode === "POST" ? "CREATE" : metode === "DELETE" ? "DELETE" : "UPDATE";
 
       const data = {
         aktorId: aktor.id ?? null,

@@ -5,11 +5,9 @@ import {
   getPengabdian,
   updatePengabdian,
 } from '../services/api';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
+import { FormPageTemplate } from '../components/FormPageTemplate';
 import { CardContainer } from '../components/CardContainer';
 import {
-  ArrowLeftIcon,
-  CheckIcon,
   HeartIcon,
 } from '@heroicons/react/24/outline';
 
@@ -90,31 +88,23 @@ export const PengabdianFormPage: React.FC = () => {
   };
 
   return (
-    <AdminPanelTemplate
+    <FormPageTemplate
       title={isEdit ? 'Edit Kegiatan PKM' : 'Tambah Kegiatan PKM Baru'}
       description="Formulir pencatatan program pengabdian kepada masyarakat, kemitraan desa binaan, dan alokasi dana Tridharma."
-      actions={
-        <Link
-          to="/pengabdian"
-          className="inline-flex items-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
-        >
-          <ArrowLeftIcon className="w-4 h-4 text-slate-500" />
-          <span>Kembali</span>
-        </Link>
-      }
+      backTo="/pengabdian"
+      isEdit={isEdit}
+      submitLabel={isEdit ? 'Perbarui Data' : 'Simpan Kegiatan'}
+      submitting={submitting}
+      error={error}
+      onSubmit={handleSubmit}
+      accentClassName="bg-violet-700 hover:bg-violet-800"
     >
-      {error && (
-        <div className="p-4 rounded-[12px] bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm">
-          {error}
-        </div>
-      )}
-
       {loading ? (
         <div className="py-16 text-center text-slate-400 font-semibold text-sm">
           Memuat formulir pengabdian...
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           <CardContainer
             title="Informasi Program & Tim Pelaksana"
             subtitle="Rincian judul pengabdian masyarakat dan dosen pengusul"
@@ -254,26 +244,8 @@ export const PengabdianFormPage: React.FC = () => {
               </div>
             </div>
           </CardContainer>
-
-          {/* Action Button Row */}
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <Link
-              to="/pengabdian"
-              className="px-5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 text-xs sm:text-sm font-semibold hover:bg-slate-50 transition-colors shadow-2xs"
-            >
-              Batal
-            </Link>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="inline-flex items-center gap-2 px-6 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all active:scale-98 cursor-pointer disabled:opacity-50"
-            >
-              <CheckIcon className="w-4 h-4 text-amber-400" />
-              <span>{submitting ? 'Menyimpan...' : isEdit ? 'Perbarui Data' : 'Simpan PKM'}</span>
-            </button>
-          </div>
-        </form>
+        </div>
       )}
-    </AdminPanelTemplate>
+    </FormPageTemplate>
   );
 };

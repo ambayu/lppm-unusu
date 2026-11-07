@@ -1,8 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
-import { CardContainer } from '../components/CardContainer';
-import { EmptyState } from '../components/EmptyState';
-import { ErrorState } from '../components/ErrorState';
+import { Link } from 'react-router-dom';
+import { ListPageTemplate } from '../components/ListPageTemplate';
 import { useAuth } from '../context/AuthContext';
 import {
   fetchPenelitian,
@@ -14,7 +12,6 @@ import {
 } from '../services/api';
 import {
   UsersIcon,
-  MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   ArrowPathIcon,
   ArrowDownTrayIcon,
@@ -25,16 +22,9 @@ import {
   BookOpenIcon,
   IdentificationIcon,
   EnvelopeIcon,
-  LockClosedIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import {
-  APP_NAME,
-  FOREIGN_APP_ADMIN_ROLES,
-  LPPM_ALLOWED_SSO_ROLES,
-  foreignAppForRole,
-  labelForSsoRole,
-} from '../lib/appAccess';
+import { FOREIGN_APP_ADMIN_ROLES, foreignAppForRole, labelForSsoRole } from '../lib/appAccess';
 
 export interface UserSummaryItem {
   id: string;
@@ -57,7 +47,6 @@ export const PenggunaPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('SEMUA');
-  const [selectedUser, setSelectedUser] = useState<UserSummaryItem | null>(null);
 
   const [penelitianList, setPenelitianList] = useState<PenelitianItem[]>([]);
   const [pengabdianList, setPengabdianList] = useState<PengabdianItem[]>([]);
@@ -274,400 +263,248 @@ export const PenggunaPage: React.FC = () => {
   };
 
   return (
-    <AdminPanelTemplate
-      title="Manajemen Pengguna & Peneliti"
-      description="Monitoring akun civitas akademika, administrator LPPM, dan rekapitulasi keaktifan tridharma dosen terintegrasi ONE UNUSU SSO Gateway."
-      actions={
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="inline-flex items-center justify-center p-2.5 h-[42px] w-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
-            title="Segarkan Data"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
-            onClick={handleExportCsv}
-            disabled={loading || filteredUsers.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-bold transition-all shadow-2xs hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            title="Ekspor Data Pengguna ke CSV"
-          >
-            <ArrowDownTrayIcon className="w-5 h-5 text-emerald-600" />
-            <span>Export CSV</span>
-          </button>
-        </div>
-      }
-    >
-      {/* 1. KPI Cards Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Total Pengguna Terdata</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{totalUsers}</p>
-          </div>
-          <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center">
-            <UsersIcon className="w-5 h-5" />
-          </div>
-        </div>
+    <>
+      <ListPageTemplate<UserSummaryItem>
+        title="Manajemen Pengguna & Peneliti"
+        description="Monitoring akun civitas akademika, administrator LPPM, dan rekapitulasi keaktifan tridharma dosen terintegrasi ONE UNUSU SSO Gateway."
+        badge={
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-violet-100 text-violet-800 uppercase tracking-wider">
+            Pengguna LPPM
+          </span>
+        }
+        actions={
+          <>
+            <button
+              onClick={loadData}
+              disabled={loading}
+              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
+              title="Segarkan Data"
+              aria-label="Muat ulang daftar pengguna"
+            >
+              <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+            </button>
+            <button
+              onClick={handleExportCsv}
+              disabled={loading || filteredUsers.length === 0}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-[12px] border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-bold transition-all shadow-2xs hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              title="Ekspor Data Pengguna ke CSV"
+            >
+              <ArrowDownTrayIcon className="w-5 h-5 text-emerald-600" aria-hidden="true" />
+              <span>Export CSV</span>
+            </button>
+          </>
+        }
+        stats={
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Total Pengguna Terdata</p>
+                <p className="mt-1 text-2xl font-bold text-slate-900">{totalUsers}</p>
+              </div>
+              <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center">
+                <UsersIcon className="w-5 h-5" />
+              </div>
+            </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Dosen Peneliti</p>
-            <p className="mt-1 text-2xl font-bold text-violet-700">{totalDosen}</p>
-          </div>
-          <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs">
-            <AcademicCapIcon className="w-5 h-5" />
-          </div>
-        </div>
+            <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Dosen Peneliti</p>
+                <p className="mt-1 text-2xl font-bold text-violet-700">{totalDosen}</p>
+              </div>
+              <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs">
+                <AcademicCapIcon className="w-5 h-5" />
+              </div>
+            </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Admin LPPM</p>
-            <p className="mt-1 text-2xl font-bold text-amber-600">{totalAdmin}</p>
-          </div>
-          <div className="w-10 h-10 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
-            <ShieldCheckIcon className="w-5 h-5" />
-          </div>
-        </div>
+            <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Admin LPPM</p>
+                <p className="mt-1 text-2xl font-bold text-amber-600">{totalAdmin}</p>
+              </div>
+              <div className="w-10 h-10 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+                <ShieldCheckIcon className="w-5 h-5" />
+              </div>
+            </div>
 
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Total Berkas Riset</p>
-            <p className="mt-1 text-2xl font-bold text-emerald-700">{totalAktivitas}</p>
+            <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium text-slate-500">Total Berkas Riset</p>
+                <p className="mt-1 text-2xl font-bold text-emerald-700">{totalAktivitas}</p>
+              </div>
+              <div className="w-10 h-10 rounded-[10px] bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+                AKT
+              </div>
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-[10px] bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
-            AKT
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Banner Informasi SSO - Dihapus sesuai permintaan */}
-
-      {/* 3. Filter & Pencarian Bar */}
-      <CardContainer>
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari pengguna berdasarkan nama, NIDN, email, atau program studi..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-600 transition-colors"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 text-xs font-semibold text-slate-600 flex-shrink-0">
+        }
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Cari pengguna berdasarkan nama, NIDN, email, atau program studi..."
+        filters={
+          <>
+            <div className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 text-xs font-semibold text-slate-600">
               <AdjustmentsHorizontalIcon className="w-4 h-4" />
               <span>Hak Akses:</span>
             </div>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="px-3 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-violet-600 transition-colors cursor-pointer"
+              aria-label="Filter hak akses"
+              className="px-3 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-violet-600 transition-colors cursor-pointer min-h-[44px]"
             >
               <option value="SEMUA">Semua Peran</option>
               <option value="ADMIN">Administrator LPPM</option>
               <option value="DOSEN">Dosen Peneliti</option>
             </select>
-          </div>
-        </div>
-      </CardContainer>
-
-      {/* 3b. Cakupan Aplikasi — pemisahan admin per aplikasi (LPPM ≠ LPM) */}
-      <CardContainer
-        title="Cakupan Aplikasi & Pemisahan Admin"
-        subtitle={`Sesi ini terikat pada aplikasi ${APP_NAME}. Peran admin aplikasi cabang lain tidak dapat memakai panel ini.`}
-      >
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Peran yang sah di LPPM */}
-          <div className="rounded-[12px] border border-emerald-200 bg-emerald-50/60 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ShieldCheckIcon className="w-4 h-4 text-emerald-700" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-                Peran sah · Panel LPPM
-              </h3>
-            </div>
-            <ul className="flex flex-wrap gap-1.5">
-              {LPPM_ALLOWED_SSO_ROLES.map((code) => (
-                <li
-                  key={code}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-emerald-300 text-[11px] font-bold text-emerald-800"
-                >
-                  <LockClosedIcon className="w-3 h-3" aria-hidden="true" />
-                  {labelForSsoRole(code)}
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2.5 text-[11px] text-emerald-900/80 leading-relaxed">
-              Admin LPPM dan Superadmin mengelola data master; Dosen peneliti hanya membaca dan mengusulkan.
-            </p>
-          </div>
-
-          {/* Peran admin aplikasi lain yang ditolak */}
-          <div className="rounded-[12px] border border-rose-200 bg-rose-50/60 p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <ExclamationTriangleIcon className="w-4 h-4 text-rose-700" />
-              <h3 className="text-xs font-bold uppercase tracking-wider text-rose-800">
-                Ditolak di panel ini
-              </h3>
-            </div>
-            <ul className="flex flex-wrap gap-1.5">
-              {Object.entries(FOREIGN_APP_ADMIN_ROLES).map(([code, appName]) => (
-                <li
-                  key={code}
-                  title={`Gunakan panel ${appName}`}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-white border border-rose-300 text-[11px] font-semibold text-rose-800"
-                >
-                  {labelForSsoRole(code)}
-                  <span className="text-rose-500 font-normal">· {appName}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-2.5 text-[11px] text-rose-900/80 leading-relaxed">
-              Login dan setiap panggilan API memverifikasi cakupan aplikasi di server, sehingga admin LPM
-              tidak dapat membuka panel LPPM walau memegang token SSO yang sah.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center gap-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 px-4 py-3">
-          <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">
-            Sesi Anda
+          </>
+        }
+        tableTitle="Daftar Pengguna & Peneliti Terdaftar"
+        tableSubtitle={`Menampilkan ${filteredUsers.length} pengguna aktif dalam ekosistem LPPM UNUSU`}
+        tableBadge={
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-50 text-violet-800 border border-violet-200">
+            {filteredUsers.length} Pengguna
           </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-700 text-white text-[11px] font-bold w-fit">
-            <ShieldCheckIcon className="w-3 h-3" aria-hidden="true" />
-            {currentAuthUser?.ssoRole ? labelForSsoRole(currentAuthUser.ssoRole) : 'Pengguna LPPM'}
-          </span>
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-[#CBD5E1] text-[11px] font-semibold text-slate-700 w-fit">
-            Akses: {APP_NAME}
-          </span>
-          {foreignAppForRole(currentAuthUser?.ssoRole) && (
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-50 border border-rose-200 text-[11px] font-bold text-rose-800 w-fit">
-              Peran ini milik {foreignAppForRole(currentAuthUser?.ssoRole)}
-            </span>
-          )}
-        </div>
-      </CardContainer>
-
-      {/* 4. Tabel Manajemen Pengguna */}
-      <CardContainer
-        title="Daftar Pengguna & Peneliti Terdaftar"
-        subtitle={`Menampilkan ${filteredUsers.length} pengguna aktif dalam ekosistem LPPM UNUSU`}
-      >
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">
-            <ArrowPathIcon className="w-8 h-8 mx-auto animate-spin text-violet-700 mb-2" />
-            <p className="text-sm font-semibold">Memuat data pengguna...</p>
-          </div>
-        ) : error ? (
-          <ErrorState description={error} onRetry={loadData} />
-        ) : filteredUsers.length === 0 ? (
-          <EmptyState
-            title="Pengguna Tidak Ditemukan"
-            description="Tidak ada pengguna atau peneliti yang cocok dengan filter pencarian Anda."
-          />
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1020px] text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#CBD5E1] text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70">
-                  <th className="py-3 px-3.5 w-12 text-center">No</th>
-                  <th className="py-3 px-4 min-w-[260px]">Pengguna & NIDN</th>
-                  <th className="py-3 px-4 min-w-[220px]">Program Studi / Fakultas</th>
-                  <th className="py-3 px-4 min-w-[140px] text-center">Hak Akses</th>
-                  <th className="py-3 px-4 min-w-[180px] text-center">Rekap Tridharma</th>
-                  <th className="py-3 px-4 min-w-[140px] text-center">Status Akun</th>
-                  <th className="py-3 px-4 w-24 text-center">Detail</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs sm:text-[13px]">
-                {filteredUsers.map((item, idx) => {
-                  const isCurrent = currentAuthUser?.id && String(currentAuthUser.id) === item.id;
-                  return (
-                    <tr key={item.id} className="hover:bg-violet-50/30 transition-colors">
-                      <td className="py-3.5 px-3.5 text-center text-slate-400 font-mono text-xs">
-                        {idx + 1}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-violet-700 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs shadow-2xs">
-                            {item.nama.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-slate-900 leading-snug flex items-center gap-1.5">
-                              <span className="truncate">{item.nama}</span>
-                              {isCurrent && (
-                                <span className="text-[10px] font-bold bg-violet-100 text-violet-800 px-1.5 py-0.2 rounded-sm border border-violet-200">
-                                  Anda
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2 mt-0.5">
-                              <span>NIDN: {item.nidn}</span>
-                              <span>•</span>
-                              <span className="text-slate-400 truncate">{item.email}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="font-semibold text-slate-800">{item.prodi || '-'}</div>
-                        <div className="text-[11px] text-slate-500 mt-0.5">{item.fakultas || '-'}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="font-bold text-xs text-slate-800">
-                          {item.role}
-                        </div>
-                        <div className="mt-1 flex flex-col items-center gap-1">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                              foreignAppForRole(item.ssoRole)
-                                ? 'bg-rose-50 text-rose-800 border-rose-200'
-                                : 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                            }`}
-                            title={
-                              foreignAppForRole(item.ssoRole)
-                                ? `Peran milik ${foreignAppForRole(item.ssoRole)} — tidak dapat memakai panel LPPM`
-                                : 'Peran sah untuk panel LPPM'
-                            }
-                          >
-                            {foreignAppForRole(item.ssoRole) ? (
-                              <ExclamationTriangleIcon className="w-3 h-3" aria-hidden="true" />
-                            ) : (
-                              <ShieldCheckIcon className="w-3 h-3" aria-hidden="true" />
-                            )}
-                            {foreignAppForRole(item.ssoRole) ? 'Ditolak di LPPM' : 'Akses LPPM'}
-                          </span>
-                          <span className="text-[10px] font-mono text-slate-400">
-                            SSO: {item.ssoRole}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center gap-3 text-xs font-semibold">
-                          <span title="Penelitian" className="text-violet-700">
-                            {item.totalPenelitian} <span className="text-[11px] text-slate-400 font-normal">Lit</span>
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span title="Pengabdian" className="text-rose-600">
-                            {item.totalPengabdian} <span className="text-[11px] text-slate-400 font-normal">PKM</span>
-                          </span>
-                          <span className="text-slate-300">•</span>
-                          <span title="Publikasi" className="text-amber-600">
-                            {item.totalPublikasi} <span className="text-[11px] text-slate-400 font-normal">Pub</span>
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <span className="text-xs font-semibold text-emerald-600">
-                          {item.status}
+        }
+        minTableWidth="min-w-[1020px]"
+        loading={loading}
+        error={error}
+        onRetry={loadData}
+        hasActiveFilter={Boolean(search || roleFilter !== 'SEMUA')}
+        emptyMessage="Belum ada pengguna terdaftar di ekosistem LPPM."
+        noResultMessage="Tidak ada pengguna atau peneliti yang cocok dengan filter pencarian Anda."
+        rowKey={(item) => item.id}
+        rows={filteredUsers}
+        columns={[
+          {
+            key: 'no',
+            header: 'No',
+            headerClassName: 'w-12 text-center',
+            cellClassName: 'text-center text-slate-400 font-mono text-xs',
+            render: (_item, idx) => idx + 1,
+          },
+          {
+            key: 'nama',
+            header: 'Pengguna & NIDN',
+            headerClassName: 'min-w-[260px]',
+            render: (item) => {
+              const isCurrent = currentAuthUser?.id && String(currentAuthUser.id) === item.id;
+              return (
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-violet-700 text-white font-bold flex items-center justify-center flex-shrink-0 text-xs shadow-2xs">
+                    {item.nama.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-bold text-slate-900 leading-snug flex items-center gap-1.5">
+                      <span className="truncate">{item.nama}</span>
+                      {isCurrent && (
+                        <span className="text-[10px] font-bold bg-violet-100 text-violet-800 px-1.5 py-0.2 rounded-sm border border-violet-200">
+                          Anda
                         </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-center">
-                        <button
-                          onClick={() => setSelectedUser(item)}
-                          className="px-2.5 py-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-xs font-semibold text-slate-700 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
-                        >
-                          Lihat
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContainer>
-
-      {/* Modal Detail Pengguna */}
-      {selectedUser && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="bg-white rounded-[16px] border border-[#CBD5E1] shadow-2xl max-w-lg w-full p-6 relative">
-            <div className="flex items-start justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-violet-700 text-white font-bold text-lg flex items-center justify-center">
-                  {selectedUser.nama.charAt(0).toUpperCase()}
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-500 font-mono flex items-center gap-2 mt-0.5">
+                      <span>NIDN: {item.nidn}</span>
+                      <span>•</span>
+                      <span className="text-slate-400 truncate">{item.email}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-base text-slate-900">{selectedUser.nama}</h3>
-                  <p className="text-xs text-slate-500 font-mono">NIDN: {selectedUser.nidn}</p>
+              );
+            },
+          },
+          {
+            key: 'prodi',
+            header: 'Program Studi / Fakultas',
+            headerClassName: 'min-w-[220px]',
+            render: (item) => (
+              <>
+                <div className="font-semibold text-slate-800">{item.prodi || '-'}</div>
+                <div className="text-[11px] text-slate-500 mt-0.5">{item.fakultas || '-'}</div>
+              </>
+            ),
+          },
+          {
+            key: 'role',
+            header: 'Hak Akses',
+            headerClassName: 'min-w-[140px] text-center',
+            cellClassName: 'text-center',
+            render: (item) => (
+              <>
+                <div className="font-bold text-xs text-slate-800">{item.role}</div>
+                <div className="mt-1 flex flex-col items-center gap-1">
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                      foreignAppForRole(item.ssoRole)
+                        ? 'bg-rose-50 text-rose-800 border-rose-200'
+                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    }`}
+                    title={
+                      foreignAppForRole(item.ssoRole)
+                        ? `Peran milik ${foreignAppForRole(item.ssoRole)} — tidak dapat memakai panel LPPM`
+                        : 'Peran sah untuk panel LPPM'
+                    }
+                  >
+                    {foreignAppForRole(item.ssoRole) ? (
+                      <ExclamationTriangleIcon className="w-3 h-3" aria-hidden="true" />
+                    ) : (
+                      <ShieldCheckIcon className="w-3 h-3" aria-hidden="true" />
+                    )}
+                    {foreignAppForRole(item.ssoRole) ? 'Ditolak di LPPM' : 'Akses LPPM'}
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">SSO: {item.ssoRole}</span>
                 </div>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-[8px] cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="py-4 space-y-3 text-xs sm:text-sm">
-              <div className="flex items-center gap-2 text-slate-600">
-                <EnvelopeIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="font-semibold text-slate-700">Email:</span>
-                <span className="font-mono text-slate-800">{selectedUser.email || '-'}</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <IdentificationIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="font-semibold text-slate-700">Fakultas / Prodi:</span>
-                <span className="text-slate-800">
-                  {selectedUser.fakultas} — {selectedUser.prodi}
+              </>
+            ),
+          },
+          {
+            key: 'tridharma',
+            header: 'Rekap Tridharma',
+            headerClassName: 'min-w-[180px] text-center',
+            cellClassName: 'text-center',
+            render: (item) => (
+              <div className="flex items-center justify-center gap-3 text-xs font-semibold">
+                <span title="Penelitian" className="text-violet-700">
+                  {item.totalPenelitian}{' '}
+                  <span className="text-[11px] text-slate-400 font-normal">Lit</span>
+                </span>
+                <span className="text-slate-300">•</span>
+                <span title="Pengabdian" className="text-rose-600">
+                  {item.totalPengabdian}{' '}
+                  <span className="text-[11px] text-slate-400 font-normal">PKM</span>
+                </span>
+                <span className="text-slate-300">•</span>
+                <span title="Publikasi" className="text-amber-600">
+                  {item.totalPublikasi}{' '}
+                  <span className="text-[11px] text-slate-400 font-normal">Pub</span>
                 </span>
               </div>
-              <div className="flex items-center gap-2 text-slate-600">
-                <ShieldCheckIcon className="w-4 h-4 text-slate-400 flex-shrink-0" />
-                <span className="font-semibold text-slate-700">Role Terverifikasi:</span>
-                <span className="font-bold text-violet-700">
-                  {selectedUser.role} ({selectedUser.ssoRole})
-                </span>
-              </div>
-
-              <div className="pt-3 border-t border-slate-100">
-                <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                  Aktivitas Tridharma Tercatat
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="p-3 rounded-[10px] bg-slate-50 border border-slate-200 text-center">
-                    <p className="text-[11px] text-slate-500">Penelitian</p>
-                    <p className="text-lg font-bold text-violet-700 mt-0.5">
-                      {selectedUser.totalPenelitian}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-[10px] bg-slate-50 border border-slate-200 text-center">
-                    <p className="text-[11px] text-slate-500">Pengabdian</p>
-                    <p className="text-lg font-bold text-rose-600 mt-0.5">
-                      {selectedUser.totalPengabdian}
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-[10px] bg-slate-50 border border-slate-200 text-center">
-                    <p className="text-[11px] text-slate-500">Publikasi</p>
-                    <p className="text-lg font-bold text-amber-600 mt-0.5">
-                      {selectedUser.totalPublikasi}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 flex justify-end">
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="px-4 py-2 rounded-[10px] bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold transition-colors cursor-pointer"
+            ),
+          },
+          {
+            key: 'status',
+            header: 'Status Akun',
+            headerClassName: 'min-w-[140px] text-center',
+            cellClassName: 'text-center',
+            render: (item) => (
+              <span className="text-xs font-semibold text-emerald-600">{item.status}</span>
+            ),
+          },
+          {
+            key: 'aksi',
+            header: 'Detail',
+            headerClassName: 'w-24 text-center',
+            cellClassName: 'text-center',
+            render: (item) => (
+              <Link
+                to={`/pengguna/${encodeURIComponent(item.nidn || item.nama)}`}
+                className="inline-flex items-center justify-center min-h-[44px] px-2.5 py-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-xs font-semibold text-slate-700 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
               >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </AdminPanelTemplate>
+                Lihat
+              </Link>
+            ),
+          },
+        ]}
+      />
+    </>
   );
 };

@@ -79,3 +79,110 @@ Sebelum membuat halaman baru di `src/client/pages/`:
 3. Daftarkan rute di `src/client/App.tsx` di dalam pembungkus `<ProtectedRoute><SidebarLayout>...</SidebarLayout></ProtectedRoute>`.
 4. Tambahkan entri navigasi dan label breadcrumb pada `src/client/components/SidebarLayout.tsx`.
 5. Perbarui dokumentasi ini (`docs/design-system/PAGE_TEMPLATES.md`) dan `CHANGELOG.md`.
+
+---
+
+## 6. Template 6: Form Page Template (`FormPageTemplate`)
+
+- **Digunakan oleh**: **seluruh** halaman formulir tambah/ubah data (mis. `/penelitian/tambah`, `/penelitian/edit/:id`, `/admin/surat-form`, `/admin/standar/tambah`). **Dashboard tidak memakai template ini.**
+- **Tanggung Jawab**: Menyeragamkan kerangka halaman formulir di seluruh aplikasi sehingga tata letaknya identik antar menu: header panel + pesan galat + area isian + baris aksi tetap di bawah.
+- **Komposisi Struktur**:
+  ```tsx
+  <FormPageTemplate
+    title="Tambah Proposal Riset Baru"
+    description="Formulir pencatatan lengkap proposal penelitian."
+    backTo="/penelitian"
+    isEdit={isEdit}
+    submitLabel={isEdit ? 'Perbarui Data' : 'Simpan Proposal'}
+    submitting={submitting}
+    error={error}
+    onSubmit={handleSubmit}
+    accentClassName="bg-violet-700 hover:bg-violet-800"
+  >
+    <CardContainer title="Informasi Judul & Tim Peneliti">
+      {/* field-field formulir */}
+    </CardContainer>
+  </FormPageTemplate>
+  ```
+- **Poin Penting**:
+  1. Tidak perlu lagi menulis `<form>`, blok galat, dan baris tombol Batal/Simpan secara manual — semuanya disediakan template.
+  2. Baris aksi (Batal + Simpan) selalu berada di **bawah** formulir dengan tap target minimal 42px.
+  3. `submitLabel` default otomatis: `Simpan Perubahan` saat `isEdit`, `Simpan Data` saat menambah.
+  4. Tombol "Batal" mengarah ke `backTo`; tombol "Kembali" pada header juga mengarah ke sana.
+  5. `accentClassName` disesuaikan dengan palette aplikasi (ESurat emerald, LPM/LPPM biru/violet, dll).
+- **Dilarang**: Membuat struktur header formulir + baris aksi sendiri di halaman baru. Gunakan template ini agar konsisten.
+
+---
+
+## 6b. Template 6b: Dashboard Page (`pages/Dashboard.tsx`)
+
+Dashboard LPPM mengikuti pola baku yang sama dengan E-Surat UNUSU. Urutan blok dari atas ke bawah:
+
+1. **Banner sambutan** — latar gradien warna primer repo (violet), badge kecil uppercase,
+   `h1` berisi sapaan dinamis (`Selamat pagi/siang/sore/malam` + nama depan dari `user?.nama`),
+   satu paragraf penjelas modul, dan 2 tombol aksi ke modul inti (`min-h-[44px]`).
+2. **Kartu ringkasan** (`AdminPanelTemplate`) — badge + judul `Ringkasan ...` + aksi
+   `Segarkan` (ikon berputar saat `loading`) dan tautan ke halaman daftar data.
+3. **Error state** — `ErrorState` + tombol coba lagi.
+4. **Skeleton** — grid 4 kartu `animate-pulse` selama `loading` dan data belum ada.
+5. **Kartu metrik** — grid 4 kolom; label uppercase, ikon dalam kotak warna lembut, angka
+   `text-3xl font-black`, subteks kecil, footer tautan `Daftar →` ke modul terkait.
+6. **Laporan chart** — grid 2 kolom berisi `ReportCard` (`DonutChart` / `BarChart` /
+   `ColumnChart` / `StackedBar` / `GaugeRing`) dari `components/LaporanCharts.tsx`.
+   **Tanpa library chart dan tanpa dependency baru.**
+7. **Daftar terbaru** — "Penelitian Terbaru" dan "Publikasi Terbaru", masing-masing 5 baris
+   data nyata dari API.
+
+**Aturan data (mengikat):**
+
+- Setiap angka **wajib** berasal dari API nyata. Dilarang `Math.random()`, konstanta palsu,
+  atau angka "kira-kira".
+- **Jangan membuang field yang sudah dikirim server.** Bila endpoint menghitung sesuatu namun
+  UI tidak menampilkannya, itu bug.
+- Bila sebuah angka belum tersedia, **tambahkan agregasi di server** (`count` / `groupBy` /
+  `aggregate` / `findMany` + `take`), jangan menghitung di klien dari data yang tidak lengkap.
+- Bila sebuah chart tidak bisa diisi dari data nyata, **jangan buat chart itu**.
+
+**Aturan fetch:** satu fungsi `loadData()` dipakai bersama oleh pemuatan awal, `Segarkan`, dan
+`onRetry`; `loading` selalu ditutup lewat `finally`.
+
+**Larangan:**
+
+- Dashboard **tidak** menampilkan kartu informasi akun (`UserAuthorityCard`) — identitas
+  pengguna cukup di topbar/sidebar. Jangan juga merendernya secara global di `SidebarLayout`,
+  karena akan muncul di seluruh halaman.
+- Jangan membungkus dashboard dengan `max-w-*`/`mx-auto`/padding luar; `SidebarLayout` sudah
+  memberi kanvas ber-padding (`<main className="flex-1 p-5 sm:p-7 space-y-6">`).
+
+---
+
+## 6c. Navbar Landing Page (`components/Navbar.tsx`)
+
+Seluruh aplikasi memakai satu struktur navbar yang sama (acuan:
+`esurat-unusu/src/client/components/Navbar.tsx`).
+
+- `<header className="sticky top-0 z-50 bg-white border-b border-[#CBD5E1]">` dengan baris `h-16`.
+- **Kiri** — brand: kotak logo 36×36 (`w-9 h-9 rounded-[10px]`) berwarna primer repo, nama
+  aplikasi, dan subteks kecil.
+- **Tengah** — menu desktop (`hidden md:flex`), tiap item ikon + label, `rounded-[8px]`,
+  item aktif memakai warna primer repo dan ditandai `aria-current="page"`.
+- **Kanan** — belum login: tautan "Website Kampus" + tombol "Masuk SSO" → `/login`
+  (seluruh autentikasi lewat ONE UNUSU SSO). Sudah login: identitas (`user?.nama` — **LPPM
+  tidak punya field `name`**) + tombol `Keluar`. Hamburger `md:hidden`
+  (`min-h-[44px] min-w-[44px]`, `aria-label`, `aria-expanded`).
+- Menu mobile menutup diri setelah tautan diklik.
+- Navbar **disembunyikan di rute panel** (prefix rute modul + `/admin`), karena panel sudah
+  punya sidebar + topbar sendiri.
+- **Dilarang** membuat navbar kedua di `Landing.tsx` — navbar lama wajib dihapus agar tidak dobel.
+
+---
+
+## 7. Aturan Status Aktif Menu Sidebar (`isActive`)
+
+Semua sidebar panel **wajib** memakai aturan kecocokan yang sama agar tidak pernah ada dua menu aktif sekaligus:
+
+1. **Cocok persis** — `pathname === to` → aktif.
+2. **Cocok batas segmen** — `pathname.startsWith(to + '/')` → kandidat aktif. Dilarang memakai `startsWith(to)` tanpa garis miring, karena `/peran` akan ikut menyala di `/perangkat`.
+3. **Kecocokan terpanjang menang** — bila beberapa menu berbagi prefix yang sama (mis. `/admin` dan `/admin/pengguna`), hanya menu dengan path **terpanjang** yang dianggap aktif.
+4. **Menu ber-`end`** — menu yang menunjuk rute akar (mis. `/`) wajib ditandai `end: true` agar tidak menyala di semua halaman. Rute turunannya (mis. `/class/:id`) dipetakan manual ke menu induk.
+5. **Reaktif** — status harus dihitung dari `useLocation()` (bukan `window.location.pathname`), supaya ikut berubah saat navigasi client-side.

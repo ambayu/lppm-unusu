@@ -15,6 +15,10 @@ export default {
           },
           gold: '#D4AF37'
         }
+      },
+      fontFamily: {
+        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
       }
     },
   },

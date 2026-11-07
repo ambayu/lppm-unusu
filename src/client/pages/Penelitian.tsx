@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchPenelitian, deletePenelitian, PenelitianItem } from '../services/api';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
-import { CardContainer } from '../components/CardContainer';
-import { EmptyState } from '../components/EmptyState';
-import { ErrorState } from '../components/ErrorState';
+import { ListPageTemplate } from '../components/ListPageTemplate';
 import {
   BeakerIcon,
   PlusIcon,
-  MagnifyingGlassIcon,
   AdjustmentsHorizontalIcon,
   ArrowPathIcon,
   PencilSquareIcon,
@@ -152,11 +148,16 @@ export const PenelitianPage: React.FC = () => {
   };
 
   return (
-    <AdminPanelTemplate
+    <ListPageTemplate<PenelitianItem>
       title="Pangkalan Data Penelitian Dosen"
       description="Kelola usulan hibah, pemantauan kemajuan riset, dan pelaporan luaran penelitian civitas akademika UNUSU."
+      badge={
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-violet-100 text-violet-800 uppercase tracking-wider">
+          Riset Dosen
+        </span>
+      }
       actions={
-        <div className="flex items-center gap-2.5">
+        <>
           <button
             onClick={loadData}
             disabled={loading}
@@ -181,202 +182,187 @@ export const PenelitianPage: React.FC = () => {
             <PlusIcon className="w-5 h-5 text-amber-400" />
             <span>Tambah Penelitian</span>
           </Link>
+        </>
+      }
+      stats={
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Total Judul Riset</p>
+              <p className="mt-1 text-2xl font-bold text-slate-900">{totalPenelitian}</p>
+            </div>
+            <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center">
+              <BeakerIcon className="w-5 h-5" />
+            </div>
+          </div>
+
+          <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Teknologi & AI</p>
+              <p className="mt-1 text-2xl font-bold text-violet-700">{countIT}</p>
+            </div>
+            <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs">
+              IT
+            </div>
+          </div>
+
+          <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Pendidikan & Aswaja</p>
+              <p className="mt-1 text-2xl font-bold text-amber-600">{countPendidikan}</p>
+            </div>
+            <div className="w-10 h-10 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
+              EDU
+            </div>
+          </div>
+
+          <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-medium text-slate-500">Total Alokasi Hibah</p>
+              <p className="mt-1 text-lg sm:text-xl font-bold text-slate-900">
+                Rp {totalDana.toLocaleString('id-ID')}
+              </p>
+            </div>
+            <div className="w-10 h-10 rounded-[10px] bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
+              IDR
+            </div>
+          </div>
         </div>
       }
-    >
-      {/* 1. KPI Cards Row (Part 10.8 standard) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Total Judul Riset</p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">{totalPenelitian}</p>
+      searchValue={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Cari judul riset, nama ketua peneliti, NIDN, atau bidang fokus..."
+      filters={
+        <>
+          <div className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 text-xs font-semibold text-slate-600">
+            <AdjustmentsHorizontalIcon className="w-4 h-4" />
+            <span>Bidang Fokus:</span>
           </div>
-          <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center">
-            <BeakerIcon className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Teknologi & AI</p>
-            <p className="mt-1 text-2xl font-bold text-violet-700">{countIT}</p>
-          </div>
-          <div className="w-10 h-10 rounded-[10px] bg-violet-50 text-violet-700 flex items-center justify-center font-bold text-xs">
-            IT
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Pendidikan & Aswaja</p>
-            <p className="mt-1 text-2xl font-bold text-amber-600">{countPendidikan}</p>
-          </div>
-          <div className="w-10 h-10 rounded-[10px] bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xs">
-            EDU
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-[14px] border border-[#CBD5E1] shadow-2xs flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium text-slate-500">Total Alokasi Hibah</p>
-            <p className="mt-1 text-lg sm:text-xl font-bold text-slate-900">
-              Rp {totalDana.toLocaleString('id-ID')}
-            </p>
-          </div>
-          <div className="w-10 h-10 rounded-[10px] bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-xs">
-            IDR
-          </div>
-        </div>
-      </div>
-
-      {/* 2. Filter & Pencarian Bar */}
-      <CardContainer>
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari judul riset, nama ketua peneliti, NIDN, atau bidang fokus..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:border-violet-600 transition-colors"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5 px-3 py-2 rounded-[12px] border border-[#CBD5E1] bg-slate-50 text-xs font-semibold text-slate-600 flex-shrink-0">
-              <AdjustmentsHorizontalIcon className="w-4 h-4" />
-              <span>Bidang Fokus:</span>
-            </div>
-            <select
-              value={selectedBidangFokus}
-              onChange={(e) => setSelectedBidangFokus(e.target.value)}
-              className="px-3 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-violet-600 transition-colors"
-            >
-              <option value="SEMUA">Semua Bidang</option>
-              <option value="Teknologi Informasi">Teknologi Informasi</option>
-              <option value="Kecerdasan Buatan (AI)">Kecerdasan Buatan (AI)</option>
-              <option value="Pendidikan & Aswaja">Pendidikan & Aswaja</option>
-              <option value="Sosial Humaniora">Sosial Humaniora</option>
-              <option value="Pertanian & Ketahanan Pangan">Pertanian & Ketahanan Pangan</option>
-              <option value="Kesehatan & Gizi">Kesehatan & Gizi</option>
-            </select>
-          </div>
-        </div>
-      </CardContainer>
-
-      {/* 3. Data Table dengan Horizontal Scroll & Audit Trail */}
-      <CardContainer
-        title="Daftar Proposal & Luaran Penelitian"
-        subtitle={`Menampilkan ${filteredList.length} dari total ${list.length} data penelitian terdaftar`}
-      >
-        {loading ? (
-          <div className="py-16 text-center text-slate-400">
-            <ArrowPathIcon className="w-8 h-8 mx-auto animate-spin text-violet-700 mb-2" />
-            <p className="text-sm font-semibold">Memuat data penelitian...</p>
-          </div>
-        ) : error ? (
-          <ErrorState description={error} onRetry={loadData} />
-        ) : filteredList.length === 0 ? (
-          <EmptyState
-            title="Tidak Ada Data Penelitian"
-            description={
-              search || selectedBidangFokus !== 'SEMUA'
-                ? 'Tidak ditemukan penelitian yang cocok dengan kriteria pencarian Anda.'
-                : 'Belum ada proposal penelitian tercatat di pangkalan LPPM.'
-            }
-            action={
+          <select
+            value={selectedBidangFokus}
+            onChange={(e) => setSelectedBidangFokus(e.target.value)}
+            aria-label="Filter bidang fokus penelitian"
+            className="px-3 py-2.5 rounded-[12px] border border-[#CBD5E1] bg-white text-xs sm:text-sm text-slate-800 focus:outline-none focus:border-violet-600 transition-colors min-h-[44px]"
+          >
+            <option value="SEMUA">Semua Bidang</option>
+            <option value="Teknologi Informasi">Teknologi Informasi</option>
+            <option value="Kecerdasan Buatan (AI)">Kecerdasan Buatan (AI)</option>
+            <option value="Pendidikan & Aswaja">Pendidikan & Aswaja</option>
+            <option value="Sosial Humaniora">Sosial Humaniora</option>
+            <option value="Pertanian & Ketahanan Pangan">Pertanian & Ketahanan Pangan</option>
+            <option value="Kesehatan & Gizi">Kesehatan & Gizi</option>
+          </select>
+        </>
+      }
+      tableTitle="Daftar Proposal & Luaran Penelitian"
+      tableSubtitle={`Menampilkan ${filteredList.length} dari total ${list.length} data penelitian terdaftar`}
+      tableBadge={
+        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-50 text-violet-800 border border-violet-200">
+          {filteredList.length} Riset
+        </span>
+      }
+      loading={loading}
+      error={error}
+      onRetry={loadData}
+      hasActiveFilter={Boolean(search || selectedBidangFokus !== 'SEMUA')}
+      emptyMessage="Belum ada proposal penelitian tercatat di pangkalan LPPM."
+      noResultMessage="Tidak ditemukan penelitian yang cocok dengan kriteria pencarian Anda."
+      rowKey={(item) => item.id}
+      rows={filteredList}
+      columns={[
+        {
+          key: 'no',
+          header: 'No',
+          headerClassName: 'w-12 text-center',
+          cellClassName: 'text-center text-slate-400 font-mono text-xs',
+          render: (_item, idx) => idx + 1,
+        },
+        {
+          key: 'judul',
+          header: 'Judul Penelitian & Bidang Fokus',
+          headerClassName: 'min-w-[280px]',
+          render: (item) => (
+            <>
+              <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
+              <div className="text-[11px] text-violet-700 font-medium mt-1">Fokus: {item.bidangFokus}</div>
+              {item.anggota && (
+                <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-md">
+                  Anggota: {item.anggota}
+                </div>
+              )}
+            </>
+          ),
+        },
+        {
+          key: 'ketua',
+          header: 'Ketua & NIDN',
+          headerClassName: 'min-w-[190px]',
+          render: (item) => (
+            <>
+              <div className="font-semibold text-slate-800">{item.ketua}</div>
+              <div className="text-[11px] font-mono text-slate-500 mt-0.5">NIDN: {item.nidn}</div>
+            </>
+          ),
+        },
+        {
+          key: 'sumberDana',
+          header: 'Sumber Dana',
+          headerClassName: 'min-w-[150px]',
+          render: (item) => <div className="font-semibold text-slate-800">{item.sumberDana}</div>,
+        },
+        {
+          key: 'danaDisetujui',
+          header: 'Dana Disetujui',
+          headerClassName: 'min-w-[140px] text-right',
+          cellClassName: 'text-right font-mono font-bold text-slate-900',
+          render: (item) =>
+            item.danaDisetujui ? `Rp ${Number(item.danaDisetujui).toLocaleString('id-ID')}` : '-',
+        },
+        {
+          key: 'tahun',
+          header: 'Tahun / Status',
+          headerClassName: 'min-w-[100px] text-center',
+          cellClassName: 'text-center',
+          render: (item) => (
+            <>
+              <div className="font-mono font-bold text-slate-800">{item.tahun}</div>
+              <div className="text-[11px] font-semibold text-violet-700 mt-0.5">{item.status}</div>
+            </>
+          ),
+        },
+        {
+          key: 'createdAt',
+          header: 'Dibuat',
+          headerClassName: 'min-w-[120px]',
+          cellClassName: 'text-slate-500 text-[11px] font-mono',
+          render: (item) => (item.createdAt ? String(item.createdAt).substring(0, 10) : '-'),
+        },
+        {
+          key: 'aksi',
+          header: 'Aksi',
+          headerClassName: 'w-28 text-center',
+          cellClassName: 'text-center',
+          render: (item) => (
+            <div className="flex items-center justify-center gap-1.5">
               <Link
-                to="/penelitian/tambah"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-violet-700 text-white text-xs font-bold hover:bg-violet-800 transition-colors"
+                to={`/penelitian/edit/${item.id}`}
+                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
+                title="Edit Penelitian"
               >
-                <PlusIcon className="w-4 h-4" />
-                <span>Tambah Sekarang</span>
+                <PencilSquareIcon className="w-4 h-4" />
               </Link>
-            }
-          />
-        ) : (
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1080px] text-left border-collapse">
-              <thead>
-                <tr className="border-b border-[#CBD5E1] text-[11px] font-bold text-slate-500 uppercase tracking-wider bg-slate-50/70">
-                  <th className="py-3 px-3.5 w-12 text-center">No</th>
-                  <th className="py-3 px-4 min-w-[280px]">Judul Penelitian & Bidang Fokus</th>
-                  <th className="py-3 px-4 min-w-[190px]">Ketua & NIDN</th>
-                  <th className="py-3 px-4 min-w-[150px]">Sumber Dana</th>
-                  <th className="py-3 px-4 min-w-[140px] text-right">Dana Disetujui</th>
-                  <th className="py-3 px-4 min-w-[100px] text-center">Tahun / Status</th>
-                  <th className="py-3 px-4 min-w-[120px]">Dibuat</th>
-                  <th className="py-3 px-4 w-28 text-center">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-xs sm:text-[13px]">
-                {filteredList.map((item, idx) => (
-                  <tr key={item.id} className="hover:bg-violet-50/30 transition-colors">
-                    <td className="py-3.5 px-3.5 text-center text-slate-400 font-mono text-xs">
-                      {idx + 1}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
-                      <div className="text-[11px] text-violet-700 font-medium mt-1">
-                        Fokus: {item.bidangFokus}
-                      </div>
-                      {item.anggota && (
-                        <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-md">
-                          Anggota: {item.anggota}
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-800">{item.ketua}</div>
-                      <div className="text-[11px] font-mono text-slate-500 mt-0.5">
-                        NIDN: {item.nidn}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-slate-800">{item.sumberDana}</div>
-                    </td>
-                    <td className="py-3.5 px-4 text-right font-mono font-bold text-slate-900">
-                      {item.danaDisetujui
-                        ? `Rp ${Number(item.danaDisetujui).toLocaleString('id-ID')}`
-                        : '-'}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <div className="font-mono font-bold text-slate-800">{item.tahun}</div>
-                      <div className="text-[11px] font-semibold text-violet-700 mt-0.5">
-                        {item.status}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-500 text-[11px] font-mono">
-                      {/* Audit trail CreatedAt */}
-                      {item.createdAt ? String(item.createdAt).substring(0, 10) : '-'}
-                    </td>
-                    <td className="py-3.5 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <Link
-                          to={`/penelitian/edit/${item.id}`}
-                          className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
-                          title="Edit Penelitian"
-                        >
-                          <PencilSquareIcon className="w-4 h-4" />
-                        </Link>
-                        <button
-                          onClick={() => handleDelete(item.id, item.judul)}
-                          disabled={deletingId === item.id}
-                          className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
-                          title="Hapus Penelitian"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </CardContainer>
-    </AdminPanelTemplate>
+              <button
+                onClick={() => handleDelete(item.id, item.judul)}
+                disabled={deletingId === item.id}
+                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
+                title="Hapus Penelitian"
+              >
+                <TrashIcon className="w-4 h-4" />
+              </button>
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 };

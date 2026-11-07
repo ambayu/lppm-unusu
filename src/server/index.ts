@@ -582,8 +582,10 @@ app.get("/api/publikasi", async (req: Request, res: Response) => {
 
     // Urutan utama publikasi adalah tahun terbit (bukan createdAt),
     // dengan `id` sebagai tie-breaker agar pagination stabil.
+    // Setiap kunci WAJIB menjadi elemen array tersendiri — Prisma menolak
+    // dua kunci dalam satu objek ("Expected <Model>OrderByWithRelationInput").
     const direction: "asc" | "desc" = sort === "terlama" ? "asc" : "desc";
-    const orderBy = [{ tahun: direction, id: direction }];
+    const orderBy = [{ tahun: direction }, { id: direction }];
     const pagination = resolvePagination(parsed.data);
 
     if (!pagination) {
@@ -1186,6 +1188,154 @@ app.delete("/api/monev/:id", requireRole("admin"), async (req: Request, res: Res
     res.json({ success: true, message: `Data monev ${existing.kodeMonev} berhasil dihapus` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: "Gagal menghapus Monev: " + (error?.message || "") });
+  }
+});
+
+// 6. Dashboard — satu endpoint agregasi untuk seluruh laporan & daftar terbaru.
+//    Semua angka dihitung server (count / aggregate / groupBy) agar klien tidak
+//    perlu menarik seluruh tabel hanya untuk menampilkan ringkasan.
+const TAHUN_TERAKHIR = 5;
+
+app.get("/api/dashboard/stats", async (req: Request, res: Response) => {
+  try {
+    const tahunBerjalan = new Date().getFullYear();
+    const tahunAwal = tahunBerjalan - (TAHUN_TERAKHIR - 1);
+    const batasTanggal = new Date();
+    batasTanggal.setDate(batasTanggal.getDate() + 30);
+
+    const [
+      totalPenelitian,
+      totalPengabdian,
+      totalPublikasi,
+      totalMonev,
+      danaPenelitian,
+      danaPengabdian,
+      statusPenelitianRaw,
+      bidangFokusRaw,
+      sumberDanaRaw,
+      statusPengabdianRaw,
+      mitraRaw,
+      jenisPublikasiRaw,
+      sintaRaw,
+      publikasiTahunRaw,
+      statusMonevRaw,
+      monevProgres,
+      monevJadwalMendatang,
+      recentPenelitian,
+      recentPublikasi,
+    ] = await Promise.all([
+      prisma.penelitian.count(),
+      prisma.pengabdian.count(),
+      prisma.publikasi.count(),
+      prisma.monitoringEvaluasi.count(),
+      prisma.penelitian.aggregate({
+        _sum: { danaDisetujui: true },
+        where: { danaDisetujui: { not: null } },
+      }),
+      prisma.pengabdian.aggregate({
+        _sum: { danaDisetujui: true },
+        where: { danaDisetujui: { not: null } },
+      }),
+      prisma.penelitian.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.penelitian.groupBy({ by: ["bidangFokus"], _count: { _all: true } }),
+      prisma.penelitian.groupBy({ by: ["sumberDana"], _count: { _all: true } }),
+      prisma.pengabdian.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.pengabdian.groupBy({ by: ["mitra"], _count: { _all: true } }),
+      prisma.publikasi.groupBy({ by: ["jenis"], _count: { _all: true } }),
+      prisma.publikasi.groupBy({ by: ["sintaScore"], _count: { _all: true } }),
+      Promise.all(
+        Array.from({ length: TAHUN_TERAKHIR }, (_, i) => tahunAwal + i).map(async (tahun) => {
+          const [penelitian, pengabdian, publikasi] = await Promise.all([
+            prisma.penelitian.count({ where: { tahun } }),
+            prisma.pengabdian.count({ where: { tahun } }),
+            prisma.publikasi.count({ where: { tahun } }),
+          ]);
+          return { tahun, penelitian, pengabdian, publikasi };
+        }),
+      ),
+      prisma.monitoringEvaluasi.groupBy({ by: ["status"], _count: { _all: true } }),
+      prisma.monitoringEvaluasi.aggregate({
+        _avg: { persentaseKemajuan: true, persentaseDanaTerpakai: true },
+        _count: { _all: true },
+      }),
+      prisma.monitoringEvaluasi.count({
+        where: {
+          tanggalJadwal: { gte: new Date(), lte: batasTanggal },
+          status: { in: ["DIJADWALKAN", "SEDANG_DITELAAH"] },
+        },
+      }),
+      prisma.penelitian.findMany({
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          judul: true,
+          ketua: true,
+          bidangFokus: true,
+          tahun: true,
+          status: true,
+          createdAt: true,
+        },
+      }),
+      prisma.publikasi.findMany({
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: 5,
+        select: {
+          id: true,
+          judul: true,
+          penulis: true,
+          jenis: true,
+          namaJurnal: true,
+          tahun: true,
+          sintaScore: true,
+          createdAt: true,
+        },
+      }),
+    ]);
+
+    const keKelompok = <T extends { _count: { _all: number } }>(
+      rows: T[],
+      ambilLabel: (row: T) => string | null | undefined,
+    ) =>
+      rows
+        .map((row) => ({ label: (ambilLabel(row) || "Lainnya").toString().trim() || "Lainnya", value: row._count._all }))
+        .sort((a, b) => b.value - a.value);
+
+    const danaDisetujui =
+      Number(danaPenelitian._sum.danaDisetujui ?? 0) + Number(danaPengabdian._sum.danaDisetujui ?? 0);
+
+    res.json({
+      success: true,
+      data: {
+        /** Waktu agregasi dihitung — dipakai klien untuk label "diperbarui". */
+        diperbaruiPada: new Date().toISOString(),
+        ringkasan: {
+          totalPenelitian,
+          totalPengabdian,
+          totalPublikasi,
+          totalMonev,
+          totalKegiatan: totalPenelitian + totalPengabdian,
+          danaDisetujui,
+          monevJadwalMendatang,
+          monevRataKemajuan: Math.round(monevProgres._avg.persentaseKemajuan ?? 0),
+          monevRataSerapanDana: Math.round(monevProgres._avg.persentaseDanaTerpakai ?? 0),
+          monevDinilai: monevProgres._count._all,
+        },
+        statusPenelitian: keKelompok(statusPenelitianRaw, (r) => r.status),
+        bidangFokus: keKelompok(bidangFokusRaw, (r) => r.bidangFokus).slice(0, 6),
+        sumberDana: keKelompok(sumberDanaRaw, (r) => r.sumberDana),
+        statusPengabdian: keKelompok(statusPengabdianRaw, (r) => r.status),
+        mitraPengabdian: keKelompok(mitraRaw, (r) => r.mitra).slice(0, 6),
+        jenisPublikasi: keKelompok(jenisPublikasiRaw, (r) => r.jenis),
+        sintaPublikasi: keKelompok(sintaRaw, (r) => r.sintaScore),
+        trenTahunan: publikasiTahunRaw,
+        statusMonev: keKelompok(statusMonevRaw, (r) => r.status),
+        recentPenelitian,
+        recentPublikasi,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Gagal mengambil ringkasan dashboard LPPM" });
   }
 });
 

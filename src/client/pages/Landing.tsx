@@ -1,28 +1,113 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import {
   AcademicCapIcon,
   BookOpenIcon,
   HeartIcon,
   ArrowRightIcon,
   ArrowTopRightOnSquareIcon,
-  Bars3Icon,
-  XMarkIcon,
   DocumentTextIcon,
-  SparklesIcon,
   CpuChipIcon,
   GlobeAltIcon,
   UserGroupIcon,
+  CheckIcon,
 } from '@heroicons/react/24/outline';
-import { useAuth } from '../context/AuthContext';
 import { FullHeroSlider } from '../components/FullHeroSlider';
+import { Navbar } from '../components/Navbar';
+import { LatarDekoratif } from '../components/LatarDekoratif';
 import { assetUrl } from '../lib/assets';
+import { fetchPenelitian, fetchPengabdian, fetchPublikasi } from '../services/api';
+import { useReveal, useCountUp } from '../hooks/useReveal';
 
-const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'http://localhost:5173';
+const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'https://unusu.bpp-developer.com/sso';
+
+/**
+ * Tautan satelit ekosistem dikendalikan lewat env var agar tidak pernah
+ * menunjuk ke `localhost` pada build produksi. Default sengaja dibiarkan
+ * ke domain produksi; saat pengembangan cukup mengisi `.env.local`.
+ */
+const SATELLITE_URLS = {
+  lpm: import.meta.env.VITE_LPM_URL || 'https://unusu.bpp-developer.com/lpm',
+  esurat: import.meta.env.VITE_ESURAT_URL || 'https://unusu.bpp-developer.com/esurat',
+  lms: import.meta.env.VITE_LMS_URL || 'https://unusu.bpp-developer.com/lms',
+};
+
+/**
+ * KartuStatistik: satu kartu capaian pada panel `#statistik`.
+ *
+ * Angka dianimasikan naik saat kartu memasuki viewport agar terbaca sebagai
+ * data yang baru dimuat. Bila `nilai` masih `null` (belum ada data), yang
+ * tampil teks placeholder dan animasi count-up dilewati.
+ */
+const KartuStatistik: React.FC<{
+  ikon: React.ElementType;
+  label: string;
+  nilai: number | null;
+  teks: string;
+  urutan: number;
+}> = ({ ikon: Icon, label, nilai, teks, urutan }) => {
+  const { ref, style, terlihat } = useReveal<HTMLDivElement>({ delay: urutan * 90 });
+  // Hitungan dimulai hanya setelah kartu ini sendiri masuk layar, sehingga
+  // setiap kartu punya animasi angkanya sendiri saat di-scroll.
+  const terhitung = useCountUp(nilai, terlihat);
+  const tampil = nilai === null ? teks : new Intl.NumberFormat('id-ID').format(terhitung);
+
+  return (
+    <div
+      ref={ref}
+      style={style}
+      className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center space-y-2"
+    >
+      <div className="w-10 h-10 rounded-xl bg-white/10 text-white flex items-center justify-center mx-auto">
+        <Icon className="w-6 h-6" aria-hidden="true" />
+      </div>
+      <div className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight tabular-nums">
+        {tampil}
+      </div>
+      <p className="text-sm text-violet-100 font-medium">{label}</p>
+    </div>
+  );
+};
+
+/**
+ * Reveal: pembungkus tipis `useReveal` untuk dipakai di JSX.
+ *
+ * Bila animasi tidak bisa berjalan (JS mati, `IntersectionObserver` tidak
+ * tersedia), `useReveal` langsung menampilkan elemen dalam keadaan akhir
+ * sehingga konten tidak pernah hilang.
+ */
+const Reveal: React.FC<{
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+  as?: 'div' | 'li';
+}> = ({ children, delay = 0, className, as: Tag = 'div' }) => {
+  const { ref, style } = useReveal<HTMLElement>({ delay });
+  return (
+    <Tag ref={ref as React.Ref<never>} style={style} className={className}>
+      {children}
+    </Tag>
+  );
+};
 
 export const LandingPage: React.FC = () => {
-  const { user } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const location = useLocation();
+
+  /**
+   * Gulir ke seksi landing berdasarkan hash (`/#layanan`, `/#skema`, ...).
+   * Navbar publik hanya menautkan seksi dalam halaman ini, tidak ada tautan
+   * yang membuka panel manajemen.
+   */
+  React.useEffect(() => {
+    const id = location.hash.replace('#', '');
+    if (!id) return;
+    const target = document.getElementById(id);
+    if (!target) return;
+    const raf = window.requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [location.hash, location.key]);
 
   const skemaPenelitian = [
     {
@@ -31,9 +116,9 @@ export const LandingPage: React.FC = () => {
       target: 'Dosen Asisten Ahli & Lektor',
       luaran: 'Jurnal Nasional Terakreditasi SINTA 3-6',
       badge: 'Riset Pemula',
-      icon: SparklesIcon,
-      bgColor: 'bg-emerald-50 text-emerald-600 border-emerald-200',
-      badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+      icon: AcademicCapIcon,
+      bgColor: 'bg-violet-50 text-violet-700 border-violet-200',
+      badgeColor: 'bg-violet-50 text-violet-800 border-violet-300',
     },
     {
       kode: 'PTR',
@@ -42,8 +127,8 @@ export const LandingPage: React.FC = () => {
       luaran: 'Prototipe TKT 4-6, HKI Paten/Hak Cipta',
       badge: 'Hilirisasi Inovasi',
       icon: CpuChipIcon,
-      bgColor: 'bg-blue-50 text-blue-600 border-blue-200',
-      badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+      bgColor: 'bg-violet-50 text-violet-700 border-violet-200',
+      badgeColor: 'bg-violet-50 text-violet-800 border-violet-300',
     },
     {
       kode: 'PKM-M',
@@ -52,8 +137,8 @@ export const LandingPage: React.FC = () => {
       luaran: 'Peningkatan Kapasitas Mitra & Publikasi PKM',
       badge: 'Pemberdayaan Umat',
       icon: UserGroupIcon,
-      bgColor: 'bg-amber-50 text-amber-600 border-amber-200',
-      badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+      bgColor: 'bg-violet-50 text-violet-700 border-violet-200',
+      badgeColor: 'bg-violet-50 text-violet-800 border-violet-300',
     },
     {
       kode: 'P-KOLAB',
@@ -62,363 +147,304 @@ export const LandingPage: React.FC = () => {
       luaran: 'Publikasi Scopus / WOS Bereputasi',
       badge: 'Internasional',
       icon: GlobeAltIcon,
-      bgColor: 'bg-purple-50 text-purple-600 border-purple-200',
-      badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+      bgColor: 'bg-violet-50 text-violet-700 border-violet-200',
+      badgeColor: 'bg-violet-50 text-violet-800 border-violet-300',
     },
   ];
 
+  /**
+   * Angka capaian diambil dari arsip LPPM yang sebenarnya (endpoint publik
+   * `/api/penelitian`, `/api/pengabdian`, `/api/publikasi`). Selama data belum
+   * termuat atau permintaan gagal, tampilkan tanda pisah, bukan angka karangan:
+   * halaman publik tidak boleh mengklaim capaian yang tidak bisa dibuktikan.
+   */
+  const [capaian, setCapaian] = React.useState<{
+    penelitian: number | null;
+    pengabdian: number | null;
+    publikasi: number | null;
+    gagal: boolean;
+  }>({ penelitian: null, pengabdian: null, publikasi: null, gagal: false });
+
+  React.useEffect(() => {
+    let dibatalkan = false;
+
+    Promise.all([fetchPenelitian(), fetchPengabdian(), fetchPublikasi()])
+      .then(([p, pkm, pub]) => {
+        if (dibatalkan) return;
+        setCapaian({
+          penelitian: p.data.data.length,
+          pengabdian: pkm.data.data.length,
+          publikasi: pub.data.data.length,
+          gagal: false,
+        });
+      })
+      .catch(() => {
+        if (!dibatalkan) setCapaian((prev) => ({ ...prev, gagal: true }));
+      });
+
+    return () => {
+      dibatalkan = true;
+    };
+  }, []);
+
+  // Placeholder saat data belum termuat: "..." bukan "0", karena nol berarti
+  // arsip benar-benar kosong, sedangkan keadaan ini masih memuat.
+  const angka = (n: number | null) =>
+    n === null ? '...' : new Intl.NumberFormat('id-ID').format(n);
+
   const statistikLppm = [
-    { angka: '120+', label: 'Proposal Penelitian Terarsip', icon: DocumentTextIcon },
-    { angka: '85+', label: 'Program Pengabdian (PKM)', icon: HeartIcon },
-    { angka: '240+', label: 'Artikel Jurnal & Prosiding', icon: BookOpenIcon },
-    { angka: '14', label: 'Program Studi Terintegrasi', icon: AcademicCapIcon },
+    {
+      nilai: capaian.penelitian,
+      angka: angka(capaian.penelitian),
+      label: 'Proposal Penelitian Terarsip',
+      icon: DocumentTextIcon,
+    },
+    {
+      nilai: capaian.pengabdian,
+      angka: angka(capaian.pengabdian),
+      label: 'Program Pengabdian (PKM)',
+      icon: HeartIcon,
+    },
+    {
+      nilai: capaian.publikasi,
+      angka: angka(capaian.publikasi),
+      label: 'Artikel Jurnal & Prosiding',
+      icon: BookOpenIcon,
+    },
+    {
+      nilai: 14,
+      angka: '14',
+      label: 'Program Studi Terintegrasi',
+      icon: AcademicCapIcon,
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDFCFE] text-slate-800 font-sans selection:bg-amber-400 selection:text-slate-950">
-      {/* 1. TOP ANNOUNCEMENT STRIP (SESUAI IDENTITAS LOGIN: VIOLET & AMBER) */}
+    <div className="min-h-screen bg-[#FDFCFE] text-slate-800 font-sans selection:bg-violet-700 selection:text-white">
+      {/* 1. TOP ANNOUNCEMENT STRIP: identitas aplikasi LPPM UNUSU saja
+          (tanpa emblem "Portal Resmi" & tanpa tautan portal lain). */}
       <div className="bg-violet-950 text-violet-100 px-4 py-2 text-xs font-semibold border-b border-violet-900/50">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-2 truncate">
-            <span className="bg-amber-400 text-slate-950 text-[10px] px-2.5 py-0.5 rounded-full uppercase tracking-wider font-bold">
-              Portal Resmi
+        <div className="max-w-7xl mx-auto flex items-center justify-center sm:justify-start">
+          <p className="min-w-0 text-center sm:text-left">
+            <span className="font-bold text-white">LPPM UNUSU</span>
+            <span className="mx-1.5 text-white/40" aria-hidden="true">
+              &middot;
             </span>
-            <span className="truncate">
-              Lembaga Penelitian & Pengabdian kepada Masyarakat — Universitas Nahdlatul Ulama Sumatera Utara
+            <span>
+              Sistem Informasi Penelitian &amp; Pengabdian kepada Masyarakat
             </span>
-          </div>
-          <div className="hidden sm:flex items-center space-x-4 text-[11px] font-medium text-violet-200">
-            <a
-              href={`${ONE_UNUSU_URL}/dashboard`}
-              className="flex items-center space-x-1 hover:text-white transition-colors"
-            >
-              <span>Portal Terpadu ONE UNUSU</span>
-              <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-            </a>
-          </div>
+            <span className="hidden sm:inline">
+              <span className="mx-1.5 text-white/40" aria-hidden="true">
+                &middot;
+              </span>
+              Universitas Nahdlatul Ulama Sumatera Utara
+            </span>
+          </p>
         </div>
       </div>
 
-      {/* 2. NAVBAR BERSIH (VIOLET THEME & AMBER ACCENT) */}
-      <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Logo Brand */}
-          <Link to="/" className="flex items-center space-x-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-violet-700 flex items-center justify-center text-white shadow-md ring-2 ring-violet-600">
-              <AcademicCapIcon className="w-7 h-7 text-amber-400" />
-            </div>
-            <div>
-              <div className="flex items-center space-x-1.5">
-                <span className="font-bold text-xl text-slate-950 tracking-normal">LPPM</span>
-                <span className="font-bold text-xl text-violet-700 tracking-normal">UNUSU</span>
-              </div>
-              <p className="text-[10px] text-slate-500 font-medium tracking-widest uppercase">
-                Penelitian & Pengabdian Masyarakat
-              </p>
-            </div>
-          </Link>
-
-          {/* Navigasi Utama */}
-          <nav
-            className="hidden md:flex items-center space-x-1 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/60"
-            aria-label="Navigasi utama"
-          >
-            <a
-              href="#profil"
-              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
-            >
-              Tentang
-            </a>
-            <a
-              href="#layanan"
-              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
-            >
-              Pilar Tridharma
-            </a>
-            <a
-              href="#skema"
-              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
-            >
-              Skema Hibah
-            </a>
-            <a
-              href="#alur"
-              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
-            >
-              Alur Pengajuan
-            </a>
-            <a
-              href="#statistik"
-              className="px-4 py-2 text-xs font-medium text-slate-700 hover:text-violet-700 hover:bg-white rounded-xl transition-all"
-            >
-              Capaian Kinerja
-            </a>
-          </nav>
-
-          {/* Right Action */}
-          <div className="hidden sm:flex items-center space-x-3">
-            {user ? (
-              <Link
-                to="/penelitian"
-                className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all"
-              >
-                <span>Panel Peneliti</span>
-                <ArrowRightIcon className="w-3.5 h-3.5 text-amber-400" />
-              </Link>
-            ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center space-x-2 px-6 py-2.5 rounded-xl bg-violet-700 hover:bg-violet-800 text-white text-xs font-bold shadow-md hover:shadow-lg transition-all"
-              >
-                <span>Masuk</span>
-                <ArrowRightIcon className="w-3.5 h-3.5 text-amber-400" />
-              </Link>
-            )}
-          </div>
-
-          {/* Mobile Menu Button */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="md:hidden p-2 rounded-xl text-slate-700 hover:bg-slate-100"
-            aria-label={mobileMenuOpen ? 'Tutup menu' : 'Buka menu'}
-          >
-            {mobileMenuOpen ? <XMarkIcon className="w-6 h-6" /> : <Bars3Icon className="w-6 h-6" />}
-          </button>
-        </div>
-
-        {/* Mobile Dropdown Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 bg-white px-4 py-4 space-y-3">
-            <a
-              href="#profil"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-xs font-medium text-slate-700 py-1.5"
-            >
-              Tentang
-            </a>
-            <a
-              href="#layanan"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-xs font-medium text-slate-700 py-1.5"
-            >
-              Pilar Tridharma
-            </a>
-            <a
-              href="#skema"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-xs font-medium text-slate-700 py-1.5"
-            >
-              Skema Hibah
-            </a>
-            <a
-              href="#alur"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-xs font-medium text-slate-700 py-1.5"
-            >
-              Alur Pengajuan
-            </a>
-            <a
-              href="#statistik"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-xs font-medium text-slate-700 py-1.5"
-            >
-              Capaian Kinerja
-            </a>
-            <div className="pt-2 border-t border-slate-100">
-              {user ? (
-                <Link
-                  to="/penelitian"
-                  className="w-full text-center block px-4 py-2.5 rounded-xl bg-violet-700 text-white text-xs font-bold"
-                >
-                  Panel Peneliti
-                </Link>
-              ) : (
-                <Link
-                  to="/login"
-                  className="w-full text-center block px-4 py-2.5 rounded-xl bg-violet-700 text-white text-xs font-bold"
-                >
-                  Masuk
-                </Link>
-              )}
-            </div>
-          </div>
-        )}
-      </header>
+      {/* 2. NAVBAR (brand kiri · menu tengah · aksi kanan) komponen bersama */}
+      <Navbar />
 
       {/* 3. HERO FULL SLIDER (80% Visual Gambar, 20% Tulisan Ringkas di Bawah) */}
       <FullHeroSlider />
 
-      {/* 3.5 TENTANG LPPM UNUSU (DESAIN SEPERTI PROFIL ONE UNUSU) */}
-      <section id="profil" aria-labelledby="profil-lppm-title" className="bg-white py-16 sm:py-24 border-b border-slate-200/80">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
-          <div className="lg:col-span-6">
-            <div className="space-y-2">
-              <span className="text-xs font-bold uppercase tracking-widest text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1 rounded-full inline-block">
-                Tentang Lembaga
-              </span>
-              <h2 id="profil-lppm-title" className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-tight pt-2">
-                Mengenal LPPM UNUSU
-              </h2>
-            </div>
+      {/* 3.5 TENTANG LPPM (teks kiri, foto potret kanan, pola baku ONE UNUSU) */}
+      <section
+        id="tentang"
+        aria-labelledby="tentang-title"
+        className="relative isolate overflow-hidden bg-white py-16 sm:py-24 border-b border-slate-200/70"
+      >
+        <LatarDekoratif jenis="titik" arah="kanan" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid items-center gap-10 lg:grid-cols-12 lg:gap-14">
+          {/* KIRI: narasi & keunggulan */}
+          <Reveal className="lg:col-span-6">
+            <p className="border-l-2 border-violet-700 pl-3 text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">
+              Tentang Platform
+            </p>
+            <h2
+              id="tentang-title"
+              className="mt-3 text-3xl font-semibold tracking-tight text-balance text-slate-950 sm:text-4xl"
+            >
+              Mengenal LPPM UNUSU
+            </h2>
 
-            <div className="mt-6 space-y-4 text-sm sm:text-base leading-relaxed text-slate-600">
+            <div className="mt-6 space-y-4 text-sm leading-relaxed text-slate-600 sm:text-base">
               <p>
-                Lembaga Penelitian dan Pengabdian kepada Masyarakat (LPPM) adalah pusat inovasi riset, hilirisasi keilmuan, dan pengabdian sivitas akademika Universitas Nahdlatul Ulama Sumatera Utara bagi kemaslahatan masyarakat dan kemandirian bangsa.
+                Lembaga Penelitian dan Pengabdian kepada Masyarakat (LPPM) adalah pusat inovasi riset,
+                hilirisasi keilmuan, dan pengabdian sivitas akademika Universitas Nahdlatul Ulama Sumatera
+                Utara bagi kemaslahatan masyarakat dan kemandirian bangsa.
               </p>
               <p>
-                Melalui ekosistem digital terpadu, LPPM UNUSU memfasilitasi seluruh siklus riset dosen dan mahasiswa—mulai dari seleksi proposal hibah kompetitif, monitoring dan evaluasi kemajuan (Monev), pelaporan luaran jurnal SINTA/Scopus, perolehan HKI paten, hingga kemitraan desa binaan.
+                Melalui ekosistem digital terpadu, LPPM UNUSU memfasilitasi seluruh siklus riset dosen dan
+                mahasiswa, mulai dari seleksi proposal hibah kompetitif, monitoring dan evaluasi kemajuan
+                (Monev), pelaporan luaran jurnal SINTA/Scopus, perolehan HKI paten, hingga kemitraan desa
+                binaan.
               </p>
             </div>
 
-            <ul className="mt-6 space-y-3">
+            <ul className="mt-7 space-y-3">
               {[
                 'Skema pendanaan riset dosen pemula hingga kolaborasi internasional',
                 'Hilirisasi pengabdian kemitraan masyarakat (PKM) berbasis kearifan lokal',
                 'Sentra HKI dan percepatan publikasi ilmiah bereputasi nasional & global',
               ].map((item, idx) => (
-                <li key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-slate-700">
-                  <span className="mt-0.5 grid size-5 flex-shrink-0 place-items-center rounded-full bg-violet-700 text-amber-300">
-                    <AcademicCapIcon className="size-3.5" />
+                <Reveal
+                  key={item}
+                  as="li"
+                  delay={200 + idx * 70}
+                  className="flex items-start gap-3 text-xs text-slate-700 sm:text-sm"
+                >
+                  <span
+                    className="mt-0.5 grid size-5 flex-shrink-0 place-items-center rounded-full bg-violet-700 text-white"
+                    aria-hidden="true"
+                  >
+                    <CheckIcon className="size-3.5" strokeWidth={2.5} />
                   </span>
                   <span>{item}</span>
-                </li>
+                </Reveal>
               ))}
             </ul>
-          </div>
+          </Reveal>
 
-          {/* Visual Peneliti Setengah Badan (Ukuran Lebih Besar & Menawan) */}
-          <div className="lg:col-span-6">
+          {/* KANAN: foto model mahasiswa setengah badan (PNG transparan) */}
+          <Reveal delay={120} className="lg:col-span-6">
             <div className="relative mx-auto flex max-w-lg items-end justify-center">
-              <div className="absolute inset-x-2 bottom-0 h-[86%] rounded-[40px] bg-gradient-to-tr from-violet-100/90 via-amber-100/70 to-transparent border border-violet-100" />
+              <div
+                className="absolute inset-x-2 bottom-0 h-[86%] rounded-[40px] border border-violet-100 bg-gradient-to-tr from-violet-100/90 to-transparent"
+                aria-hidden="true"
+              />
               <img
-                src={assetUrl("/assets/profil-peneliti.png")}
-                alt="Peneliti dan Pengabdi LPPM UNUSU"
-                className="relative z-10 block w-full max-w-[480px] sm:max-w-[500px] h-auto object-contain drop-shadow-[0_25px_50px_rgba(109,40,217,0.22)] transition-transform duration-300 hover:scale-[1.02]"
+                src={assetUrl('/assets/profil-peneliti.png')}
+                alt="Mahasiswa UNUSU membawa buku dan tas, siap mengikuti program riset LPPM"
                 loading="lazy"
+                decoding="async"
+                className="relative z-10 block h-auto w-full object-contain drop-shadow-[0_25px_50px_rgba(109,40,217,0.22)] transition-transform duration-300 hover:scale-[1.02] sm:max-w-[500px]"
               />
             </div>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* 4. TIGA PILAR UTAMA LAYANAN */}
-      <section id="layanan" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="text-center max-w-2xl mx-auto mb-14 space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1 rounded-full">
-            Infrastruktur Riset & Pengabdian
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-normal">
+      <section
+        id="layanan"
+        className="relative isolate overflow-hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20"
+      >
+        <LatarDekoratif jenis="titik" arah="kiri" />
+        <div className="relative">
+          <Reveal className="text-center max-w-2xl mx-auto mb-14">
+          <p className="inline-block border-y-2 border-violet-700 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">
+            Tiga Pilar
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance text-slate-950 sm:text-4xl">
             Pilar Layanan Riset LPPM UNUSU
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+          <p className="mt-4 text-base text-slate-600 leading-relaxed text-pretty">
             Menyediakan ekosistem pendukung riset yang transparan, akuntabel, dan berorientasi pada kemanfaatan masyarakat luas.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Card 1: Pangkalan Penelitian */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-8 space-y-5 hover:border-violet-400 transition-all flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-violet-50 text-violet-700 flex items-center justify-center border border-violet-100">
-                <DocumentTextIcon className="w-8 h-8 text-violet-700" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-950">Pangkalan Penelitian Dosen</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                Pencatatan usulan hibah, reviu proposal, monitoring kemajuan riset (Monev), serta pelaporan akhir dana penelitian internal & eksternal.
-              </p>
-            </div>
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-violet-700">
-              <span>Dana Hibah Bersaing</span>
-              <span className="text-amber-600 font-bold">Terdokumentasi</span>
-            </div>
-          </div>
-
-          {/* Card 2: Pengabdian Masyarakat */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-8 space-y-5 hover:border-amber-400 transition-all flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-800 flex items-center justify-center border border-amber-100">
-                <HeartIcon className="w-8 h-8 text-amber-800" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-950">Pengabdian Kepada Masyarakat (PKM)</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                Pemberdayaan mitra desa binaan, pesantren, UMKM, dan komunitas melalui transfer ilmu pengetahuan dan teknologi terapan berbasis Aswaja.
-              </p>
-            </div>
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-amber-800">
-              <span>Mitra Komunitas Binaan</span>
-              <span className="text-violet-700 font-bold">Berdaya Saing</span>
-            </div>
-          </div>
-
-          {/* Card 3: Publikasi & HKI */}
-          <div className="bg-white rounded-3xl border border-slate-200/90 shadow-md p-8 space-y-5 hover:border-violet-400 transition-all flex flex-col justify-between">
-            <div className="space-y-4">
-              <div className="w-14 h-14 rounded-2xl bg-violet-700 text-white flex items-center justify-center shadow-xs">
-                <BookOpenIcon className="w-8 h-8 text-amber-300" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-950">Publikasi Ilmiah & HKI</h3>
-              <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                Pengelolaan repositori artikel jurnal terindeks SINTA/Scopus, prosiding seminar nasional, paten sederhana, dan sertifikat Hak Cipta dosen.
-              </p>
-            </div>
-            <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs font-semibold text-violet-700">
-              <span>SINTA, Scopus & HKI</span>
-              <span className="text-amber-600 font-bold">Terverifikasi</span>
-            </div>
-          </div>
+          {[
+            {
+              ikon: DocumentTextIcon,
+              judul: 'Pangkalan Penelitian Dosen',
+              teks: 'Pencatatan usulan hibah, reviu proposal, monitoring kemajuan riset (Monev), serta pelaporan akhir dana penelitian internal & eksternal.',
+              cakupan: 'Cakupan: hibah internal & eksternal',
+            },
+            {
+              ikon: HeartIcon,
+              judul: 'Pengabdian Kepada Masyarakat (PKM)',
+              teks: 'Pemberdayaan mitra desa binaan, pesantren, UMKM, dan komunitas melalui transfer ilmu pengetahuan dan teknologi terapan berbasis Aswaja.',
+              cakupan: 'Cakupan: desa binaan, pesantren, UMKM',
+            },
+            {
+              ikon: BookOpenIcon,
+              judul: 'Publikasi Ilmiah & HKI',
+              teks: 'Pengelolaan repositori artikel jurnal terindeks SINTA/Scopus, prosiding seminar nasional, paten sederhana, dan sertifikat Hak Cipta dosen.',
+              cakupan: 'Cakupan: SINTA, Scopus, paten, hak cipta',
+            },
+          ].map((pilar, idx) => {
+            const Icon = pilar.ikon;
+            return (
+              <Reveal
+                key={pilar.judul}
+                delay={idx * 90}
+                className="bg-white rounded-3xl border border-slate-200/90 p-8 space-y-5 hover:border-violet-400 transition-colors flex flex-col justify-between"
+              >
+                <div className="space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-violet-50 text-violet-700 flex items-center justify-center border border-violet-100">
+                    <Icon className="w-7 h-7" aria-hidden="true" />
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-950">{pilar.judul}</h3>
+                  <p className="text-sm text-slate-600 leading-relaxed">{pilar.teks}</p>
+                </div>
+                <div className="pt-4 border-t border-slate-100 text-xs font-semibold text-violet-700">
+                  {pilar.cakupan}
+                </div>
+              </Reveal>
+            );
+          })}
+        </div>
         </div>
       </section>
 
       {/* 5. SKEMA HIBAH & PENDANAAN */}
-      <section id="skema" className="bg-[#F6F3F9] py-20 border-y border-violet-900/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto mb-14 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-violet-800 bg-white border border-violet-200 px-3 py-1 rounded-full shadow-2xs">
-              Skema Penelitian & Hibah
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-normal">
-              Kategori Pendanaan & Target Luaran
+      <section
+        id="skema"
+        className="relative isolate overflow-hidden bg-[#F6F3F9] py-20 border-y border-violet-900/10"
+      >
+        <LatarDekoratif jenis="kisi" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Reveal className="text-center max-w-2xl mx-auto mb-14">
+            <p className="inline-block border-y-2 border-violet-700 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">
+              Empat Skema
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance text-slate-950 sm:text-4xl">
+              Kategori Pendanaan &amp; Target Luaran
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+            <p className="mt-4 text-base text-slate-600 leading-relaxed text-pretty">
               Fasilitasi hibah bertingkat untuk mengakomodasi seluruh jenjang fungsional dosen di lingkungan UNUSU.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {skemaPenelitian.map((skema) => {
+          <div className="relative grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {skemaPenelitian.map((skema, idx) => {
               const SchemeIcon = skema.icon;
               return (
-                <div
+                <Reveal
                   key={skema.kode}
-                  className="bg-white rounded-2xl p-6 border border-slate-200/90 shadow-xs space-y-4 hover:border-violet-600 transition-all flex flex-col justify-between"
+                  delay={idx * 70}
+                  className="bg-white rounded-2xl p-6 border border-slate-200/90 space-y-4 hover:border-violet-600 transition-colors flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border shadow-xs ${skema.bgColor}`}>
-                        <SchemeIcon className="w-6 h-6 stroke-[2]" />
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center border ${skema.bgColor}`}>
+                        <SchemeIcon className="w-6 h-6" aria-hidden="true" />
                       </div>
-                      <span className="text-[11px] font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                      <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
                         {skema.kode}
                       </span>
                     </div>
                     <h4 className="font-bold text-base text-slate-900 leading-snug">{skema.nama}</h4>
-                    <div className="text-xs text-slate-500 space-y-1.5 pt-1">
+                    <dl className="text-sm space-y-1.5 pt-1">
                       <div>
-                        <span className="text-slate-400">Sasaran: </span>
-                        <strong className="text-slate-700 font-semibold">{skema.target}</strong>
+                        <dt className="inline text-slate-500">Sasaran: </dt>
+                        <dd className="inline text-slate-700 font-semibold">{skema.target}</dd>
                       </div>
                       <div>
-                        <span className="text-slate-400">Target Luaran: </span>
-                        <strong className="text-violet-700 font-semibold">{skema.luaran}</strong>
+                        <dt className="inline text-slate-500">Target Luaran: </dt>
+                        <dd className="inline text-violet-700 font-semibold">{skema.luaran}</dd>
                       </div>
-                    </div>
+                    </dl>
                   </div>
                   <div className="pt-3 border-t border-slate-100">
-                    <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-md border ${skema.badgeColor}`}>
+                    <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-md border ${skema.badgeColor}`}>
                       {skema.badge}
                     </span>
                   </div>
-                </div>
+                </Reveal>
               );
             })}
           </div>
@@ -427,90 +453,92 @@ export const LandingPage: React.FC = () => {
 
       {/* 6. STATISTIK KINERJA LPPM */}
       <section id="statistik" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-gradient-to-r from-violet-950 via-purple-900 to-slate-950 rounded-3xl p-8 sm:p-12 text-white shadow-xl">
-          <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-            <span className="text-xs font-bold uppercase tracking-wider bg-white/10 text-amber-300 px-3 py-1 rounded-full border border-white/20">
-              Kinerja Tridharma
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+        <div className="bg-gradient-to-r from-violet-950 via-violet-900 to-slate-950 rounded-3xl p-8 sm:p-12 text-white shadow-xl">
+          <Reveal className="text-center max-w-2xl mx-auto mb-10">
+            <p className="inline-block border-y-2 border-white/60 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-white/80">
+              Arsip Berjalan
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance text-white sm:text-4xl">
               Capaian Produktivitas Riset Dosen
             </h2>
-            <p className="text-xs sm:text-sm text-violet-100 leading-relaxed font-normal">
+            <p className="mt-4 text-base text-violet-100 leading-relaxed text-pretty">
               Indikator kinerja utama dalam memperkuat daya saing akademik UNUSU di tingkat regional dan nasional.
             </p>
-          </div>
+          </Reveal>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8">
-            {statistikLppm.map((stat, idx) => {
-              const Icon = stat.icon;
-              return (
-                <div key={idx} className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center space-y-2 backdrop-blur-xs">
-                  <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center mx-auto">
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div className="text-3xl sm:text-4xl font-black text-amber-300 tracking-tight">{stat.angka}</div>
-                  <p className="text-xs text-violet-100 font-medium">{stat.label}</p>
-                </div>
-              );
-            })}
+            {statistikLppm.map((stat, idx) => (
+              <KartuStatistik
+                key={stat.label}
+                ikon={stat.icon}
+                label={stat.label}
+                nilai={stat.nilai}
+                teks={stat.angka}
+                urutan={idx}
+              />
+            ))}
           </div>
+          <p className="mt-8 text-center text-sm text-violet-200">
+            {capaian.gagal
+              ? 'Arsip capaian sedang tidak dapat diakses. Silakan muat ulang halaman.'
+              : 'Dihitung langsung dari arsip LPPM UNUSU.'}
+          </p>
         </div>
       </section>
 
       {/* 7. ALUR TAHAPAN PENGAJUAN */}
-      <section id="alur" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
-        <div className="text-center max-w-2xl mx-auto mb-14 space-y-2">
-          <span className="text-xs font-bold uppercase tracking-widest text-violet-700 bg-violet-50 border border-violet-200 px-3 py-1 rounded-full">
-            Alur Operasional
-          </span>
-          <h2 className="text-2xl sm:text-4xl font-bold text-slate-950 tracking-normal">
-            Siklus Hibah & Publikasi Mandiri
+      <section
+        id="alur"
+        className="relative isolate overflow-hidden max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20"
+      >
+        <LatarDekoratif jenis="lengkung" arah="kanan" />
+        <Reveal className="relative text-center max-w-2xl mx-auto mb-14">
+          <p className="inline-block border-y-2 border-violet-700 py-1.5 text-xs font-semibold uppercase tracking-[0.2em] text-violet-800">
+            Empat Tahap
+          </p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-balance text-slate-950 sm:text-4xl">
+            Siklus Hibah &amp; Publikasi Mandiri
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
+          <p className="mt-4 text-base text-slate-600 leading-relaxed text-pretty">
             Tahapan transparan dari penerimaan proposal hingga seminar hasil riset.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-            <span className="w-8 h-8 rounded-xl bg-violet-700 text-white flex items-center justify-center font-bold text-xs">
-              01
-            </span>
-            <h4 className="font-bold text-slate-900 text-sm">Penerimaan Proposal</h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Dosen mengajukan proposal penelitian atau PKM secara digital melalui akun ONE UNUSU.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-            <span className="w-8 h-8 rounded-xl bg-violet-700 text-white flex items-center justify-center font-bold text-xs">
-              02
-            </span>
-            <h4 className="font-bold text-slate-900 text-sm">Desk Evaluation & Reviu</h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Tim reviewer independen menilai kelayakan metodologi, kebaruan topik, dan alokasi anggaran (RAB).
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-            <span className="w-8 h-8 rounded-xl bg-violet-700 text-white flex items-center justify-center font-bold text-xs">
-              03
-            </span>
-            <h4 className="font-bold text-slate-900 text-sm">Kontrak & Monev Lapangan</h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Penetapan pemenang hibah, penandatanganan kontrak kerja riset, serta monitoring kemajuan berkala.
-            </p>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
-            <span className="w-8 h-8 rounded-xl bg-violet-700 text-white flex items-center justify-center font-bold text-xs">
-              04
-            </span>
-            <h4 className="font-bold text-slate-900 text-sm">Seminar Hasil & Luaran</h4>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              Pelaporan pertanggungjawaban dana, diseminasi temuan pada seminar, serta penyerahan bukti publikasi/HKI.
-            </p>
-          </div>
+        <div className="relative grid grid-cols-1 md:grid-cols-4 gap-6">
+          {[
+            {
+              nomor: '01',
+              judul: 'Penerimaan Proposal',
+              teks: 'Dosen mengajukan proposal penelitian atau PKM secara digital melalui akun ONE UNUSU.',
+            },
+            {
+              nomor: '02',
+              judul: 'Desk Evaluation & Reviu',
+              teks: 'Tim reviewer independen menilai kelayakan metodologi, kebaruan topik, dan alokasi anggaran (RAB).',
+            },
+            {
+              nomor: '03',
+              judul: 'Kontrak & Monev Lapangan',
+              teks: 'Penetapan pemenang hibah, penandatanganan kontrak kerja riset, serta monitoring kemajuan berkala.',
+            },
+            {
+              nomor: '04',
+              judul: 'Seminar Hasil & Luaran',
+              teks: 'Pelaporan pertanggungjawaban dana, diseminasi temuan pada seminar, serta penyerahan bukti publikasi/HKI.',
+            },
+          ].map((tahap, idx) => (
+            <Reveal
+              key={tahap.nomor}
+              delay={idx * 80}
+              className="bg-white p-6 rounded-2xl border border-slate-200 space-y-3"
+            >
+              <span className="w-8 h-8 rounded-xl bg-violet-700 text-white flex items-center justify-center font-bold text-xs">
+                {tahap.nomor}
+              </span>
+              <h4 className="font-bold text-slate-900 text-base">{tahap.judul}</h4>
+              <p className="text-sm text-slate-600 leading-relaxed">{tahap.teks}</p>
+            </Reveal>
+          ))}
         </div>
       </section>
 
@@ -521,38 +549,38 @@ export const LandingPage: React.FC = () => {
             <div className="space-y-4 md:col-span-2">
               <div className="flex items-center space-x-3">
                 <div className="w-9 h-9 rounded-xl bg-violet-700 text-white flex items-center justify-center font-bold">
-                  <AcademicCapIcon className="w-5 h-5 text-amber-400" />
+                  <AcademicCapIcon className="w-5 h-5 text-white" />
                 </div>
                 <div>
                   <span className="font-bold text-lg">LPPM UNUSU</span>
-                  <p className="text-[11px] text-slate-400">Lembaga Penelitian & Pengabdian kepada Masyarakat</p>
+                  <p className="text-[11px] text-slate-300">Lembaga Penelitian &amp; Pengabdian kepada Masyarakat</p>
                 </div>
               </div>
-              <p className="text-xs text-slate-400 max-w-md leading-relaxed">
-                Jl. Gaperta Ujung No. 1, Medan Helvetia, Kota Medan, Sumatera Utara. Mengabdi untuk riset inovatif dan kemajuan peradaban bangsa.
+              <p className="text-xs text-slate-300 max-w-md leading-relaxed">
+                Jl. Gaperta Ujung No. 1, Medan Helvetia, Kota Medan, Sumatera Utara.
               </p>
             </div>
 
             <div className="space-y-2">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-amber-400">Tautan Satelit</h5>
-              <ul className="text-xs text-slate-400 space-y-2">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-white">Tautan Satelit</h5>
+              <ul className="text-xs text-slate-300">
                 <li>
-                  <a href={ONE_UNUSU_URL} className="hover:text-violet-400 transition-colors">
+                  <a href={ONE_UNUSU_URL} className="inline-flex items-center min-h-[44px] hover:text-violet-400 transition-colors">
                     Portal ONE UNUSU
                   </a>
                 </li>
                 <li>
-                  <a href="http://localhost:5177" className="hover:text-violet-400 transition-colors">
+                  <a href={SATELLITE_URLS.lpm} className="inline-flex items-center min-h-[44px] hover:text-violet-400 transition-colors">
                     LPM Penjaminan Mutu
                   </a>
                 </li>
                 <li>
-                  <a href="http://localhost:5175" className="hover:text-violet-400 transition-colors">
-                    E-Surat & Tata Naskah
+                  <a href={SATELLITE_URLS.esurat} className="inline-flex items-center min-h-[44px] hover:text-violet-400 transition-colors">
+                    E-Surat &amp; Tata Naskah
                   </a>
                 </li>
                 <li>
-                  <a href="http://localhost:3001" className="hover:text-violet-400 transition-colors">
+                  <a href={SATELLITE_URLS.lms} className="inline-flex items-center min-h-[44px] hover:text-violet-400 transition-colors">
                     LMS Perkuliahan Daring
                   </a>
                 </li>
@@ -560,8 +588,8 @@ export const LandingPage: React.FC = () => {
             </div>
 
             <div className="space-y-2">
-              <h5 className="text-xs font-bold uppercase tracking-wider text-amber-400">Gerbang Peneliti</h5>
-              <p className="text-xs text-slate-400 leading-relaxed">
+              <h5 className="text-xs font-bold uppercase tracking-wider text-white">Gerbang Peneliti</h5>
+              <p className="text-xs text-slate-300 leading-relaxed">
                 Kelola luaran Tridharma Perguruan Tinggi dengan autentikasi SSO kampus.
               </p>
               <div className="pt-2">
@@ -570,7 +598,7 @@ export const LandingPage: React.FC = () => {
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-violet-700 hover:bg-violet-600 text-white text-xs font-bold transition-all"
                 >
                   <span>Masuk</span>
-                  <ArrowRightIcon className="w-3.5 h-3.5 text-amber-400" />
+                  <ArrowRightIcon className="w-3.5 h-3.5 text-white" />
                 </Link>
               </div>
             </div>
@@ -578,7 +606,7 @@ export const LandingPage: React.FC = () => {
 
           <div className="border-t border-slate-900 pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
             <p>&copy; {new Date().getFullYear()} LPPM Universitas Nahdlatul Ulama Sumatera Utara. Hak Cipta Dilindungi.</p>
-            <p className="text-[11px] font-mono text-violet-400">Sistem Informasi Riset & PKM Terintegrasi</p>
+            <p className="text-[11px] text-violet-300">Sistem Informasi Riset & PKM Terintegrasi</p>
           </div>
         </div>
       </footer>
