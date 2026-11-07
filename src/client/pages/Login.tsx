@@ -1,6 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRightIcon, ChevronLeftIcon, ShieldExclamationIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ShieldExclamationIcon,
+  ArrowTopRightOnSquareIcon,
+  ArrowRightOnRectangleIcon,
+} from '@heroicons/react/24/outline';
 import { AnimatedFlatSsoLogo } from '../components/AnimatedFlatSsoLogo';
 import { assetUrl } from '../lib/assets';
 
@@ -34,84 +40,70 @@ export function LoginPage() {
         <div className="max-w-md w-full mx-auto my-auto py-6 space-y-7 text-center sm:text-left">
           {/* Header */}
           <div className="space-y-2">
-            <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-violet-50 text-violet-900 border border-violet-200">
-              <span className="w-2 h-2 rounded-full bg-violet-600 animate-pulse" />
-              <span>Penelitian & Pengabdian Masyarakat</span>
-            </div>
+            <p className="inline-block border-l-2 border-[#166534] pl-3 text-xs font-semibold uppercase tracking-wider text-[#166534]">
+              Penelitian &amp; Pengabdian Masyarakat
+            </p>
 
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">
-              Masuk ke <span className="text-violet-700">LPPM UNUSU</span>
+            <h1 className="text-3xl sm:text-4xl font-bold text-slate-950 tracking-normal">
+              Masuk ke <span className="text-[#166534]">LPPM UNUSU</span>
             </h1>
             <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-normal">
-              Akses manajemen proposal riset, luaran penelitian, dan program pengabdian masyarakat melalui gerbang SSO terpadu ONE UNUSU.
+              Akses manajemen proposal riset, luaran penelitian, dan program pengabdian masyarakat melalui gerbang SSO terpadu.
             </p>
           </div>
 
-          {/* Logo ONE UNUSU — Bisa Ditekan, Mengarah ke ONE UNUSU / Aksi Masuk SSO */}
+          {/* Logo ONE UNUSU — Tetap Hijau UNUSU, Bisa Diklik */}
           <div className="flex flex-col items-center space-y-3">
             <AnimatedFlatSsoLogo
               size={210}
               onClick={handleSsoLogin}
             />
-            <div className="text-center space-y-1">
-              <div className="flex items-center justify-center space-x-1.5">
-                <span className="font-black text-xl text-slate-950 tracking-tight">ONE</span>
-                <span className="font-black text-xl text-emerald-800 tracking-tight">UNUSU</span>
-              </div>
-              <p className="text-[11px] text-slate-500 font-semibold">
-                Ekosistem Digital Terpadu Kampus
-              </p>
-              <p className="text-[10px] text-slate-400 font-medium">
-                Universitas Nahdlatul Ulama Sumatera Utara
-              </p>
+            <div className="text-center">
+              <span className="font-extrabold text-xl text-slate-900 tracking-tight">ONE <span className="text-[#166534]">UNUSU</span></span>
             </div>
           </div>
 
-          {/* Tombol Masuk */}
+          {/* Tombol Masuk — Gaya Terpadu SSO */}
           <button
             type="button"
             onClick={handleSsoLogin}
-            className="w-full flex items-center justify-center space-x-3 py-4 px-6 rounded-2xl bg-violet-700 hover:bg-violet-800 text-white font-black text-sm shadow-xl hover:shadow-2xl transition-all transform active:scale-98 cursor-pointer group"
+            className="w-full flex items-center justify-center gap-3 py-3.5 px-6 rounded-full bg-[#166534] hover:bg-[#14532D] text-white font-semibold text-sm shadow-md hover:shadow-lg transition-all transform active:scale-98 cursor-pointer group"
+            aria-label="Masuk dengan ONE UNUSU"
           >
-            <span>Masuk melalui ONE UNUSU</span>
-            <ArrowRightIcon className="w-4 h-4 text-amber-400 group-hover:translate-x-1.5 transition-transform" />
+            <ArrowRightOnRectangleIcon className="w-5 h-5 text-white shrink-0" />
+            <span className="font-bold">Masuk dengan ONE UNUSU</span>
+            <ChevronRightIcon className="w-4 h-4 text-white/80 group-hover:translate-x-1 transition-transform shrink-0" />
           </button>
-          
-          <div className="pt-2 text-center">
-            <span className="inline-flex items-center gap-1.5 text-xs text-slate-400 font-medium">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Terhubung dengan SSO Gateway: <span className="font-mono text-slate-600">{ONE_UNUSU_URL}</span>
-            </span>
-          </div>
 
-          {/* Pemisahan admin per aplikasi — transparan sejak halaman login */}
-          <div className="rounded-2xl border border-[#CBD5E1] bg-slate-50/80 p-4 text-left">
-            <div className="flex items-start gap-2.5">
-              <ShieldExclamationIcon className="w-4 h-4 text-violet-700 flex-shrink-0 mt-0.5" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800">
-                  Panel ini khusus LPPM UNUSU
-                </p>
-                <p className="mt-1 text-[11px] text-slate-600 leading-relaxed">
-                  Akun administrator LPM, E-Surat, Sarpras, Akreditasi, dan LMS tidak dapat masuk ke panel ini.
-                  Gunakan panel aplikasi Anda masing-masing — hak akses diverifikasi ulang oleh server pada
-                  setiap permintaan.
-                </p>
-                <a
-                  href={LPM_PANEL_URL}
-                  className="mt-2.5 inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 rounded-xl bg-white border border-[#CBD5E1] text-[11px] font-bold text-violet-800 hover:bg-violet-50 hover:border-violet-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 transition-colors"
-                >
-                  <span>Buka panel LPM UNUSU</span>
-                  <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" aria-hidden="true" />
-                </a>
+          {/* Wrapper Rapat: Divider 'atau' & Tautan Teks Hijau */}
+          <div className="!mt-4 space-y-2">
+            <div className="relative flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200" />
+              </div>
+              <div className="relative bg-white px-3 text-xs text-slate-400">
+                atau
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Footer */}
-        <div className="text-xs text-slate-500 text-center sm:text-left">
-          &copy; {new Date().getFullYear()} LPPM UNUSU — Universitas Nahdlatul Ulama Sumatera Utara
+            {/* Tautan Teks Hijau Kunjungi Portal ONE UNUSU */}
+            <div className="text-center pt-0.5">
+              <a
+                href={ONE_UNUSU_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#166534] hover:text-[#14532D] hover:underline transition-colors cursor-pointer"
+              >
+                <span>Kunjungi Website ONE UNUSU</span>
+                <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5 shrink-0" />
+              </a>
+            </div>
+          </div>
+
+          {/* Footer terpusat */}
+          <div className="text-xs text-slate-500 text-center font-normal pt-1">
+            &copy; {new Date().getFullYear()} LPPM UNUSU &bull; Universitas Nahdlatul Ulama Sumatera Utara
+          </div>
         </div>
       </div>
 

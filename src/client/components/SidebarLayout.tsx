@@ -17,6 +17,8 @@ import {
   ChevronDoubleRightIcon,
   HomeIcon,
   ChevronDownIcon,
+  GlobeAltIcon,
+  IdentificationIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -444,8 +446,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             {/* User Profile Pill */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-full border border-[#CBD5E1] bg-white hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
+                className="flex items-center gap-2.5 px-3 py-1.5 min-h-[44px] border-x border-[#CBD5E1] bg-transparent hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none"
               >
                 <div className="w-8 h-8 rounded-full bg-violet-700 text-white flex items-center justify-center font-bold text-xs ring-1 ring-violet-600">
                   {user?.nama ? user.nama.charAt(0).toUpperCase() : 'P'}
@@ -456,13 +459,15 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   </div>
                   <div className="text-[10px] text-violet-700 font-semibold">{roleLabel}</div>
                 </div>
-                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {/* Profile Dropdown Popup */}
               {profileDropdownOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-56 rounded-[14px] bg-white shadow-md border border-[#CBD5E1] py-1.5 z-50 text-xs"
+                  role="menu"
+                  aria-label="Menu akun panel LPPM"
+                  className="absolute right-0 mt-2 w-60 rounded-[14px] bg-white shadow-md border border-[#CBD5E1] py-1.5 z-50 text-xs"
                   onMouseLeave={() => setProfileDropdownOpen(false)}
                 >
                   <div className="px-4 py-2 border-b border-slate-100">
@@ -475,52 +480,37 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       Akses: LPPM
                     </span>
                   </div>
-                  <Link
-                    to="/"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                  >
-                    <HomeIcon className="w-4 h-4 text-slate-400" />
-                    <span>Halaman Depan LPPM</span>
-                  </Link>
-                  {canManageSystem && (
-                    <>
-                      <Link
-                        to="/pengguna"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                      >
-                        <UsersIcon className="w-4 h-4 text-slate-400" />
-                        <span>Pengguna</span>
-                      </Link>
-                      <Link
-                        to="/peran"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                      >
-                        <ShieldCheckIcon className="w-4 h-4 text-slate-400" />
-                        <span>Peran</span>
-                      </Link>
-                      <Link
-                        to="/izin"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                      >
-                        <KeyIcon className="w-4 h-4 text-slate-400" />
-                        <span>Izin</span>
-                      </Link>
-                    </>
-                  )}
-                  <button
-                    onClick={() => {
-                      setProfileDropdownOpen(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-rose-700 hover:bg-rose-50 transition-colors text-left font-semibold cursor-pointer border-t border-slate-100"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" />
-                    <span>Keluar Akun</span>
-                  </button>
+                  <div className="py-1">
+                    <Link
+                      to="/"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors font-medium"
+                    >
+                      <GlobeAltIcon className="w-4 h-4 text-violet-700" />
+                      <span>Halaman Depan</span>
+                    </Link>
+                    <Link
+                      to="/profil"
+                      onClick={() => setProfileDropdownOpen(false)}
+                      className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors font-medium"
+                    >
+                      <IdentificationIcon className="w-4 h-4 text-violet-700" />
+                      <span>Biodata Saya</span>
+                    </Link>
+                  </div>
+                  <div className="pt-1 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileDropdownOpen(false);
+                        logout();
+                      }}
+                      className="w-full flex items-center gap-2.5 px-4 py-2 text-rose-700 hover:bg-rose-50 transition-colors text-left font-semibold cursor-pointer"
+                    >
+                      <ArrowRightOnRectangleIcon className="w-4 h-4 text-rose-700" />
+                      <span>Keluar dari Akun</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
