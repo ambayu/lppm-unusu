@@ -20,9 +20,9 @@ Jika terdapat perbedaan aturan di antara dokumen, urutan prioritas dari tertingg
 - **Resolusi Aset Sub-Path (`/lppm/`)**: Build produksi dipasang pada base path `/lppm/` (`PROD_BASE` di `vite.config.ts`). Seluruh referensi gambar/aset statis dari `public/assets/` wajib dibungkus helper `assetUrl()` dari `src/client/lib/assets.ts`.
 
 ## 3. Kontrak API, Autentikasi SSO, & Validasi Backend
-- **Otentikasi SSO Satu Pintu**: Seluruh sesi pengguna berasal dari penukaran token sekali pakai ONE UNUSU Gateway (`/api/v2/website/verify-token`) melalui endpoint `POST /api/auth/sso`. Tidak ada login password lokal.
+- **Otentikasi SSO Satu Pintu**: Seluruh sesi pengguna berasal dari penukaran token sekali pakai ONE UNUSU Gateway (`/api/v2/website/verify-token`) melalui endpoint `POST /api/auth/sso`. Tidak ada login password lokal dan tidak ada registri pengguna lokal (`lppm_users` telah dihapus).
 - **Deduplikasi Token Callback**: Token SSO bersifat sekali pakai (5 menit). Halaman `SsoCallbackPage` wajib mempertahankan deduplikasi request (`exchangeRequests` Map) agar tidak gagal akibat double-invocation pada React `StrictMode`.
-- **Otorisasi Role SSO**: Hanya role SSO `SUPERADMIN`, `ADMIN_LPPM`, dan `DOSEN` (`ALLOWED_SSO_ROLES`) yang diizinkan mengakses panel LPPM (`403` untuk role lain). Operasi tulis (`POST`, `PUT`, `DELETE`) dilindungi oleh middleware `requireRole("admin")`.
+- **Otorisasi Berbasis Permission (Bukan Raw Role)**: Akses ke LPPM ditentukan oleh izin masuk SSO (`lppm-unusu:masuk_admin` atau `lppm-unusu:masuk_dosen`) yang diverifikasi dari response Gateway `data.access.allowed`. Seluruh peran admin aplikasi cabang kaku (`ADMIN_LPPM`) telah dihapus di portal pusat; SUPERADMIN memegang seluruh izin masuk secara global, dan Superadmin dapat menautkan peran kustom civitas. Operasi API dilindungi oleh middleware `requirePermission()` berbasis permission key, bukan nama peran mentah.
 - **Validasi Input Wajib (Zod)**: Seluruh parameter URL (`:id`), query filter, dan body request (`POST`, `PUT`) pada `/api/*` wajib divalidasi menggunakan skema `zod` sebelum menyentuh layer database Prisma.
 - **Kontrak Respons Konsisten**:
   - Sukses: `{ success: true, data?: T, meta?: Record<string, unknown>, message?: string }`
