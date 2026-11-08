@@ -17,12 +17,8 @@ import {
   ChevronDoubleRightIcon,
   HomeIcon,
   ChevronDownIcon,
-<<<<<<< HEAD
   GlobeAltIcon,
   IdentificationIcon,
-=======
-  UserCircleIcon,
->>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -575,13 +571,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
               <button
                 type="button"
                 onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-<<<<<<< HEAD
-                className="flex items-center gap-2.5 px-3 py-1.5 min-h-[44px] border-x border-[#CBD5E1] bg-transparent hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none"
-=======
                 aria-haspopup="menu"
                 aria-expanded={profileDropdownOpen}
-                className="flex items-center gap-2.5 p-1.5 pr-3 min-h-[44px] rounded-full border border-[#CBD5E1] bg-white hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer"
->>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
+                className="flex items-center gap-2.5 px-3 py-1.5 min-h-[44px] border-x border-[#CBD5E1] bg-transparent hover:bg-slate-50 transition-colors cursor-pointer focus:outline-none"
               >
                 <div className="w-8 h-8 rounded-full bg-violet-700 text-white flex items-center justify-center font-bold text-xs ring-1 ring-violet-600">
                   {user?.nama ? user.nama.charAt(0).toUpperCase() : 'P'}
@@ -592,11 +584,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   </div>
                   <div className="text-[10px] text-violet-700 font-semibold">{roleLabel}</div>
                 </div>
-<<<<<<< HEAD
-                <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} />
-=======
-                <ChevronDownIcon className="w-3.5 h-3.5 text-slate-400" aria-hidden="true" />
->>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
+                <ChevronDownIcon className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${profileDropdownOpen ? 'rotate-180' : ''}`} aria-hidden="true" />
               </button>
 
               {/* Profile Dropdown Popup */}
@@ -605,10 +593,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   role="menu"
                   aria-label="Menu akun panel LPPM"
                   className="absolute right-0 mt-2 w-60 rounded-[14px] bg-white shadow-md border border-[#CBD5E1] py-1.5 z-50 text-xs"
-<<<<<<< HEAD
                   onMouseLeave={() => setProfileDropdownOpen(false)}
-=======
->>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
                 >
                   <div className="px-4 py-2 border-b border-slate-100">
                     <p className="font-bold text-slate-900">{user?.nama || 'Peneliti Dosen'}</p>
@@ -620,22 +605,21 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       Akses: LPPM
                     </span>
                   </div>
-<<<<<<< HEAD
                   <div className="py-1">
                     <Link
                       to="/"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors font-medium"
+                      className="flex items-center gap-2.5 px-4 min-h-[44px] text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors font-medium"
                     >
-                      <GlobeAltIcon className="w-4 h-4 text-violet-700" />
+                      <GlobeAltIcon className="w-4 h-4 text-violet-700" aria-hidden="true" />
                       <span>Halaman Depan</span>
                     </Link>
                     <Link
                       to="/profil"
                       onClick={() => setProfileDropdownOpen(false)}
-                      className="flex items-center gap-2.5 px-4 py-2 text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors font-medium"
+                      className="flex items-center gap-2.5 px-4 min-h-[44px] text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors font-medium"
                     >
-                      <IdentificationIcon className="w-4 h-4 text-violet-700" />
+                      <IdentificationIcon className="w-4 h-4 text-violet-700" aria-hidden="true" />
                       <span>Biodata Saya</span>
                     </Link>
                   </div>
@@ -646,40 +630,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                         setProfileDropdownOpen(false);
                         logout();
                       }}
-                      className="w-full flex items-center gap-2.5 px-4 py-2 text-rose-700 hover:bg-rose-50 transition-colors text-left font-semibold cursor-pointer"
+                      className="w-full flex items-center gap-2.5 px-4 min-h-[44px] text-rose-700 hover:bg-rose-50 transition-colors text-left font-semibold cursor-pointer"
                     >
-                      <ArrowRightOnRectangleIcon className="w-4 h-4 text-rose-700" />
+                      <ArrowRightOnRectangleIcon className="w-4 h-4 text-rose-700" aria-hidden="true" />
                       <span>Keluar dari Akun</span>
                     </button>
                   </div>
-=======
-                  <Link
-                    to="/"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 min-h-[44px] text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                  >
-                    <HomeIcon className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                    <span>Halaman Depan LPPM</span>
-                  </Link>
-                  <Link
-                    to="/profil"
-                    onClick={() => setProfileDropdownOpen(false)}
-                    className="flex items-center gap-2 px-4 min-h-[44px] text-slate-700 hover:bg-violet-50 hover:text-violet-900 transition-colors"
-                  >
-                    <UserCircleIcon className="w-4 h-4 text-slate-400" aria-hidden="true" />
-                    <span>Profil</span>
-                  </Link>
-                  <button
-                    onClick={() => {
-                      setProfileDropdownOpen(false);
-                      logout();
-                    }}
-                    className="w-full flex items-center gap-2 px-4 min-h-[44px] text-rose-700 hover:bg-rose-50 transition-colors text-left font-semibold cursor-pointer border-t border-slate-100"
-                  >
-                    <ArrowRightOnRectangleIcon className="w-4 h-4" aria-hidden="true" />
-                    <span>Keluar Akun</span>
-                  </button>
->>>>>>> a2a45230f3e43887a5bc1ff88ac260020887acb7
                 </div>
               )}
             </div>
