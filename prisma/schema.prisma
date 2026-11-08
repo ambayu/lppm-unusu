@@ -83,10 +83,25 @@ model Role {
   nama        String           @db.VarChar(100)
   deskripsi   String?          @db.Text
   permissions RolePermission[]
+  userRoles   UserRole[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
   @@map("lppm_roles")
+}
+
+model UserRole {
+  id        Int      @id @default(autoincrement())
+  username  String   @db.VarChar(100) // NIM / NIDN / username civitas dari SSO
+  nama      String   @db.VarChar(150)
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([username, roleId])
+  @@index([username])
+  @@index([roleId])
+  @@map("lppm_user_roles")
 }
 
 model Permission {

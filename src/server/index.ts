@@ -332,7 +332,86 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
   }
 };
 
-// Verifikasi token SSO sekali-pakai lalu terbitkan sesi lokal
+/**
+ * Mengambil peran dan izin lokal LPPM dari database lokal `lppm_unusu_db`.
+ * Mendukung multi-role: seorang pengguna bisa memiliki beberapa peran lokal sekaligus.
+ */
+async function dapatkanAksesLokalPengguna(
+  username: string,
+  nama: string,
+  ssoRoles: string[]
+): Promise<{ roles: string[]; permissions: Set<string>; primaryRole: string }> {
+  let userRoles = await prisma.userRole.findMany({
+    where: { username },
+    include: {
+      role: {
+        include: {
+          permissions: {
+            include: { permission: true },
+          },
+        },
+      },
+    },
+  });
+
+  // Jika belum terdaftar di tabel lokal `lppm_user_roles`,
+  // berikan peran lokal bawaan berdasarkan peran yang dibawa dari SSO:
+  if (userRoles.length === 0) {
+    let targetRoleCode = "DOSEN";
+    if (ssoRoles.includes("SUPERADMIN")) {
+      targetRoleCode = "SUPERADMIN";
+    } else if (ssoRoles.includes("ADMIN_LPPM")) {
+      targetRoleCode = "ADMIN_LPPM";
+    }
+
+    const defaultRole = await prisma.role.findUnique({
+      where: { kode: targetRoleCode },
+    });
+
+    if (defaultRole) {
+      await prisma.userRole.create({
+        data: {
+          username,
+          nama: nama || username,
+          roleId: defaultRole.id,
+        },
+      });
+
+      userRoles = await prisma.userRole.findMany({
+        where: { username },
+        include: {
+          role: {
+            include: {
+              permissions: {
+                include: { permission: true },
+              },
+            },
+          },
+        },
+      });
+    }
+  }
+
+  const roleCodes = userRoles.map((ur) => ur.role.kode);
+  const permissionSet = new Set<string>();
+  for (const ur of userRoles) {
+    for (const rp of ur.role.permissions) {
+      permissionSet.add(rp.permission.kode);
+    }
+  }
+
+  const primaryRole = roleCodes.includes("SUPERADMIN")
+    ? "SUPERADMIN"
+    : roleCodes.includes("ADMIN_LPPM")
+    ? "ADMIN_LPPM"
+    : roleCodes.includes("REVIEWER")
+    ? "REVIEWER"
+    : (roleCodes[0] ?? "DOSEN");
+
+  return { roles: roleCodes, permissions: permissionSet, primaryRole };
+}
+
+// Verifikasi token SSO sekali-pakai lalu terbitkan sesi lokal terdesentralisasi
 app.post("/api/auth/sso", async (req: Request, res: Response) => {
   try {
     const { client_id, token } = req.body ?? {};
@@ -358,7 +437,7 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
           status?: boolean;
           message?: string;
           data?: {
-            user?: SsoUserPayload;
+            user?: SsoUserPayload & { roles?: string[] };
             access?: { allowed?: boolean; tingkat?: string[]; permissions?: string[] };
           };
         }
@@ -369,35 +448,47 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: ssoPayload?.message || "Verifikasi token SSO gagal" });
     }
 
-    // Izin datang dari ONE UNUSU. Bila versi SSO belum mengirim daftar izin,
-    // turunkan dari tingkat masuk yang dilaporkan — dan bila itu pun kosong,
-    // akses ditolak (fail-closed).
-    const izinSso = ssoPayload.data?.access?.permissions;
-    const tingkatSso = Array.isArray(ssoPayload.data?.access?.tingkat)
-      ? (ssoPayload.data?.access?.tingkat ?? [])
+    const ssoRoles = Array.isArray(ssoUser.roles)
+      ? ssoUser.roles
+      : ssoUser.role
+      ? [ssoUser.role]
       : [];
-    const tingkatDariSso =
-      tingkatSso.length > 0 ? tingkatMasukDari(tingkatSso) : tingkatMasukDari(izinSso ?? []);
-    const izin = susunIzin(izinSso, tingkatDariSso);
-    const akses = putuskanAkses(ssoUser.role, izin);
 
-    if (!akses.allowed) {
-      return res.status(403).json({
-        success: false,
-        code: akses.reason === "foreign_app_admin" ? "FOREIGN_APP_ADMIN" : "IZIN_MASUK_DITOLAK",
-        app: APP_SCOPE,
-        appAccess: akses,
-        role: ssoUser.role,
-        message: akses.message,
-      });
-    }
+    // Otorisasi terdesentralisasi: Izin dan peran dibaca dari database lokal LPPM!
+    const lokal = await dapatkanAksesLokalPengguna(
+      ssoUser.username,
+      ssoUser.nama,
+      ssoRoles
+    );
+
+    const isAppAdmin = lokal.roles.includes("SUPERADMIN") || lokal.roles.includes("ADMIN_LPPM");
+    const roleLabel = lokal.roles.includes("SUPERADMIN")
+      ? "Super Administrator LPPM"
+      : lokal.roles.includes("ADMIN_LPPM")
+      ? "Pengelola LPPM UNUSU"
+      : lokal.roles.includes("REVIEWER")
+      ? "Reviewer Riset"
+      : "Dosen Peneliti";
+
+    const akses: AppAccessDecision = {
+      app: APP_SCOPE,
+      appName: APP_NAME,
+      allowed: true,
+      reason: "allowed",
+      ssoRole: ssoUser.role,
+      tingkat: isAppAdmin ? "admin" : "dosen",
+      roleLabel,
+      isAppAdmin,
+      izin: Array.from(lokal.permissions),
+      message: `Selamat datang di panel ${APP_NAME}.`,
+    };
 
     const sessionUser: SsoSession = {
       id: ssoUser.id,
       username: ssoUser.username,
       nama: ssoUser.nama,
       email: ssoUser.email ?? null,
-      role: akses.tingkat ?? "mahasiswa",
+      role: lokal.primaryRole,
       ssoRole: ssoUser.role,
       app: APP_SCOPE,
       appName: APP_NAME,
@@ -407,12 +498,25 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       fakultas: ssoUser.fakultas ?? null,
     };
 
-    // Izin disertakan di dalam JWT agar permintaan berikutnya tidak perlu
-    // memanggil ONE UNUSU. Mencabut izin di panel SSO berlaku pada login
-    // berikutnya.
-    const tokenJwt = jwt.sign({ ...sessionUser, izin: akses.izin }, JWT_SECRET, { expiresIn: "7d" });
+    // Izin lokal LPPM disertakan di dalam JWT aplikasi lokal
+    const tokenJwt = jwt.sign(
+      {
+        ...sessionUser,
+        izin: akses.izin,
+        roles: lokal.roles,
+      },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
 
-    res.json({ success: true, token: tokenJwt, user: sessionUser, appAccess: akses, izin: akses.izin });
+    res.json({
+      success: true,
+      token: tokenJwt,
+      user: sessionUser,
+      roles: lokal.roles,
+      appAccess: akses,
+      izin: akses.izin,
+    });
   } catch (error: any) {
     res.status(500).json({ success: false, message: "Gagal memproses SSO: " + error?.message });
   }
@@ -472,6 +576,24 @@ const requirePermission = (...kunci: string[]) =>
         code: "IZIN_KURANG",
         message: "Akses ditolak. Anda tidak memiliki izin untuk operasi ini.",
         dibutuhkan: kurang,
+      });
+    }
+    next();
+  };
+
+const requireAnyPermission = (...kunci: string[]) =>
+  (req: Request, res: Response, next: NextFunction) => {
+    const izin = (req as AuthRequest).izin;
+    if (!izin) {
+      return res.status(401).json({ success: false, message: "Sesi tidak valid" });
+    }
+    const hasAny = kunci.some((k) => izin.has(k));
+    if (!hasAny) {
+      return res.status(403).json({
+        success: false,
+        code: "IZIN_KURANG",
+        message: "Akses ditolak. Anda tidak memiliki izin untuk operasi ini.",
+        dibutuhkan: kunci,
       });
     }
     next();
@@ -1017,6 +1139,174 @@ app.delete("/api/permissions/:id", requirePermission("permissions.manage"), asyn
     res.json({ success: true, message: "Hak izin berhasil dihapus" });
   } catch (error) {
     res.status(500).json({ success: false, message: "Gagal menghapus izin" });
+  }
+});
+
+// 4b. Manajemen Penugasan Pengguna Lokal LPPM (Multi-Role)
+app.get("/api/users", requireAnyPermission("users.view", "roles.view"), async (req: Request, res: Response) => {
+  try {
+    const userRoleRows = await prisma.userRole.findMany({
+      include: {
+        role: {
+          select: {
+            id: true,
+            kode: true,
+            nama: true,
+          },
+        },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Kelompokkan per username
+    const userMap = new Map<
+      string,
+      {
+        username: string;
+        nama: string;
+        roles: { id: number; kode: string; nama: string }[];
+        roleIds: number[];
+        createdAt: Date;
+      }
+    >();
+
+    for (const row of userRoleRows) {
+      if (!userMap.has(row.username)) {
+        userMap.set(row.username, {
+          username: row.username,
+          nama: row.nama,
+          roles: [],
+          roleIds: [],
+          createdAt: row.createdAt,
+        });
+      }
+      const item = userMap.get(row.username)!;
+      item.roles.push(row.role);
+      item.roleIds.push(row.role.id);
+    }
+
+    res.json({ success: true, data: Array.from(userMap.values()) });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal mengambil daftar pengguna: " + error?.message });
+  }
+});
+
+app.post("/api/users", requireAnyPermission("users.manage", "roles.manage"), async (req: Request, res: Response) => {
+  try {
+    const { username, nama, roleIds } = req.body ?? {};
+
+    if (!username || typeof username !== "string" || !username.trim()) {
+      return res.status(400).json({ success: false, message: "Username / NIDN wajib diisi" });
+    }
+    if (!nama || typeof nama !== "string" || !nama.trim()) {
+      return res.status(400).json({ success: false, message: "Nama lengkap wajib diisi" });
+    }
+
+    const trimmedUsername = username.trim();
+    const trimmedNama = nama.trim();
+
+    const ids: number[] = Array.isArray(roleIds)
+      ? roleIds.map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
+      : [];
+
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, message: "Pilih minimal satu peran untuk pengguna" });
+    }
+
+    // Pastikan peran valid
+    const validRoles = await prisma.role.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, kode: true, nama: true },
+    });
+    if (validRoles.length === 0) {
+      return res.status(400).json({ success: false, message: "Peran yang dipilih tidak valid" });
+    }
+
+    // Simpan penugasan
+    await prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({ where: { username: trimmedUsername } });
+      await tx.userRole.createMany({
+        data: validRoles.map((r) => ({
+          username: trimmedUsername,
+          nama: trimmedNama,
+          roleId: r.id,
+        })),
+      });
+    });
+
+    res.json({
+      success: true,
+      message: `Peran untuk ${trimmedNama} berhasil disimpan`,
+      data: { username: trimmedUsername, nama: trimmedNama, roles: validRoles },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal menambahkan penugasan peran: " + error?.message });
+  }
+});
+
+app.put("/api/users/:username", requireAnyPermission("users.manage", "roles.manage"), async (req: Request, res: Response) => {
+  try {
+    const username = req.params.username?.trim();
+    if (!username) {
+      return res.status(400).json({ success: false, message: "Username tidak valid" });
+    }
+
+    const { nama, roleIds } = req.body ?? {};
+    const ids: number[] = Array.isArray(roleIds)
+      ? roleIds.map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
+      : [];
+
+    if (ids.length === 0) {
+      return res.status(400).json({ success: false, message: "Pengguna harus memiliki minimal satu peran" });
+    }
+
+    const validRoles = await prisma.role.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, kode: true, nama: true },
+    });
+    if (validRoles.length === 0) {
+      return res.status(400).json({ success: false, message: "Peran yang dipilih tidak valid" });
+    }
+
+    // Ambil nama eksisting jika tidak dikirim
+    let targetNama = typeof nama === "string" && nama.trim() ? nama.trim() : "";
+    if (!targetNama) {
+      const existing = await prisma.userRole.findFirst({ where: { username } });
+      targetNama = existing?.nama || username;
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.userRole.deleteMany({ where: { username } });
+      await tx.userRole.createMany({
+        data: validRoles.map((r) => ({
+          username,
+          nama: targetNama,
+          roleId: r.id,
+        })),
+      });
+    });
+
+    res.json({
+      success: true,
+      message: `Penugasan peran untuk ${targetNama} berhasil diperbarui`,
+      data: { username, nama: targetNama, roles: validRoles },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui penugasan peran: " + error?.message });
+  }
+});
+
+app.delete("/api/users/:username", requireAnyPermission("users.manage", "roles.manage"), async (req: Request, res: Response) => {
+  try {
+    const username = req.params.username?.trim();
+    if (!username) {
+      return res.status(400).json({ success: false, message: "Username tidak valid" });
+    }
+
+    await prisma.userRole.deleteMany({ where: { username } });
+    res.json({ success: true, message: `Penugasan peran untuk ${username} berhasil dihapus dari LPPM` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal menghapus pengguna: " + error?.message });
   }
 });
 

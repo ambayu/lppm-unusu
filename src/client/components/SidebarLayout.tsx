@@ -20,6 +20,7 @@ import {
   GlobeAltIcon,
   IdentificationIcon,
   UserCircleIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -86,6 +87,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       '/monev',
       '/peran',
       '/izin',
+      '/pengguna',
       '/profil',
     ];
     const longerMatch = allPaths.find(
@@ -154,7 +156,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
   /** Menu tata kelola — hanya untuk pemegang izinnya. */
   const tataKelolaItems = [
-
+    {
+      path: '/pengguna',
+      label: 'Pengguna',
+      icon: UserGroupIcon,
+      desc: 'Penugasan peran civitas',
+      izin: IZIN_FITUR.penggunaLihat,
+    },
     {
       path: '/peran',
       label: 'Peran',
@@ -169,7 +177,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       desc: 'Butir hak akses granular',
       izin: IZIN_FITUR.izinLihat,
     },
-  ].filter((item) => bisa(item.izin));
+  ].filter((item) => bisa(item.izin, IZIN_FITUR.peranLihat));
 
   const getBreadcrumbLabel = (path: string) => {
     if (path === '/dashboard') return 'Dashboard Laporan LPPM';
@@ -186,7 +194,14 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/monev/tambah') return 'Jadwalkan Monev Riset Baru';
     if (path.startsWith('/monev/edit/')) return 'Edit Penilaian Monev';
     if (path === '/peran') return 'Peran';
+    if (path === '/peran/tambah') return 'Tambah Peran Baru';
+    if (path.startsWith('/peran/edit/')) return 'Edit Peran';
     if (path === '/izin') return 'Izin';
+    if (path === '/izin/tambah') return 'Tambah Izin Baru';
+    if (path.startsWith('/izin/edit/')) return 'Edit Izin';
+    if (path === '/pengguna') return 'Manajemen Penugasan Pengguna';
+    if (path === '/pengguna/tambah') return 'Tugaskan Pengguna Baru';
+    if (path.startsWith('/pengguna/edit/')) return 'Ubah Penugasan Pengguna';
     if (path === '/profil') return 'Profil Pengguna';
     return 'Lembaga Penelitian & Pengabdian Masyarakat';
   };

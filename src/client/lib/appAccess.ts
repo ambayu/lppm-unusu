@@ -64,6 +64,8 @@ export const IZIN_FITUR = {
   peranKelola: 'roles.manage',
   izinLihat: 'permissions.view',
   izinKelola: 'permissions.manage',
+  penggunaLihat: 'users.view',
+  penggunaKelola: 'users.manage',
   laporanLihat: 'laporan.view',
   laporanEkspor: 'laporan.export',
 } as const;

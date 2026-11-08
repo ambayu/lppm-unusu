@@ -12,6 +12,8 @@ import { PeranPage } from './pages/Peran';
 import { PeranFormPage } from './pages/PeranForm';
 import { IzinFormPage } from './pages/IzinForm';
 import { IzinPage } from './pages/Izin';
+import { PenggunaPage } from './pages/Pengguna';
+import { PenggunaFormPage } from './pages/PenggunaForm';
 import { MonevPage } from './pages/Monev';
 import { MonevFormPage } from './pages/MonevForm';
 import { ProfilPage } from './pages/Profil';
@@ -302,6 +304,44 @@ export function App() {
                 </ProtectedRoute>
               }
             />
+            {/* 6b. Manajemen Pengguna / Penugasan Peran */}
+            <Route
+              path="/pengguna"
+              element={
+                <ProtectedRoute>
+                  <IzinRoute izin={[IZIN_FITUR.penggunaLihat, IZIN_FITUR.peranLihat]}>
+                    <SidebarLayout>
+                      <PenggunaPage />
+                    </SidebarLayout>
+                  </IzinRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengguna/tambah"
+              element={
+                <ProtectedRoute>
+                  <IzinRoute izin={[IZIN_FITUR.penggunaKelola, IZIN_FITUR.peranKelola]}>
+                    <SidebarLayout>
+                      <PenggunaFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/pengguna/edit/:username"
+              element={
+                <ProtectedRoute>
+                  <IzinRoute izin={[IZIN_FITUR.penggunaKelola, IZIN_FITUR.peranKelola]}>
+                    <SidebarLayout>
+                      <PenggunaFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
+                </ProtectedRoute>
+              }
+            />
+
             {/* 7. Monitoring & Evaluasi (Monev) (Full Pages CRUD) */}
             <Route
               path="/monev"
