@@ -5,6 +5,7 @@ import { CardContainer } from '../components/CardContainer';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { useAuth } from '../context/AuthContext';
+import { IZIN_FITUR } from '../lib/appAccess';
 import {
   fetchRoles,
   fetchPermissions,
@@ -24,14 +25,15 @@ import {
 } from '@heroicons/react/24/outline';
 
 export const PeranPage: React.FC = () => {
-  const { canManageSystem } = useAuth();
+  const { bisa } = useAuth();
   const [roles, setRoles] = useState<RoleItem[]>([]);
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
-  const isAdmin = canManageSystem;
+  // Tombol ubah/tambah muncul atas dasar izin, bukan nama peran.
+  const isAdmin = bisa(IZIN_FITUR.peranKelola);
 
   const loadData = async () => {
     setLoading(true);

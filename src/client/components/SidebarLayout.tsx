@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { IZIN_FITUR } from '../lib/appAccess';
 import {
   AcademicCapIcon,
   BookOpenIcon,
   BeakerIcon,
   HeartIcon,
-  UsersIcon,
   ShieldCheckIcon,
   KeyIcon,
   ClipboardDocumentCheckIcon,
@@ -19,6 +19,7 @@ import {
   ChevronDownIcon,
   GlobeAltIcon,
   IdentificationIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -28,7 +29,7 @@ interface SidebarLayoutProps {
 export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout, canManageSystem, roleLabel } = useAuth();
+  const { user, logout, roleLabel, bisa } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
@@ -83,7 +84,6 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       '/pengabdian',
       '/publikasi',
       '/monev',
-      '/pengguna',
       '/peran',
       '/izin',
       '/profil',
@@ -114,32 +114,62 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     },
   ];
 
+  /**
+   * Menu navigasi — SETIAP menu membawa izin yang mengizinkannya.
+   *
+   * Menu tidak lagi ditentukan oleh nama peran. Bila admin mencabut
+   * `penelitian.view`, menu Penelitian lenyap tanpa perlu mengubah kode,
+   * dan menu itu memang tidak berguna karena API-nya pun akan menolak.
+   */
   const navItems = [
     {
       path: '/penelitian',
       label: 'Penelitian Dosen',
       icon: BeakerIcon,
       desc: 'Pangkalan Hibah & Riset Terapan',
+      izin: IZIN_FITUR.penelitianLihat,
     },
     {
       path: '/pengabdian',
       label: 'Pengabdian (PKM)',
       icon: HeartIcon,
       desc: 'Pemberdayaan Masyarakat & Desa',
+      izin: IZIN_FITUR.pengabdianLihat,
     },
     {
       path: '/publikasi',
       label: 'Publikasi & Jurnal',
       icon: BookOpenIcon,
       desc: 'Scopus, SINTA & Diseminasi',
+      izin: IZIN_FITUR.publikasiLihat,
     },
     {
       path: '/monev',
       label: 'Monitoring & Evaluasi',
       icon: ClipboardDocumentCheckIcon,
       desc: 'Kemajuan Riset & Telaah Luaran',
+      izin: IZIN_FITUR.monevLihat,
     },
-  ];
+  ].filter((item) => bisa(item.izin));
+
+  /** Menu tata kelola — hanya untuk pemegang izinnya. */
+  const tataKelolaItems = [
+
+    {
+      path: '/peran',
+      label: 'Peran',
+      icon: ShieldCheckIcon,
+      desc: 'Kelompok hak akses',
+      izin: IZIN_FITUR.peranLihat,
+    },
+    {
+      path: '/izin',
+      label: 'Izin',
+      icon: KeyIcon,
+      desc: 'Butir hak akses granular',
+      izin: IZIN_FITUR.izinLihat,
+    },
+  ].filter((item) => bisa(item.izin));
 
   const getBreadcrumbLabel = (path: string) => {
     if (path === '/dashboard') return 'Dashboard Laporan LPPM';
@@ -157,7 +187,6 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path.startsWith('/monev/edit/')) return 'Edit Penilaian Monev';
     if (path === '/peran') return 'Peran';
     if (path === '/izin') return 'Izin';
-    if (path === '/pengguna') return 'Manajemen Pengguna';
     if (path === '/profil') return 'Profil Pengguna';
     return 'Lembaga Penelitian & Pengabdian Masyarakat';
   };
@@ -292,115 +321,56 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
             </nav>
           </div>
 
-          {/* Blok Manajemen Admin hanya untuk Admin LPPM / Superadmin.
-              Dosen peneliti tidak boleh melihat menu pengguna, peran & izin. */}
-          {canManageSystem && (
-          <div>
-            {!isCollapsed && (
-              <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
-                TATA KELOLA
-              </p>
-            )}
-            <div className="space-y-1.5">
-              <Link
-                to="/pengguna"
-                onClick={() => setMobileOpen(false)}
-                title={isCollapsed ? 'Manajemen Pengguna' : undefined}
-                aria-current={isActive('/pengguna') ? 'page' : undefined}
-                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
-                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
-                } ${
-                  isActive('/pengguna')
-                    ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
-                    : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
-                    isActive('/pengguna')
-                      ? 'bg-violet-700 text-white shadow-2xs'
-                      : 'bg-[#EDE8F5] text-violet-700'
-                  }`}
-                >
-                  <UsersIcon className="w-4 h-4" aria-hidden="true" />
-                </div>
-                {!isCollapsed && (
-                  <div className="truncate">
-                    <div className="leading-tight">Manajemen Pengguna</div>
-                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
-                      Akun pengguna &amp; status aktif
-                    </div>
-                  </div>
-                )}
-              </Link>
-
-              {/* Menu Peran */}
-              <Link
-                to="/peran"
-                onClick={() => setMobileOpen(false)}
-                title={isCollapsed ? 'Peran' : undefined}
-                aria-current={isActive('/peran') ? 'page' : undefined}
-                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
-                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
-                } ${
-                  isActive('/peran')
-                    ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
-                    : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
-                    isActive('/peran')
-                      ? 'bg-violet-700 text-white shadow-2xs'
-                      : 'bg-[#EDE8F5] text-violet-700'
-                  }`}
-                >
-                  <ShieldCheckIcon className="w-4 h-4" aria-hidden="true" />
-                </div>
-                {!isCollapsed && (
-                  <div className="truncate">
-                    <div className="leading-tight">Peran</div>
-                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
-                      Daftar peran &amp; jumlah pemegang
-                    </div>
-                  </div>
-                )}
-              </Link>
-
-              {/* Menu Izin */}
-              <Link
-                to="/izin"
-                onClick={() => setMobileOpen(false)}
-                title={isCollapsed ? 'Izin' : undefined}
-                aria-current={isActive('/izin') ? 'page' : undefined}
-                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
-                  isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
-                } ${
-                  isActive('/izin')
-                    ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
-                    : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
-                }`}
-              >
-                <div
-                  className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
-                    isActive('/izin')
-                      ? 'bg-violet-700 text-white shadow-2xs'
-                      : 'bg-[#EDE8F5] text-violet-700'
-                  }`}
-                >
-                  <KeyIcon className="w-4 h-4" aria-hidden="true" />
-                </div>
-                {!isCollapsed && (
-                  <div className="truncate">
-                    <div className="leading-tight">Izin</div>
-                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
-                      Katalog permission per peran
-                    </div>
-                  </div>
-                )}
-              </Link>
+          {/* Blok Tata Kelola — tampil hanya bila pengguna memegang izin
+              membuka menu terkait. Tidak ada pemeriksaan nama peran di sini,
+              sehingga mencabut `pengguna.view` cukup untuk menyembunyikan
+              menunya tanpa menyentuh kode. */}
+          {tataKelolaItems.length > 0 && (
+            <div>
+              {!isCollapsed && (
+                <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                  TATA KELOLA
+                </p>
+              )}
+              <div className="space-y-1.5">
+                {tataKelolaItems.map((item) => {
+                  const Icon = item.icon;
+                  const aktif = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setMobileOpen(false)}
+                      title={isCollapsed ? item.label : undefined}
+                      aria-current={aktif ? 'page' : undefined}
+                      className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                        isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
+                      } ${
+                        aktif
+                          ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
+                          : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                      }`}
+                    >
+                      <div
+                        className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                          aktif ? 'bg-violet-700 text-white shadow-2xs' : 'bg-[#EDE8F5] text-violet-700'
+                        }`}
+                      >
+                        <Icon className="w-4 h-4" aria-hidden="true" />
+                      </div>
+                      {!isCollapsed && (
+                        <div className="truncate">
+                          <div className="leading-tight">{item.label}</div>
+                          <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                            {item.desc}
+                          </div>
+                        </div>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
-          </div>
           )}
 
           <div>

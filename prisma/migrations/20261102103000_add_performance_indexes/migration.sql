@@ -8,7 +8,7 @@
 -- Catatan   : Semua kolom yang di-index bertipe INT / DATETIME / VARCHAR(191-50),
 --             sehingga tidak ada index pada kolom TEXT (menghindari error
 --             "BLOB/TEXT column used in key specification without a key length").
---             ALGORITHM=INPLACE, LOCK=NONE -> DML tetap berjalan selama pembuatan
+-- -> DML tetap berjalan selama pembuatan
 --             index (online DDL, MySQL 5.6+ / InnoDB).
 -- =============================================================================
 
@@ -18,16 +18,16 @@
 --                 filter tahun + status, bidangFokus, nidn
 -- -----------------------------------------------------------------------------
 CREATE INDEX `lppm_penelitian_createdAt_idx`
-  ON `lppm_penelitian` (`createdAt`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_penelitian` (`createdAt`);
 
 CREATE INDEX `lppm_penelitian_tahun_status_idx`
-  ON `lppm_penelitian` (`tahun`, `status`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_penelitian` (`tahun`, `status`);
 
 CREATE INDEX `lppm_penelitian_bidangFokus_idx`
-  ON `lppm_penelitian` (`bidangFokus`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_penelitian` (`bidangFokus`);
 
 CREATE INDEX `lppm_penelitian_nidn_idx`
-  ON `lppm_penelitian` (`nidn`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_penelitian` (`nidn`);
 
 -- -----------------------------------------------------------------------------
 -- 2. lppm_pengabdian
@@ -35,29 +35,29 @@ CREATE INDEX `lppm_penelitian_nidn_idx`
 --                 filter tahun + status, mitra, nidn
 -- -----------------------------------------------------------------------------
 CREATE INDEX `lppm_pengabdian_createdAt_idx`
-  ON `lppm_pengabdian` (`createdAt`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_pengabdian` (`createdAt`);
 
 CREATE INDEX `lppm_pengabdian_tahun_status_idx`
-  ON `lppm_pengabdian` (`tahun`, `status`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_pengabdian` (`tahun`, `status`);
 
 CREATE INDEX `lppm_pengabdian_mitra_idx`
-  ON `lppm_pengabdian` (`mitra`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_pengabdian` (`mitra`);
 
 CREATE INDEX `lppm_pengabdian_nidn_idx`
-  ON `lppm_pengabdian` (`nidn`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_pengabdian` (`nidn`);
 
 -- -----------------------------------------------------------------------------
 -- 3. lppm_publikasi
 --    Query acuan: GET /api/publikasi (ORDER BY tahun DESC), filter jenis & penulis
 -- -----------------------------------------------------------------------------
 CREATE INDEX `lppm_publikasi_tahun_idx`
-  ON `lppm_publikasi` (`tahun`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_publikasi` (`tahun`);
 
 CREATE INDEX `lppm_publikasi_jenis_tahun_idx`
-  ON `lppm_publikasi` (`jenis`, `tahun`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_publikasi` (`jenis`, `tahun`);
 
 CREATE INDEX `lppm_publikasi_penulis_idx`
-  ON `lppm_publikasi` (`penulis`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_publikasi` (`penulis`);
 
 -- -----------------------------------------------------------------------------
 -- 4. lppm_monitoring_evaluasi
@@ -67,20 +67,20 @@ CREATE INDEX `lppm_publikasi_penulis_idx`
 --    dari migrasi 20261028090000_create_monitoring_evaluasi.
 -- -----------------------------------------------------------------------------
 CREATE INDEX `lppm_monitoring_evaluasi_createdAt_idx`
-  ON `lppm_monitoring_evaluasi` (`createdAt`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_monitoring_evaluasi` (`createdAt`);
 
 CREATE INDEX `lppm_monitoring_evaluasi_tanggalJadwal_idx`
-  ON `lppm_monitoring_evaluasi` (`tanggalJadwal`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_monitoring_evaluasi` (`tanggalJadwal`);
 
 CREATE INDEX `lppm_monitoring_evaluasi_nidnReviewer_idx`
-  ON `lppm_monitoring_evaluasi` (`nidnReviewer`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_monitoring_evaluasi` (`nidnReviewer`);
 
 -- -----------------------------------------------------------------------------
 -- 5. lppm_permissions
 --    Query acuan: GET /api/permissions (ORDER BY modul ASC, kode ASC)
 -- -----------------------------------------------------------------------------
 CREATE INDEX `lppm_permissions_modul_idx`
-  ON `lppm_permissions` (`modul`) ALGORITHM = INPLACE, LOCK = NONE;
+  ON `lppm_permissions` (`modul`);
 
 -- =============================================================================
 -- VERIFIKASI PASCA-MIGRASI (jalankan manual, tidak dieksekusi otomatis):

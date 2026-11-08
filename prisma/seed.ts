@@ -42,11 +42,20 @@ async function main() {
     { kode: "monev.review", nama: "Beri Nilai & Rekomendasi Monev", modul: "Monev", deskripsi: "Dapat mengisi capaian luaran, skor kemajuan, dan rekomendasi monev" },
     { kode: "monev.manage", nama: "Kelola Administrasi Monev", modul: "Monev", deskripsi: "Dapat mengubah status kelayakan dan mengunggah berita acara monev" },
 
-    // Manajemen Pengguna & Laporan
-    { kode: "pengguna.view", nama: "Lihat Manajemen Pengguna", modul: "Pengguna", deskripsi: "Dapat melihat daftar sivitas akademika pengguna SSO" },
-    { kode: "pengguna.manage", nama: "Kelola Akses Pengguna", modul: "Pengguna", deskripsi: "Dapat mengatur pemetaan akun pengguna dan perannya" },
+    // Laporan
+    //
+    // Catatan: izin `pengguna.*` sengaja TIDAK lagi ditanam. Pengguna dan
+    // penugasan perannya dikelola di panel ONE UNUSU, jadi tidak ada halaman
+    // manajemen pengguna di LPPM yang perlu dijaga izinnya.
     { kode: "laporan.view", nama: "Lihat Rekapitulasi & Laporan", modul: "Laporan", deskripsi: "Dapat melihat dan mencetak rekapitulasi Tridharma LPPM" },
     { kode: "laporan.export", nama: "Ekspor Data & Laporan", modul: "Laporan", deskripsi: "Dapat mengunduh arsip data ke format CSV atau dokumen" },
+
+    // Izin Masuk Panel — menentukan siapa yang boleh membuka panel LPPM.
+    // Diatur dari matriks izin ONE UNUSU, bukan dari nama peran.
+    { kode: "lppm-unusu:masuk_admin", nama: "Masuk Panel sebagai Administrator LPPM", modul: "Izin Masuk", deskripsi: "Membuka panel LPPM dengan hak pengelola penuh" },
+    { kode: "lppm-unusu:masuk_dosen", nama: "Masuk Panel sebagai Dosen Peneliti", modul: "Izin Masuk", deskripsi: "Membuka panel LPPM sebagai dosen peneliti/pengabdi" },
+    { kode: "lppm-unusu:masuk_reviewer", nama: "Masuk Panel sebagai Reviewer", modul: "Izin Masuk", deskripsi: "Membuka panel LPPM sebagai reviewer proposal" },
+    { kode: "lppm-unusu:masuk_mahasiswa", nama: "Masuk Panel sebagai Mahasiswa", modul: "Izin Masuk", deskripsi: "Membuka panel LPPM sebagai mahasiswa" },
   ];
 
   for (const perm of defaultPermissions) {
@@ -73,7 +82,8 @@ async function main() {
         "publikasi.view", "publikasi.create", "publikasi.edit", "publikasi.delete",
         "monev.view", "monev.create", "monev.review", "monev.manage",
         "roles.view", "roles.manage", "permissions.view", "permissions.manage",
-        "pengguna.view", "pengguna.manage", "laporan.view", "laporan.export"
+        "laporan.view", "laporan.export",
+        "lppm-unusu:masuk_admin", "lppm-unusu:masuk_dosen", "lppm-unusu:masuk_reviewer", "lppm-unusu:masuk_mahasiswa"
       ],
     },
     {
@@ -86,7 +96,8 @@ async function main() {
         "publikasi.view", "publikasi.create", "publikasi.edit", "publikasi.delete",
         "monev.view", "monev.create", "monev.manage",
         "roles.view", "permissions.view",
-        "pengguna.view", "laporan.view", "laporan.export"
+        "laporan.view", "laporan.export",
+        "lppm-unusu:masuk_admin"
       ],
     },
     {
@@ -98,7 +109,8 @@ async function main() {
         "pengabdian.view", "pengabdian.create",
         "publikasi.view", "publikasi.create",
         "monev.view",
-        "laporan.view"
+        "laporan.view",
+        "lppm-unusu:masuk_dosen"
       ],
     },
     {
@@ -110,7 +122,8 @@ async function main() {
         "pengabdian.view", "pengabdian.review",
         "publikasi.view",
         "monev.view", "monev.review",
-        "laporan.view"
+        "laporan.view",
+        "lppm-unusu:masuk_reviewer"
       ],
     },
   ];
@@ -129,7 +142,20 @@ async function main() {
       },
     });
 
-    // Hubungkan permission
+    // Hubungkan permission.
+    //
+    // Sebelum menambah, hapus dulu tautan yang tidak lagi ada di daftar peran
+    // sistem ini. Upsert hanya menambah, tidak pernah menghapus — tanpa
+    // pembersihan ini, izin yang dulu pernah ditanam (mis. DOSEN memegang
+    // masuk_admin) akan terus menempel dan menaikkan tingkat akses diam-diam.
+    const izinSah = await prisma.permission.findMany({
+      where: { kode: { in: r.permissions } },
+      select: { id: true },
+    });
+    await prisma.rolePermission.deleteMany({
+      where: { roleId: roleRecord.id, permissionId: { notIn: izinSah.map((i) => i.id) } },
+    });
+
     for (const pKode of r.permissions) {
       const permObj = await prisma.permission.findUnique({ where: { kode: pKode } });
       if (permObj) {
@@ -148,6 +174,23 @@ async function main() {
         });
       }
     }
+  }
+
+  // Bersihkan izin yang tidak lagi ditanam skema ini.
+  //
+  // Upsert di atas hanya menambah, tidak pernah menghapus. Tanpa langkah ini,
+  // izin lama seperti `pengguna.view`/`pengguna.manage` — peninggalan saat
+  // LPPM sempat mengelola registri pengguna sendiri — akan terus muncul di
+  // katalog dan membingungkan admin yang mengira izin itu masih berpengaruh.
+  // Penghapusan juga mencabut tautannya di `lppm_role_permissions` (cascade).
+  const kodeSah = [
+    ...defaultPermissions.map((p) => p.kode),
+  ];
+  const dibersihkan = await prisma.permission.deleteMany({
+    where: { kode: { notIn: kodeSah } },
+  });
+  if (dibersihkan.count > 0) {
+    console.log(`Izin usang dibersihkan: ${dibersihkan.count}`);
   }
 
   // 1. Penelitian Dosen

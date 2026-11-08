@@ -11,7 +11,7 @@ import { SsoLoadingScreen } from '../components/SsoLoadingScreen';
 import { assetUrl } from '../lib/assets';
 
 const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'https://unusu.bpp-developer.com/sso';
-const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || 'clic7253b77530672d5';
+const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || 'lppm-unusu';
 
 export function LoginPage() {
   // Penanda bahwa pengalihan ke Portal ONE UNUSU sedang berlangsung. Dipakai

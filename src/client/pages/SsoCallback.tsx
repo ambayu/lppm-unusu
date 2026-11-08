@@ -147,7 +147,14 @@ export function SsoCallbackPage() {
           throw new Error('Respons masuk tidak dapat dibaca');
         }
 
-        saveSession(response.data.token, response.data.user);
+        // Sertakan izin dari server pada sesi. `user` saja tidak memuatnya,
+        // dan tanpa izin seluruh UI akan tampak "kosong" sampai sesi disegarkan.
+        saveSession(response.data.token, {
+          ...response.data.user,
+          izin: response.data.izin ?? response.data.user?.izin,
+          tingkat: response.data.appAccess?.tingkat ?? response.data.user?.tingkat ?? null,
+          appAccess: response.data.appAccess,
+        });
 
         if (!cancelled) {
           // Setelah login sukses SELALU mendarat di dashboard panel, bukan di

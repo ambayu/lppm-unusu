@@ -2,13 +2,16 @@ import React, { createContext, useContext, useEffect, useMemo, useState } from '
 import type { SessionUser } from '../services/api';
 import {
   APP_SCOPE,
+  IZIN_FITUR,
+  IZIN_MASUK,
+  type TingkatMasuk,
+  bisa as bisaUntuk,
+  bisaSalahSatu as bisaSalahSatuUntuk,
   canAccessLppmPanel,
-  canManageSystem as canManageSystemFor,
   evaluatePanelAccess,
-  isDosenPeneliti,
-  isLppmAdmin,
-  isSuperadmin as isSuperadminSubject,
+  izinDari,
   roleBadgeLabel,
+  tingkatDari,
 } from '../lib/appAccess';
 
 interface AuthContextValue {
@@ -16,16 +19,26 @@ interface AuthContextValue {
   loading: boolean;
   /** Cakupan aplikasi sesi aktif (selalu "lppm" untuk aplikasi ini). */
   appScope: string;
-  /** True bila sesi berhak membuka panel LPPM. */
+  /** True bila sesi berhak membuka panel LPPM (memiliki izin masuk). */
   hasPanelAccess: boolean;
-  /** True untuk admin LPPM / superadmin. */
+  /** True bila pengguna memegang izin mengelola sistem. */
   isAdmin: boolean;
-  /** Alias semantik: boleh mengelola data master, pengguna, peran & izin. */
+  /** Alias semantik: boleh mengelola pengguna, peran & izin. */
   canManageSystem: boolean;
-  /** True untuk dosen peneliti (akses baca & pengusulan). */
+  /** True bila boleh mengajukan proposal penelitian. */
   isDosen: boolean;
   isSuperadmin: boolean;
   roleLabel: string;
+  /** Kunci izin efektif — dibaca server dari database pada setiap permintaan. */
+  izin: string[];
+  /** Tingkat masuk tertinggi. */
+  tingkat: TingkatMasuk | null;
+  /** True bila memegang SEMUA kunci izin yang diminta. */
+  bisa: (...kunci: string[]) => boolean;
+  /** True bila memegang SALAH SATU kunci izin yang diminta. */
+  bisaSalahSatu: (...kunci: string[]) => boolean;
+  /** Muat ulang izin dari server (mis. setelah admin mengubah peran). */
+  segarkanSesi: () => Promise<void>;
   saveSession: (token: string, user: SessionUser) => void;
   logout: () => void;
 }
@@ -69,24 +82,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(null);
   };
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
+  /**
+   * Ambil ulang izin dari server.
+   *
+   * Izin disimpan di server dan dibaca per permintaan, jadi data di localStorage
+   * bisa basi setelah admin mengubah peran. Fungsi ini menyegarkannya tanpa
+   * memaksa pengguna login ulang.
+   */
+  const segarkanSesi = async () => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+    try {
+      const { default: api } = await import('../services/api');
+      const res = await api.get<{ success: boolean; data: SessionUser }>('/auth/session');
+      const terbaru = res.data.data;
+      const scoped: SessionUser = { ...terbaru, app: terbaru.app ?? APP_SCOPE };
+      localStorage.setItem(USER_KEY, JSON.stringify(scoped));
+      setUser(scoped);
+    } catch {
+      /* biarkan sesi berjalan; kegagalan jaringan bukan alasan mengeluarkan pengguna */
+    }
+  };
+
+  const value = useMemo<AuthContextValue>(() => {
+    const izin = izinDari(user);
+    const tingkat = tingkatDari(user);
+    return {
       user,
       loading,
       appScope: user?.app || APP_SCOPE,
       hasPanelAccess: canAccessLppmPanel(user),
-      isAdmin: isLppmAdmin(user),
-      canManageSystem: canManageSystemFor(user),
-      isDosen: isDosenPeneliti(user),
-      isSuperadmin: isSuperadminSubject(user),
+      isAdmin: tingkatDari(user) === 'admin',
+      canManageSystem: bisaUntuk(user, IZIN_FITUR.peranKelola, IZIN_FITUR.izinKelola),
+      isDosen: bisaUntuk(user, IZIN_FITUR.penelitianBuat),
+      isSuperadmin: bisaUntuk(user, IZIN_MASUK.admin) && (user?.ssoRole ?? '').toUpperCase() === 'SUPERADMIN',
       roleLabel: roleBadgeLabel(user),
+      izin,
+      tingkat,
+      bisa: (...kunci: string[]) => bisaUntuk(user, ...kunci),
+      bisaSalahSatu: (...kunci: string[]) => bisaSalahSatuUntuk(user, ...kunci),
+      segarkanSesi,
       saveSession,
       logout,
-    }),
-    [user, loading]
-  );
+    };
+  }, [user, loading]);
 
-  // Penolakan akses lintas aplikasi tidak boleh senyap — catat untuk diagnosis.
+  // Penolakan akses tidak boleh senyap — catat untuk diagnosis.
   useEffect(() => {
     if (!user) return;
     const decision = evaluatePanelAccess(user);

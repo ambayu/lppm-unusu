@@ -89,6 +89,10 @@ interface SsoSession {
 
 interface AuthRequest extends Request {
   user?: SsoSession;
+  /** Kunci izin pengguna — selalu dibaca dari database, bukan dari JWT. */
+  izin?: Set<string>;
+  /** Putusan akses yang sudah dihitung pada middleware authenticate. */
+  akses?: AppAccessDecision;
 }
 
 /**
@@ -101,17 +105,7 @@ interface AuthRequest extends Request {
 const APP_SCOPE = "lppm";
 const APP_NAME = "LPPM UNUSU";
 
-const SSO_ROLE_MAP: Record<string, string> = {
-  SUPERADMIN: "admin",
-  ADMIN_LPPM: "admin",
-  DOSEN: "dosen",
-  MAHASISWA: "mahasiswa",
-};
-
-/** Role SSO yang sah untuk panel LPPM (Admin LPPM, Superadmin, Dosen). */
-const LPPM_ALLOWED_SSO_ROLES = new Set(["SUPERADMIN", "ADMIN_LPPM", "DOSEN"]);
-
-/** Peran admin aplikasi cabang lain → label aplikasi pemiliknya. */
+/** Peran admin aplikasi cabang lain → label aplikasi pemiliknya (untuk pesan). */
 const FOREIGN_APP_ADMIN_ROLES: Record<string, string> = {
   ADMIN_LPM: "LPM UNUSU",
   ADMIN_ESURAT: "E-Surat UNUSU",
@@ -121,15 +115,154 @@ const FOREIGN_APP_ADMIN_ROLES: Record<string, string> = {
   ADMIN_SSO: "ONE UNUSU",
 };
 
-/** Peran yang boleh mengelola data master LPPM (bukan dosen peneliti). */
-const LPPM_ADMIN_SSO_ROLES = new Set(["SUPERADMIN", "ADMIN_LPPM"]);
+// ===========================================================================
+// OTORISASI BERBASIS IZIN — SUMBERNYA SSO
+//
+// Pengguna, peran, dan pemetaan peran -> izin SELURUHNYA dikelola di panel
+// ONE UNUSU (`permissions` + `role_permissions`). Aplikasi ini sengaja TIDAK
+// menyimpan salinan registri pengguna maupun penugasan peran: salinan seperti
+// itu cepat basi dan menciptakan dua sumber kebenaran yang bisa berselisih.
+//
+// Alur akses:
+//   1. Tiket SSO ditukar ke ONE UNUSU. Di sana pengguna sudah ditolak bila
+//      tidak memegang `<clientId>:masuk_*`, dan daftar izinnya ikut dikirim.
+//   2. Izin itu disimpan di dalam JWT aplikasi ini (umur 7 hari) agar setiap
+//      permintaan tidak perlu memanggil ONE UNUSU.
+//   3. Setiap permintaan memakai izin dari JWT tersebut.
+//
+// Konsekuensi yang disengaja: mencabut izin di panel SSO berlaku pada login
+// berikutnya, bukan seketika pada token yang sudah terbit.
+// ===========================================================================
 
-const isLppmAdminSession = (user?: SsoSession | null): boolean =>
-  !!user && (LPPM_ADMIN_SSO_ROLES.has(user.ssoRole) || (!user.ssoRole && user.role === "admin"));
+/** Tingkat izin masuk panel LPPM. */
+const KUNCI_IZIN_MASUK = {
+  admin: "lppm-unusu:masuk_admin",
+  dosen: "lppm-unusu:masuk_dosen",
+  reviewer: "lppm-unusu:masuk_reviewer",
+  mahasiswa: "lppm-unusu:masuk_mahasiswa",
+} as const;
 
-const mapSsoRole = (role: string): string => SSO_ROLE_MAP[role] ?? "mahasiswa";
+type TingkatMasuk = keyof typeof KUNCI_IZIN_MASUK;
 
-const authenticate = (req: Request, res: Response, next: NextFunction) => {
+const LABEL_TINGKAT: Record<TingkatMasuk, string> = {
+  admin: "Administrator LPPM",
+  dosen: "Dosen Peneliti & Pengabdi",
+  reviewer: "Reviewer Proposal",
+  mahasiswa: "Mahasiswa",
+};
+
+/**
+ * Izin fitur bawaan per tingkat.
+ *
+ * Cadangan bila ONE UNUSU belum mengirim daftar izin (versi SSO lama). Ini
+ * HANYA menebak izin fitur; izin masuk tetap wajib datang dari SSO — tanpa
+ * itu akses ditolak (fail-closed).
+ */
+const IZIN_FITUR_BAWAAN: Record<TingkatMasuk, string[]> = {
+  admin: [
+    "penelitian.view", "penelitian.create", "penelitian.edit", "penelitian.delete", "penelitian.review",
+    "pengabdian.view", "pengabdian.create", "pengabdian.edit", "pengabdian.delete", "pengabdian.review",
+    "publikasi.view", "publikasi.create", "publikasi.edit", "publikasi.delete",
+    "monev.view", "monev.create", "monev.manage", "monev.review",
+    "roles.view", "permissions.view", "laporan.view", "laporan.export",
+  ],
+  dosen: [
+    "penelitian.view", "penelitian.create",
+    "pengabdian.view", "pengabdian.create",
+    "publikasi.view", "publikasi.create",
+    "monev.view", "laporan.view",
+  ],
+  reviewer: [
+    "penelitian.view", "penelitian.review",
+    "pengabdian.view", "pengabdian.review",
+    "publikasi.view", "monev.view", "monev.review", "laporan.view",
+  ],
+  mahasiswa: ["penelitian.view", "pengabdian.view", "publikasi.view", "laporan.view"],
+};
+
+/**
+ * Susun daftar izin efektif dari kiriman ONE UNUSU.
+ *
+ * Bila SSO mengirim daftar izin, itulah yang dipakai apa adanya. Bila tidak,
+ * izin fitur ditebak dari tingkat masuk — tetapi tingkat itu sendiri hanya
+ * dipercaya kalau SSO menyatakan izin masuknya.
+ */
+const susunIzin = (izinSso: string[] | undefined, tingkat: TingkatMasuk | null): Set<string> => {
+  if (Array.isArray(izinSso) && izinSso.length > 0) return new Set(izinSso);
+  if (!tingkat) return new Set<string>();
+  return new Set([KUNCI_IZIN_MASUK[tingkat], ...IZIN_FITUR_BAWAAN[tingkat]]);
+};
+
+/** Tingkat masuk tertinggi yang dimiliki pengguna (null = tidak boleh masuk). */
+const tingkatMasukDari = (izin: Iterable<string>): TingkatMasuk | null => {
+  const set = izin instanceof Set ? izin : new Set(izin);
+  if (set.has(KUNCI_IZIN_MASUK.admin)) return "admin";
+  if (set.has(KUNCI_IZIN_MASUK.dosen)) return "dosen";
+  if (set.has(KUNCI_IZIN_MASUK.reviewer)) return "reviewer";
+  if (set.has(KUNCI_IZIN_MASUK.mahasiswa)) return "mahasiswa";
+  return null;
+};
+
+export interface AppAccessDecision {
+  app: string;
+  appName: string;
+  allowed: boolean;
+  reason: "allowed" | "no_izin_masuk" | "foreign_app_admin" | "missing_role";
+  ssoRole: string;
+  tingkat: TingkatMasuk | null;
+  roleLabel: string;
+  isAppAdmin: boolean;
+  izin: string[];
+  message: string;
+}
+
+/**
+ * Putusan akses — murni berdasarkan IZIN yang diberikan ONE UNUSU.
+ *
+ * `ssoRole` hanya dipakai untuk menyusun pesan penolakan, tidak pernah untuk
+ * mengizinkan. Karena itu admin aplikasi lain tidak dapat lolos hanya karena
+ * namanya mirip.
+ */
+const putuskanAkses = (ssoRoleRaw: string, izinMentah: string[] | Set<string>): AppAccessDecision => {
+  const ssoRole = (ssoRoleRaw || "").toUpperCase();
+  const izin = izinMentah instanceof Set ? izinMentah : new Set(izinMentah);
+  const tingkat = tingkatMasukDari(izin);
+
+  const dasar = {
+    app: APP_SCOPE,
+    appName: APP_NAME,
+    ssoRole,
+    tingkat,
+    roleLabel: tingkat ? LABEL_TINGKAT[tingkat] : "Tanpa Izin Masuk",
+    isAppAdmin: tingkat === "admin",
+    izin: Array.from(izin),
+  };
+
+  if (tingkat) {
+    return { ...dasar, allowed: true, reason: "allowed", message: `Selamat datang di panel ${APP_NAME}.` };
+  }
+
+  const aplikasiLain = FOREIGN_APP_ADMIN_ROLES[ssoRole];
+  if (aplikasiLain) {
+    return {
+      ...dasar,
+      allowed: false,
+      reason: "foreign_app_admin",
+      message: `Akun Anda terdaftar sebagai administrator ${aplikasiLain}, sehingga tidak memiliki izin masuk panel ${APP_NAME}.`,
+    };
+  }
+
+  return {
+    ...dasar,
+    allowed: false,
+    reason: ssoRole ? "no_izin_masuk" : "missing_role",
+    message: ssoRole
+      ? `Akun Anda belum diberi izin masuk panel ${APP_NAME}. Minta administrator ONE UNUSU menambahkan izin "${KUNCI_IZIN_MASUK.admin}" atau "${KUNCI_IZIN_MASUK.dosen}" pada peran Anda.`
+      : "Token SSO tidak memuat peran. Silakan login ulang melalui Portal ONE UNUSU.",
+  };
+};
+
+const authenticate = async (req: Request, res: Response, next: NextFunction) => {
   const header = req.headers.authorization;
   const token = header && header.startsWith("Bearer ") ? header.slice(7) : null;
 
@@ -137,20 +270,25 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
     return res.status(401).json({ success: false, message: "Token otentikasi tidak disediakan" });
   }
 
+  let decoded: jwt.JwtPayload;
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+    decoded = jwt.verify(token, JWT_SECRET) as jwt.JwtPayload;
+  } catch {
+    return res.status(401).json({ success: false, message: "Sesi login telah kedaluwarsa" });
+  }
 
-    // Tolak token yang diterbitkan untuk aplikasi cabang lain (mis. LPM).
-    const tokenApp = typeof decoded.app === "string" ? decoded.app : APP_SCOPE;
-    if (tokenApp !== APP_SCOPE) {
-      return res.status(403).json({
-        success: false,
-        code: "FOREIGN_APP_TOKEN",
-        app: APP_SCOPE,
-        message: `Sesi ini milik aplikasi "${tokenApp}". Panel ${APP_NAME} hanya menerima sesi aplikasi ${APP_SCOPE}.`,
-      });
-    }
+  // Tolak token yang diterbitkan untuk aplikasi cabang lain (mis. LPM).
+  const tokenApp = typeof decoded.app === "string" ? decoded.app : APP_SCOPE;
+  if (tokenApp !== APP_SCOPE) {
+    return res.status(403).json({
+      success: false,
+      code: "FOREIGN_APP_TOKEN",
+      app: APP_SCOPE,
+      message: `Sesi ini milik aplikasi "${tokenApp}". Panel ${APP_NAME} hanya menerima sesi aplikasi ${APP_SCOPE}.`,
+    });
+  }
 
+  try {
     const session: SsoSession = {
       id: Number(decoded.id),
       username: String(decoded.username ?? ""),
@@ -166,24 +304,31 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
       fakultas: typeof decoded.fakultas === "string" ? decoded.fakultas : null,
     };
 
-    // Peran admin aplikasi lain tidak boleh memakai API LPPM sama sekali.
-    const foreignApp = FOREIGN_APP_ADMIN_ROLES[session.ssoRole];
-    if (foreignApp || (session.ssoRole && !LPPM_ALLOWED_SSO_ROLES.has(session.ssoRole))) {
+    // Izin diambil dari JWT yang diterbitkan saat penukaran tiket SSO. Tidak
+    // ada salinan registri lokal yang perlu disinkronkan, sehingga tidak ada
+    // dua sumber kebenaran yang bisa berselisih.
+    const izinJwt = Array.isArray(decoded.izin) ? (decoded.izin as string[]) : [];
+    const izin = susunIzin(izinJwt, tingkatMasukDari(izinJwt));
+    const akses = putuskanAkses(session.ssoRole, izin);
+
+    // Tanpa izin masuk panel, seluruh API ditolak.
+    if (!akses.allowed) {
       return res.status(403).json({
         success: false,
-        code: "FOREIGN_APP_ADMIN",
+        code: akses.reason === "foreign_app_admin" ? "FOREIGN_APP_ADMIN" : "IZIN_MASUK_DITOLAK",
         app: APP_SCOPE,
-        foreignApp: foreignApp ?? null,
-        message: foreignApp
-          ? `Akun administrator ${foreignApp} tidak memiliki akses ke API ${APP_NAME}.`
-          : `Peran "${session.ssoRole}" tidak terdaftar pada aplikasi ${APP_NAME}.`,
+        appAccess: akses,
+        message: akses.message,
       });
     }
 
     (req as AuthRequest).user = session;
+    (req as AuthRequest).izin = izin;
+    (req as AuthRequest).akses = akses;
     next();
-  } catch {
-    return res.status(401).json({ success: false, message: "Sesi login telah kedaluwarsa" });
+  } catch (error: any) {
+    console.error("Gagal memverifikasi izin akses:", error?.message);
+    return res.status(500).json({ success: false, message: "Gagal memverifikasi izin akses" });
   }
 };
 
@@ -209,7 +354,14 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
     });
 
     const ssoPayload = (await ssoResponse.json().catch(() => null)) as
-      | { status?: boolean; message?: string; data?: { user?: SsoUserPayload } }
+      | {
+          status?: boolean;
+          message?: string;
+          data?: {
+            user?: SsoUserPayload;
+            access?: { allowed?: boolean; tingkat?: string[]; permissions?: string[] };
+          };
+        }
       | null;
     const ssoUser = ssoPayload?.data?.user;
 
@@ -217,27 +369,26 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: ssoPayload?.message || "Verifikasi token SSO gagal" });
     }
 
-    // Tolak admin aplikasi cabang lain (mis. ADMIN_LPM) — panel terpisah per aplikasi
-    const foreignApp = FOREIGN_APP_ADMIN_ROLES[ssoUser.role];
-    if (foreignApp) {
-      return res.status(403).json({
-        success: false,
-        code: "FOREIGN_APP_ADMIN",
-        app: APP_SCOPE,
-        foreignApp,
-        role: ssoUser.role,
-        message: `Akun administrator ${foreignApp} tidak dapat masuk ke panel ${APP_NAME}. Setiap aplikasi ONE UNUSU memiliki panel terpisah — silakan kelola ${foreignApp} melalui panel aplikasinya.`,
-      });
-    }
+    // Izin datang dari ONE UNUSU. Bila versi SSO belum mengirim daftar izin,
+    // turunkan dari tingkat masuk yang dilaporkan — dan bila itu pun kosong,
+    // akses ditolak (fail-closed).
+    const izinSso = ssoPayload.data?.access?.permissions;
+    const tingkatSso = Array.isArray(ssoPayload.data?.access?.tingkat)
+      ? (ssoPayload.data?.access?.tingkat ?? [])
+      : [];
+    const tingkatDariSso =
+      tingkatSso.length > 0 ? tingkatMasukDari(tingkatSso) : tingkatMasukDari(izinSso ?? []);
+    const izin = susunIzin(izinSso, tingkatDariSso);
+    const akses = putuskanAkses(ssoUser.role, izin);
 
-    // Tolak login jika role SSO tidak diizinkan di LPPM
-    if (!LPPM_ALLOWED_SSO_ROLES.has(ssoUser.role)) {
+    if (!akses.allowed) {
       return res.status(403).json({
         success: false,
-        code: "ROLE_NOT_ALLOWED",
+        code: akses.reason === "foreign_app_admin" ? "FOREIGN_APP_ADMIN" : "IZIN_MASUK_DITOLAK",
         app: APP_SCOPE,
+        appAccess: akses,
         role: ssoUser.role,
-        message: `Akses ditolak. Hanya Administrator LPPM dan Dosen yang diizinkan masuk ke panel ${APP_NAME}.`,
+        message: akses.message,
       });
     }
 
@@ -246,7 +397,7 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       username: ssoUser.username,
       nama: ssoUser.nama,
       email: ssoUser.email ?? null,
-      role: mapSsoRole(ssoUser.role),
+      role: akses.tingkat ?? "mahasiswa",
       ssoRole: ssoUser.role,
       app: APP_SCOPE,
       appName: APP_NAME,
@@ -256,9 +407,12 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       fakultas: ssoUser.fakultas ?? null,
     };
 
-    const tokenJwt = jwt.sign(sessionUser, JWT_SECRET, { expiresIn: "7d" });
+    // Izin disertakan di dalam JWT agar permintaan berikutnya tidak perlu
+    // memanggil ONE UNUSU. Mencabut izin di panel SSO berlaku pada login
+    // berikutnya.
+    const tokenJwt = jwt.sign({ ...sessionUser, izin: akses.izin }, JWT_SECRET, { expiresIn: "7d" });
 
-    res.json({ success: true, token: tokenJwt, user: sessionUser });
+    res.json({ success: true, token: tokenJwt, user: sessionUser, appAccess: akses, izin: akses.izin });
   } catch (error: any) {
     res.status(500).json({ success: false, message: "Gagal memproses SSO: " + error?.message });
   }
@@ -279,16 +433,8 @@ app.get("/api/auth/session", (req: Request, res: Response) => {
     return res.status(401).json({ success: false, message: "Sesi tidak ditemukan" });
   }
 
-  const isAdmin = isLppmAdminSession(user);
-  const permissions = isAdmin
-    ? [
-        "penelitian.view", "penelitian.create", "penelitian.update", "penelitian.delete",
-        "pengabdian.view", "pengabdian.create", "pengabdian.update", "pengabdian.delete",
-        "publikasi.view", "publikasi.create", "publikasi.update", "publikasi.delete",
-        "monev.view", "monev.create", "monev.update", "monev.delete",
-        "pengguna.view", "peran.view", "izin.view",
-      ]
-    : ["penelitian.view", "pengabdian.view", "publikasi.view", "monev.view"];
+  const izin = (req as AuthRequest).izin ?? new Set<string>();
+  const akses = (req as AuthRequest).akses ?? putuskanAkses(user.ssoRole, izin);
 
   res.json({
     success: true,
@@ -296,28 +442,43 @@ app.get("/api/auth/session", (req: Request, res: Response) => {
       ...user,
       app: APP_SCOPE,
       appName: APP_NAME,
-      isAdmin,
-      canManageSystem: isAdmin,
-      permissions,
+      appAccess: akses,
+      // Kompatibilitas: klien lama membaca `isAdmin` dan `permissions`.
+      isAdmin: akses.isAppAdmin,
+      canManageSystem: akses.isAppAdmin,
+      tingkat: akses.tingkat,
+      izin: akses.izin,
+      permissions: akses.izin,
     },
   });
 });
 
-/** Middleware otorisasi — hanya role tertentu yang boleh lewat. */
-const requireRole = (...allowed: string[]) =>
+/**
+ * Middleware otorisasi berbasis IZIN.
+ *
+ * `requirePermission("penelitian.create")` menolak permintaan yang tidak
+ * memuat kunci izin tersebut — tidak pernah membandingkan nama peran.
+ */
+const requirePermission = (...kunci: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {
-    const role = (req as AuthRequest).user?.role;
-    if (!role || !allowed.includes(role)) {
+    const izin = (req as AuthRequest).izin;
+    if (!izin) {
+      return res.status(401).json({ success: false, message: "Sesi tidak valid" });
+    }
+    const kurang = kunci.filter((k) => !izin.has(k));
+    if (kurang.length > 0) {
       return res.status(403).json({
         success: false,
+        code: "IZIN_KURANG",
         message: "Akses ditolak. Anda tidak memiliki izin untuk operasi ini.",
+        dibutuhkan: kurang,
       });
     }
     next();
   };
 
 // 1. Penelitian
-app.get("/api/penelitian", async (req: Request, res: Response) => {
+app.get("/api/penelitian", requirePermission("penelitian.view"), async (req: Request, res: Response) => {
   try {
     const parsed = queryListSchema.safeParse(req.query);
     if (!parsed.success) {
@@ -367,7 +528,7 @@ app.get("/api/penelitian", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/api/penelitian/:id", async (req: Request, res: Response) => {
+app.get("/api/penelitian/:id", requirePermission("penelitian.view"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const item = await prisma.penelitian.findUnique({
@@ -380,7 +541,7 @@ app.get("/api/penelitian/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/penelitian", requireRole("admin"), async (req: Request, res: Response) => {
+app.post("/api/penelitian", requirePermission("penelitian.create"), async (req: Request, res: Response) => {
   try {
     const { judul, ketua, nidn, anggota, bidangFokus, danaDisetujui, sumberDana, tahun, status } = req.body;
     const item = await prisma.penelitian.create({
@@ -402,7 +563,7 @@ app.post("/api/penelitian", requireRole("admin"), async (req: Request, res: Resp
   }
 });
 
-app.put("/api/penelitian/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.put("/api/penelitian/:id", requirePermission("penelitian.edit"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { judul, ketua, nidn, anggota, bidangFokus, danaDisetujui, sumberDana, tahun, status } = req.body;
@@ -426,7 +587,7 @@ app.put("/api/penelitian/:id", requireRole("admin"), async (req: Request, res: R
   }
 });
 
-app.delete("/api/penelitian/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.delete("/api/penelitian/:id", requirePermission("penelitian.delete"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.penelitian.delete({ where: { id } });
@@ -437,7 +598,7 @@ app.delete("/api/penelitian/:id", requireRole("admin"), async (req: Request, res
 });
 
 // 2. Pengabdian (PKM)
-app.get("/api/pengabdian", async (req: Request, res: Response) => {
+app.get("/api/pengabdian", requirePermission("pengabdian.view"), async (req: Request, res: Response) => {
   try {
     const parsed = queryListSchema.safeParse(req.query);
     if (!parsed.success) {
@@ -487,7 +648,7 @@ app.get("/api/pengabdian", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/api/pengabdian/:id", async (req: Request, res: Response) => {
+app.get("/api/pengabdian/:id", requirePermission("pengabdian.view"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const item = await prisma.pengabdian.findUnique({ where: { id } });
@@ -498,7 +659,7 @@ app.get("/api/pengabdian/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/pengabdian", requireRole("admin"), async (req: Request, res: Response) => {
+app.post("/api/pengabdian", requirePermission("pengabdian.create"), async (req: Request, res: Response) => {
   try {
     const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun, status } = req.body;
     const item = await prisma.pengabdian.create({
@@ -520,7 +681,7 @@ app.post("/api/pengabdian", requireRole("admin"), async (req: Request, res: Resp
   }
 });
 
-app.put("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.put("/api/pengabdian/:id", requirePermission("pengabdian.edit"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { judul, ketua, nidn, anggota, mitra, lokasi, danaDisetujui, tahun, status } = req.body;
@@ -544,7 +705,7 @@ app.put("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res: R
   }
 });
 
-app.delete("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.delete("/api/pengabdian/:id", requirePermission("pengabdian.delete"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.pengabdian.delete({ where: { id } });
@@ -555,7 +716,7 @@ app.delete("/api/pengabdian/:id", requireRole("admin"), async (req: Request, res
 });
 
 // 3. Publikasi Jurnal
-app.get("/api/publikasi", async (req: Request, res: Response) => {
+app.get("/api/publikasi", requirePermission("publikasi.view"), async (req: Request, res: Response) => {
   try {
     const parsed = queryListSchema.safeParse(req.query);
     if (!parsed.success) {
@@ -608,7 +769,7 @@ app.get("/api/publikasi", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/api/publikasi/:id", async (req: Request, res: Response) => {
+app.get("/api/publikasi/:id", requirePermission("publikasi.view"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const item = await prisma.publikasi.findUnique({ where: { id } });
@@ -619,7 +780,7 @@ app.get("/api/publikasi/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/publikasi", requireRole("admin"), async (req: Request, res: Response) => {
+app.post("/api/publikasi", requirePermission("publikasi.create"), async (req: Request, res: Response) => {
   try {
     const { judul, penulis, jenis, namaJurnal, volumeIssue, tahun, doiUrl, sintaScore } = req.body;
     const item = await prisma.publikasi.create({
@@ -640,7 +801,7 @@ app.post("/api/publikasi", requireRole("admin"), async (req: Request, res: Respo
   }
 });
 
-app.put("/api/publikasi/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.put("/api/publikasi/:id", requirePermission("publikasi.edit"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { judul, penulis, jenis, namaJurnal, volumeIssue, tahun, doiUrl, sintaScore } = req.body;
@@ -663,7 +824,7 @@ app.put("/api/publikasi/:id", requireRole("admin"), async (req: Request, res: Re
   }
 });
 
-app.delete("/api/publikasi/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.delete("/api/publikasi/:id", requirePermission("publikasi.delete"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.publikasi.delete({ where: { id } });
@@ -674,7 +835,7 @@ app.delete("/api/publikasi/:id", requireRole("admin"), async (req: Request, res:
 });
 
 // 4. Role & Permission Management
-app.get("/api/roles", requireRole("admin"), async (req: Request, res: Response) => {
+app.get("/api/roles", requirePermission("roles.view"), async (req: Request, res: Response) => {
   try {
     const list = await prisma.role.findMany({
       include: {
@@ -692,7 +853,7 @@ app.get("/api/roles", requireRole("admin"), async (req: Request, res: Response) 
   }
 });
 
-app.post("/api/roles", requireRole("admin"), async (req: Request, res: Response) => {
+app.post("/api/roles", requirePermission("roles.manage"), async (req: Request, res: Response) => {
   try {
     const { kode, nama, deskripsi, permissionIds } = req.body;
     if (!kode || !nama) {
@@ -725,7 +886,7 @@ app.post("/api/roles", requireRole("admin"), async (req: Request, res: Response)
   }
 });
 
-app.put("/api/roles/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.put("/api/roles/:id", requirePermission("roles.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { nama, deskripsi, permissionIds } = req.body;
@@ -770,7 +931,7 @@ app.put("/api/roles/:id", requireRole("admin"), async (req: Request, res: Respon
   }
 });
 
-app.delete("/api/roles/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.delete("/api/roles/:id", requirePermission("roles.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const role = await prisma.role.findUnique({ where: { id } });
@@ -789,7 +950,7 @@ app.delete("/api/roles/:id", requireRole("admin"), async (req: Request, res: Res
 });
 
 // Permissions API
-app.get("/api/permissions", requireRole("admin"), async (req: Request, res: Response) => {
+app.get("/api/permissions", requirePermission("permissions.view"), async (req: Request, res: Response) => {
   try {
     const list = await prisma.permission.findMany({
       orderBy: [{ modul: "asc" }, { kode: "asc" }],
@@ -807,7 +968,7 @@ app.get("/api/permissions", requireRole("admin"), async (req: Request, res: Resp
   }
 });
 
-app.post("/api/permissions", requireRole("admin"), async (req: Request, res: Response) => {
+app.post("/api/permissions", requirePermission("permissions.manage"), async (req: Request, res: Response) => {
   try {
     const { kode, nama, modul, deskripsi } = req.body;
     if (!kode || !nama || !modul) {
@@ -829,7 +990,7 @@ app.post("/api/permissions", requireRole("admin"), async (req: Request, res: Res
   }
 });
 
-app.put("/api/permissions/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.put("/api/permissions/:id", requirePermission("permissions.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const { nama, modul, deskripsi } = req.body;
@@ -849,7 +1010,7 @@ app.put("/api/permissions/:id", requireRole("admin"), async (req: Request, res: 
   }
 });
 
-app.delete("/api/permissions/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.delete("/api/permissions/:id", requirePermission("permissions.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     await prisma.permission.delete({ where: { id } });
@@ -860,7 +1021,7 @@ app.delete("/api/permissions/:id", requireRole("admin"), async (req: Request, re
 });
 
 // 4b. Audit Trail (append-only) — hanya admin
-app.get("/api/audit-log", requireRole("admin"), async (req: Request, res: Response) => {
+app.get("/api/audit-log", requirePermission("roles.manage"), async (req: Request, res: Response) => {
   try {
     const parsed = queryAuditSchema.safeParse(req.query);
     if (!parsed.success) {
@@ -923,7 +1084,7 @@ app.get("/api/audit-log", requireRole("admin"), async (req: Request, res: Respon
 });
 
 // 5. Monitoring & Evaluasi (Monev) API
-app.get("/api/monev", async (req: Request, res: Response) => {
+app.get("/api/monev", requirePermission("monev.view"), async (req: Request, res: Response) => {
   try {
     const parseQuery = queryMonevSchema.safeParse(req.query);
     if (!parseQuery.success) {
@@ -1005,7 +1166,7 @@ app.get("/api/monev", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/api/monev/:id", async (req: Request, res: Response) => {
+app.get("/api/monev/:id", requirePermission("monev.view"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     const item = await prisma.monitoringEvaluasi.findUnique({
@@ -1024,7 +1185,7 @@ app.get("/api/monev/:id", async (req: Request, res: Response) => {
   }
 });
 
-app.post("/api/monev", requireRole("admin"), async (req: Request, res: Response) => {
+app.post("/api/monev", requirePermission("monev.create"), async (req: Request, res: Response) => {
   try {
     const parseResult = createMonevSchema.safeParse(req.body);
     if (!parseResult.success) {
@@ -1098,7 +1259,7 @@ app.post("/api/monev", requireRole("admin"), async (req: Request, res: Response)
   }
 });
 
-app.put("/api/monev/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.put("/api/monev/:id", requirePermission("monev.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id) || id <= 0) {
@@ -1174,7 +1335,7 @@ app.put("/api/monev/:id", requireRole("admin"), async (req: Request, res: Respon
   }
 });
 
-app.delete("/api/monev/:id", requireRole("admin"), async (req: Request, res: Response) => {
+app.delete("/api/monev/:id", requirePermission("monev.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
     if (isNaN(id) || id <= 0) {
@@ -1339,9 +1500,21 @@ app.get("/api/dashboard/stats", async (req: Request, res: Response) => {
   }
 });
 
-// SPA Fallback: Melayani index.html untuk semua rute client (SPA routing)
-// Rute publik root '/' tidak melakukan default redirect ke '/admin'
+// SPA Fallback: Melayani index.html untuk rute client (SPA routing).
+//
+// PENTING: rute `/api/*` TIDAK ikut fallback. Tanpa penjagaan ini, endpoint API
+// yang tidak ada (atau sudah dihapus) menjawab 200 berisi HTML, sehingga klien
+// mengira permintaannya berhasil dan mencoba mem-parsing HTML sebagai JSON.
+// API yang tidak dikenal harus menjawab 404 JSON — bukan halaman aplikasi.
 app.get("*", (req: Request, res: Response) => {
+  if (req.path.startsWith("/api/")) {
+    return res.status(404).json({
+      success: false,
+      code: "ENDPOINT_TIDAK_DITEMUKAN",
+      message: `Endpoint ${req.method} ${req.path} tidak tersedia pada server ${APP_NAME}.`,
+    });
+  }
+
   res.sendFile(path.join(clientDistPath, "index.html"), (err) => {
     if (err) {
       res.status(200).send("LPPM UNUSU Server Running. Build client using 'npm run build:client'.");

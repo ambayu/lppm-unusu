@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ListPageTemplate } from '../components/ListPageTemplate';
 import { useAuth } from '../context/AuthContext';
+import { IZIN_FITUR } from '../lib/appAccess';
 import {
   fetchPermissions,
   deletePermission,
@@ -29,14 +30,15 @@ const MODUL_OPTIONS = [
 ];
 
 export const IzinPage: React.FC = () => {
-  const { canManageSystem } = useAuth();
+  const { bisa } = useAuth();
   const [permissions, setPermissions] = useState<PermissionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedModul, setSelectedModul] = useState<string>('SEMUA');
 
-  const isAdmin = canManageSystem;
+  // Tombol ubah/tambah muncul atas dasar izin, bukan nama peran.
+  const isAdmin = bisa(IZIN_FITUR.izinKelola);
 
   const loadData = async () => {
     setLoading(true);

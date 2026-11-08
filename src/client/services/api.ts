@@ -25,6 +25,25 @@ export interface SessionUser {
   nidn?: string | null;
   prodi?: string | null;
   fakultas?: string | null;
+  /** Kunci izin pengguna — dibaca server dari database pada setiap permintaan. */
+  izin?: string[];
+  /** Tingkat masuk tertinggi: "admin" | "dosen" | "reviewer" | "mahasiswa" | null. */
+  tingkat?: string | null;
+  appAccess?: AppAccessInfo;
+}
+
+/** Putusan akses dari server — sumber kebenaran untuk UI. */
+export interface AppAccessInfo {
+  app: string;
+  appName: string;
+  allowed: boolean;
+  reason: 'allowed' | 'no_izin_masuk' | 'foreign_app_admin' | 'missing_role';
+  ssoRole: string;
+  tingkat: string | null;
+  roleLabel: string;
+  isAppAdmin: boolean;
+  izin: string[];
+  message: string;
 }
 
 const TOKEN_KEY = 'lppm_unusu_token';
@@ -98,16 +117,30 @@ api.interceptors.response.use(
 );
 
 export const ssoLogin = (client_id: string, token: string) =>
-  api.post<{ success: boolean; token: string; user: SessionUser; message?: string }>('/auth/sso', { client_id, token });
+  api.post<{
+    success: boolean;
+    token: string;
+    user: SessionUser;
+    izin?: string[];
+    appAccess?: AppAccessInfo;
+    message?: string;
+  }>('/auth/sso', { client_id, token });
 
 export interface SessionScopeInfo {
   app: string;
   appName: string;
   role: string;
   ssoRole: string;
+  /** @deprecated gunakan `bisa()` / `izin` — dipertahankan untuk klien lama. */
   isAdmin: boolean;
+  /** @deprecated gunakan `bisa()` / `izin`. */
   canManageSystem: boolean;
+  /** @deprecated berisi kunci izin yang sama dengan `izin`. */
   permissions: string[];
+  /** Kunci izin efektif pengguna. */
+  izin: string[];
+  tingkat: string | null;
+  appAccess: AppAccessInfo;
 }
 
 /** Validasi ulang sesi + cakupan aplikasi langsung ke server. */
