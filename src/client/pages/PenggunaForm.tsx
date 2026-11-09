@@ -317,31 +317,6 @@ export const PenggunaFormPage: React.FC = () => {
             </div>
           </div>
         </CardContainer>
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => {}}
-                      className="mt-0.5 w-4 h-4 rounded text-violet-600 border-slate-300 focus:ring-violet-500"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-800">{r.nama}</span>
-                        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                          {r.kode}
-                        </span>
-                      </div>
-                      {r.deskripsi && (
-                        <p className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed">
-                          {r.deskripsi}
-                        </p>
-                      )}
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-        </CardContainer>
       </div>
     </FormPageTemplate>
   );
