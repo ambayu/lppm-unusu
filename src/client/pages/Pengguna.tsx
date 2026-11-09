@@ -223,9 +223,6 @@ export const PenggunaPage: React.FC = () => {
                   </tr>
                 ))}
               </tbody>
-                  </tr>
-                ))}
-              </tbody>
             </table>
           </div>
         </CardContainer>
