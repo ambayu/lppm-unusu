@@ -400,6 +400,16 @@ async function dapatkanAksesLokalPengguna(
     }
   }
 
+  // Tambahkan izin kunci masuk agar middleware authenticate tidak menolak sesi
+  const isSuperOrAdmin = roleCodes.includes("SUPERADMIN") || roleCodes.includes("ADMIN_LPPM");
+  if (isSuperOrAdmin) {
+    permissionSet.add(KUNCI_IZIN_MASUK.admin);
+  } else if (roleCodes.includes("REVIEWER")) {
+    permissionSet.add(KUNCI_IZIN_MASUK.reviewer);
+  } else {
+    permissionSet.add(KUNCI_IZIN_MASUK.dosen);
+  }
+
   const primaryRole = roleCodes.includes("SUPERADMIN")
     ? "SUPERADMIN"
     : roleCodes.includes("ADMIN_LPPM")
