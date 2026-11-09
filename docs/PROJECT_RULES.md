@@ -20,7 +20,13 @@ Jika terdapat perbedaan aturan di antara dokumen, urutan prioritas dari tertingg
 - **Resolusi Aset Sub-Path (`/lppm/`)**: Build produksi dipasang pada base path `/lppm/` (`PROD_BASE` di `vite.config.ts`). Seluruh referensi gambar/aset statis dari `public/assets/` wajib dibungkus helper `assetUrl()` dari `src/client/lib/assets.ts`.
 
 ## 3. Kontrak API, Autentikasi SSO, & Validasi Backend
-- **Otentikasi SSO Satu Pintu**: Seluruh sesi pengguna berasal dari penukaran token sekali pakai ONE UNUSU Gateway (`/api/v2/website/verify-token`) melalui endpoint `POST /api/auth/sso`. Tidak ada login password lokal dan tidak ada registri pengguna lokal (`lppm_users` telah dihapus).
+- **Otentikasi SSO Satu Pintu**: Seluruh sesi pengguna berasal dari penukaran token sekali pakai ONE UNUSU Gateway (`/api/v2/website/verify-token`) melalui endpoint `POST /api/auth/sso`.
+- **Desentralisasi RBAC & Multi-Role**: LPPM UNUSU mengelola hak akses mandiri di basis data lokal melalui relasi `lppm_users`, `lppm_roles`, `lppm_permissions`, `lppm_role_permissions`, dan tabel junction multi-role `lppm_user_roles`.
+- **Auto-Provisioning**: Pengguna SSO baru otomatis dibuatkan akun lokal LPPM saat login pertama kali dengan peran bawaan sesuai tingkat SSO (`admin` atau `dosen`).
+- **Pembedaan URL Callback (Local Dev vs VPS)**:
+  - Lingkungan lokal: `http://localhost:5178/sso/callback`.
+  - Lingkungan VPS / Produksi: `https://unusu.ac.id/lppm/sso/callback` (atau sesuai `SEED_PUBLIC_BASE_URL`).
+  - Dikelola terpusat dari seeder portal ONE UNUSU via skrip `npm run db:sso-dev-urls` / `npm run db:sso-vps-urls`.
 - **Deduplikasi Token Callback**: Token SSO bersifat sekali pakai (5 menit). Halaman `SsoCallbackPage` wajib mempertahankan deduplikasi request (`exchangeRequests` Map) agar tidak gagal akibat double-invocation pada React `StrictMode`.
 - **Otorisasi Berbasis Permission (Bukan Raw Role)**: Akses ke LPPM ditentukan oleh izin masuk SSO (`lppm-unusu:masuk_admin` atau `lppm-unusu:masuk_dosen`) yang diverifikasi dari response Gateway `data.access.allowed`. Seluruh peran admin aplikasi cabang kaku (`ADMIN_LPPM`) telah dihapus di portal pusat; SUPERADMIN memegang seluruh izin masuk secara global, dan Superadmin dapat menautkan peran kustom civitas. Operasi API dilindungi oleh middleware `requirePermission()` berbasis permission key, bukan nama peran mentah.
 - **Validasi Input Wajib (Zod)**: Seluruh parameter URL (`:id`), query filter, dan body request (`POST`, `PUT`) pada `/api/*` wajib divalidasi menggunakan skema `zod` sebelum menyentuh layer database Prisma.

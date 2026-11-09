@@ -1,5 +1,16 @@
 # CHANGELOG — LPPM UNUSU
 
+## [2026-11-09] — Desentralisasi RBAC, Manajemen Multi-Role, & URL Callback
+
+### Added
+- **Desentralisasi RBAC Penuh**: Menambahkan tabel junction `lppm_user_roles` dan migrasi database `20261109120000_decentralized_lppm_user_roles` untuk mendukung penugasan multi-role per pengguna.
+- **Seeder Mandiri LPPM**: Menyemai 23 permissions granular domain penelitian, pengabdian, publikasi, monev, dan tata kelola akun (`prisma/seed.ts`).
+- **Halaman Manajemen Pengguna**: Halaman penuh `/admin/pengguna`, `/admin/pengguna/tambah`, dan `/admin/pengguna/edit/:id` untuk penugasan multi-peran pengguna di LPPM (`Pengguna.tsx` & `PenggunaForm.tsx`).
+
+### Changed
+- **Endpoint SSO (`POST /api/auth/sso`)**: Membaca peran dan izin langsung dari database lokal LPPM (`lppm_user_roles` & `lppm_role_permissions`) dengan auto-provisioning akun baru.
+- **Sinkronisasi Callback Lingkungan**: Penyelarasan callback lokal (`http://localhost:5178/sso/callback`) vs VPS (`/lppm/sso/callback`) yang dikontrol terpusat dari gateway ONE UNUSU.
+
 ## [2026-11-07] — Audit Anti-Slop Halaman Publik & Landasan Tipografi
 
 ### Added
