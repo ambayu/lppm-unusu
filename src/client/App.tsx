@@ -138,9 +138,11 @@ export function App() {
               path="/penelitian"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PenelitianPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.penelitianLihat]}>
+                    <SidebarLayout>
+                      <PenelitianPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -148,9 +150,11 @@ export function App() {
               path="/penelitian/tambah"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PenelitianFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.penelitianBuat]}>
+                    <SidebarLayout>
+                      <PenelitianFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -158,9 +162,11 @@ export function App() {
               path="/penelitian/edit/:id"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PenelitianFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.penelitianUbah]}>
+                    <SidebarLayout>
+                      <PenelitianFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -170,9 +176,11 @@ export function App() {
               path="/pengabdian"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PengabdianPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.pengabdianLihat]}>
+                    <SidebarLayout>
+                      <PengabdianPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -180,9 +188,11 @@ export function App() {
               path="/pengabdian/tambah"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PengabdianFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.pengabdianBuat]}>
+                    <SidebarLayout>
+                      <PengabdianFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -190,9 +200,11 @@ export function App() {
               path="/pengabdian/edit/:id"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PengabdianFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.pengabdianUbah]}>
+                    <SidebarLayout>
+                      <PengabdianFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -202,9 +214,11 @@ export function App() {
               path="/publikasi"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PublikasiPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.publikasiLihat]}>
+                    <SidebarLayout>
+                      <PublikasiPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -212,9 +226,11 @@ export function App() {
               path="/publikasi/tambah"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PublikasiFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.publikasiBuat]}>
+                    <SidebarLayout>
+                      <PublikasiFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -222,9 +238,11 @@ export function App() {
               path="/publikasi/edit/:id"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <PublikasiFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.publikasiUbah]}>
+                    <SidebarLayout>
+                      <PublikasiFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -347,9 +365,11 @@ export function App() {
               path="/monev"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <MonevPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.monevLihat]}>
+                    <SidebarLayout>
+                      <MonevPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -357,9 +377,11 @@ export function App() {
               path="/monev/tambah"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <MonevFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.monevBuat]}>
+                    <SidebarLayout>
+                      <MonevFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />
@@ -367,9 +389,11 @@ export function App() {
               path="/monev/edit/:id"
               element={
                 <ProtectedRoute>
-                  <SidebarLayout>
-                    <MonevFormPage />
-                  </SidebarLayout>
+                  <IzinRoute izin={[IZIN_FITUR.monevKelola, IZIN_FITUR.monevReview]}>
+                    <SidebarLayout>
+                      <MonevFormPage />
+                    </SidebarLayout>
+                  </IzinRoute>
                 </ProtectedRoute>
               }
             />

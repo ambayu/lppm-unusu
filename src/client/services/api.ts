@@ -267,7 +267,9 @@ export const fetchUsers = () => api.get<{ success: boolean; data: UserRoleAssign
 export const createUserAssignment = (data: { username: string; nama: string; roleIds: number[] }) =>
   api.post<{ success: boolean; message: string; data: UserRoleAssignment }>('/users', data);
 export const updateUserAssignment = (username: string, data: { nama?: string; roleIds: number[] }) =>
-  api.put<{ success: boolean; message: string; data: UserRoleAssignment }>(`/users/${username}`, data);
+  api.put<{ success: boolean; message: string; data: UserRoleAssignment }>(`/users/${encodeURIComponent(username)}`, data);
+export const deleteUserAssignment = (username: string) =>
+  api.delete<{ success: boolean; message: string }>(`/users/${encodeURIComponent(username)}`);oolean; message: string; data: UserRoleAssignment }>(`/users/${username}`, data);
 export const deleteUserAssignment = (username: string) =>
   api.delete<{ success: boolean; message: string }>(`/users/${username}`);
 

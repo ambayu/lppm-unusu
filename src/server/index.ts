@@ -1261,7 +1261,7 @@ app.put("/api/users/:username", requireAnyPermission("users.manage", "roles.mana
       return res.status(400).json({ success: false, message: "Username tidak valid" });
     }
 
-    const { nama, roleIds } = req.body ?? {};
+    const { roleIds } = req.body ?? {};
     const ids: number[] = Array.isArray(roleIds)
       ? roleIds.map((n: unknown) => Number(n)).filter((n: number) => Number.isInteger(n) && n > 0)
       : [];
@@ -1278,11 +1278,23 @@ app.put("/api/users/:username", requireAnyPermission("users.manage", "roles.mana
       return res.status(400).json({ success: false, message: "Peran yang dipilih tidak valid" });
     }
 
-    // Ambil nama eksisting jika tidak dikirim
-    let targetNama = typeof nama === "string" && nama.trim() ? nama.trim() : "";
-    if (!targetNama) {
-      const existing = await prisma.userRole.findFirst({ where: { username } });
-      targetNama = existing?.nama || username;
+    // Ambil nama eksisting di database lokal
+    const existing = await prisma.userRole.findMany({
+      where: { username },
+      include: { role: true },
+    });
+    const targetNama = existing[0]?.nama || username;
+    const isTargetSuperadmin =
+      existing.some((r) => r.role.kode === "SUPERADMIN") ||
+      username.toLowerCase() === "superadmin" ||
+      username.toLowerCase() === "admin";
+
+    // Guard: Role SUPERADMIN tidak boleh dilepas jika target adalah superadmin
+    if (isTargetSuperadmin) {
+      const superRole = await prisma.role.findUnique({ where: { kode: "SUPERADMIN" } });
+      if (superRole && !validRoles.some((r) => r.id === superRole.id)) {
+        validRoles.push(superRole);
+      }
     }
 
     await prisma.$transaction(async (tx) => {

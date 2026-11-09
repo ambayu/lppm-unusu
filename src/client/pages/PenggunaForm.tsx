@@ -26,8 +26,12 @@ export const PenggunaFormPage: React.FC = () => {
   const [formData, setFormData] = useState({
     username: '',
     nama: '',
+    email: '',
+    status: 'Aktif',
     roleIds: [] as number[],
   });
+
+  const [isSuperadmin, setIsSuperadmin] = useState(false);
 
   // Muat daftar peran LPPM untuk pilihan
   useEffect(() => {
@@ -68,9 +72,19 @@ export const PenggunaFormPage: React.FC = () => {
           (u) => u.username.toLowerCase() === decodeURIComponent(username).toLowerCase()
         );
         if (target) {
+          const isSuper =
+            target.roles.some((r) => r.kode === 'SUPERADMIN') ||
+            target.username.toLowerCase() === 'superadmin' ||
+            target.username.toLowerCase() === 'admin';
+          setIsSuperadmin(isSuper);
+
           setFormData({
             username: target.username,
             nama: target.nama,
+            email: target.username.includes('@')
+              ? target.username
+              : `${target.username.toLowerCase()}@unusu.ac.id`,
+            status: 'Aktif',
             roleIds: target.roleIds || target.roles.map((r) => r.id),
           });
         } else {
@@ -85,7 +99,11 @@ export const PenggunaFormPage: React.FC = () => {
     };
   }, [isEdit, username]);
 
-  const toggleRole = (roleId: number) => {
+  const toggleRole = (roleId: number, isSuperRole: boolean) => {
+    // Guard UI: Role SUPERADMIN tidak boleh dilepas jika akun adalah superadmin
+    if (isSuperadmin && isSuperRole) {
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       roleIds: prev.roleIds.includes(roleId)
@@ -99,14 +117,6 @@ export const PenggunaFormPage: React.FC = () => {
     setError(null);
     setSukses(null);
 
-    if (!formData.username.trim()) {
-      setError('Username / NIDN / NIM civitas wajib diisi');
-      return;
-    }
-    if (!formData.nama.trim()) {
-      setError('Nama civitas wajib diisi');
-      return;
-    }
     if (formData.roleIds.length === 0) {
       setError('Pilih minimal satu peran (role) untuk pengguna ini');
       return;
@@ -116,7 +126,6 @@ export const PenggunaFormPage: React.FC = () => {
       setSubmitting(true);
       if (isEdit && username) {
         await updateUserAssignment(decodeURIComponent(username), {
-          nama: formData.nama.trim(),
           roleIds: formData.roleIds,
         });
         setSukses(`Penugasan peran untuk "${formData.nama}" berhasil diperbarui.`);
@@ -161,55 +170,66 @@ export const PenggunaFormPage: React.FC = () => {
         )}
 
         <CardContainer className="p-6 space-y-5">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-200 text-slate-800 font-semibold text-sm">
-            <UserGroupIcon className="w-5 h-5 text-violet-600" />
-            <span>Identitas Civitas</span>
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
+              <UserGroupIcon className="w-5 h-5 text-violet-600" />
+              <span>Biodata Pengguna (Single Source of Truth - ONE UNUSU SSO)</span>
+            </div>
+            <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+              Read-Only
+            </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Username / NIDN / NIM <span className="text-rose-500">*</span>
+                NIDN / NIM
               </label>
               <input
                 type="text"
-                required
-                disabled={isEdit}
+                disabled
                 value={formData.username}
-                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                placeholder="Contoh: 0102038901 atau namauser"
-                className={`w-full px-3.5 py-2.5 rounded-[10px] border text-sm font-mono transition-all ${
-                  isEdit
-                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500'
-                }`}
+                placeholder="NIDN / NIM civitas"
+                className="w-full px-3.5 py-2.5 rounded-[10px] border text-sm font-mono bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"
               />
-              <p className="mt-1 text-[11px] text-slate-500">
-                Gunakan NIM mahasiswa, NIDN dosen, atau username akun civitas di SSO.
-              </p>
             </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Nama Lengkap Civitas <span className="text-rose-500">*</span>
+                Nama Lengkap
               </label>
               <input
                 type="text"
-                required
+                disabled
                 value={formData.nama}
-                onChange={(e) => setFormData({ ...formData, nama: e.target.value })}
-                placeholder="Contoh: Dr. Muhammad Farhan, M.Kom."
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-200 rounded-[10px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
+                placeholder="Nama civitas"
+                className="w-full px-3.5 py-2.5 rounded-[10px] border text-sm bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Email
+              </label>
+              <input
+                type="text"
+                disabled
+                value={formData.email}
+                placeholder="Email civitas"
+                className="w-full px-3.5 py-2.5 rounded-[10px] border text-sm bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"
               />
             </div>
           </div>
+          <p className="text-[11px] text-slate-500 italic">
+            Biodata (NIDN/NIM, Nama Lengkap, dan Email) disinkronkan secara otomatis dari portal pusat SSO ONE UNUSU dan tidak dapat diubah di sini.
+          </p>
         </CardContainer>
 
         <CardContainer className="p-6 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-slate-200">
             <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
               <ShieldCheckIcon className="w-5 h-5 text-violet-600" />
-              <span>Pilihan Peran Lokal LPPM (Multi-Role)</span>
+              <span>Role Terkait &amp; Status Akun</span>
               <span className="text-rose-500">*</span>
             </div>
             <span className="text-xs text-slate-500">
@@ -217,26 +237,86 @@ export const PenggunaFormPage: React.FC = () => {
             </span>
           </div>
 
-          <p className="text-xs text-slate-600">
-            Centang satu atau lebih peran yang diberikan kepada civitas ini di sistem LPPM UNUSU.
-          </p>
+          <div className="space-y-4 pt-1">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Status Akun
+              </label>
+              <select
+                disabled={isSuperadmin}
+                value={formData.status}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                className={`w-full sm:w-64 px-3.5 py-2 rounded-[10px] border text-sm font-semibold transition-all ${
+                  isSuperadmin
+                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
+                    : 'bg-white border-slate-200 focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500'
+                }`}
+              >
+                <option value="Aktif">Aktif</option>
+                <option value="Nonaktif">Nonaktif</option>
+              </select>
+              {isSuperadmin && (
+                <p className="mt-1 text-[11px] text-amber-600 font-medium">
+                  🔒 Akun Super Administrator terkunci permanen pada status Aktif.
+                </p>
+              )}
+            </div>
 
-          {loadingRoles ? (
-            <div className="p-4 text-center text-xs text-slate-500">Memuat katalog peran...</div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-              {roles.map((r) => {
-                const checked = formData.roleIds.includes(r.id);
-                return (
-                  <label
-                    key={r.id}
-                    onClick={() => toggleRole(r.id)}
-                    className={`flex items-start gap-3 p-3.5 rounded-[12px] border cursor-pointer select-none transition-all ${
-                      checked
-                        ? 'bg-violet-50/70 border-violet-300 shadow-xs'
-                        : 'bg-white border-slate-200 hover:bg-slate-50/70'
-                    }`}
-                  >
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">
+                Daftar Role Terkait
+              </label>
+              {loadingRoles ? (
+                <div className="p-4 text-center text-xs text-slate-500">Memuat katalog peran...</div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {roles.map((r) => {
+                    const checked = formData.roleIds.includes(r.id);
+                    const isSuperRole = r.kode === 'SUPERADMIN';
+                    const isLocked = isSuperadmin && isSuperRole;
+
+                    return (
+                      <div
+                        key={r.id}
+                        onClick={() => toggleRole(r.id, isSuperRole)}
+                        className={`flex items-start gap-3 p-3.5 rounded-[12px] border select-none transition-all ${
+                          isLocked
+                            ? 'bg-slate-100 border-slate-300 opacity-90 cursor-not-allowed'
+                            : 'cursor-pointer hover:bg-slate-50/70'
+                        } ${
+                          checked && !isLocked
+                            ? 'bg-violet-50/70 border-violet-300 shadow-xs'
+                            : 'bg-white border-slate-200'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          disabled={isLocked}
+                          onChange={() => {}}
+                          className="mt-0.5 w-4 h-4 rounded text-violet-600 focus:ring-violet-500 disabled:opacity-75"
+                        />
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-xs text-slate-900">{r.nama}</span>
+                            {isLocked && (
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.2 rounded">
+                                Terkunci
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5 line-clamp-1">
+                            {r.deskripsi || `Kode: ${r.kode}`}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContainer>
                     <input
                       type="checkbox"
                       checked={checked}
