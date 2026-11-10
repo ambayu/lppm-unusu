@@ -56,7 +56,7 @@ if (!JWT_SECRET) {
   process.exit(1);
 }
 const SSO_BASE_URL = process.env.SSO_BASE_URL || "http://localhost:5000";
-const SSO_CLIENT_ID = process.env.SSO_CLIENT_ID || "lppm-unusu";
+const SSO_CLIENT_ID = process.env.SSO_CLIENT_ID || "223ea0752e7619e2";
 const SSO_CLIENT_KEY = process.env.SSO_CLIENT_KEY || "";
 
 interface SsoUserPayload {
@@ -136,10 +136,10 @@ const FOREIGN_APP_ADMIN_ROLES: Record<string, string> = {
 
 /** Tingkat izin masuk panel LPPM. */
 const KUNCI_IZIN_MASUK = {
-  admin: "lppm-unusu:masuk_admin",
-  dosen: "lppm-unusu:masuk_dosen",
-  reviewer: "lppm-unusu:masuk_reviewer",
-  mahasiswa: "lppm-unusu:masuk_mahasiswa",
+  admin: `${SSO_CLIENT_ID}:masuk_admin`,
+  dosen: `${SSO_CLIENT_ID}:masuk_dosen`,
+  reviewer: `${SSO_CLIENT_ID}:masuk_reviewer`,
+  mahasiswa: `${SSO_CLIENT_ID}:masuk_mahasiswa`,
 } as const;
 
 type TingkatMasuk = keyof typeof KUNCI_IZIN_MASUK;

@@ -22,12 +22,14 @@ export const APP_FULL_NAME = 'Lembaga Penelitian & Pengabdian kepada Masyarakat'
 // KUNCI IZIN
 // ===========================================================================
 
+const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '223ea0752e7619e2';
+
 /** Izin masuk panel, satu per tingkat. */
 export const IZIN_MASUK = {
-  admin: 'lppm-unusu:masuk_admin',
-  dosen: 'lppm-unusu:masuk_dosen',
-  reviewer: 'lppm-unusu:masuk_reviewer',
-  mahasiswa: 'lppm-unusu:masuk_mahasiswa',
+  admin: `${SSO_CLIENT_ID}:masuk_admin`,
+  dosen: `${SSO_CLIENT_ID}:masuk_dosen`,
+  reviewer: `${SSO_CLIENT_ID}:masuk_reviewer`,
+  mahasiswa: `${SSO_CLIENT_ID}:masuk_mahasiswa`,
 } as const;
 
 export type TingkatMasuk = keyof typeof IZIN_MASUK;
