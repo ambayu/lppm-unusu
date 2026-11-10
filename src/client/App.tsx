@@ -16,6 +16,7 @@ import { PenggunaPage } from './pages/Pengguna';
 import { PenggunaFormPage } from './pages/PenggunaForm';
 import { MonevPage } from './pages/Monev';
 import { MonevFormPage } from './pages/MonevForm';
+import { ManajemenSliderLppm } from './pages/ManajemenSliderLppm';
 import { ProfilPage } from './pages/Profil';
 import { LoginPage } from './pages/Login';
 import { SsoCallbackPage } from './pages/SsoCallback';
@@ -396,6 +397,24 @@ export function App() {
                   </IzinRoute>
                 </ProtectedRoute>
               }
+            />
+
+            {/* Slider Hero LPPM */}
+            <Route
+              path="/slider"
+              element={
+                <ProtectedRoute>
+                  <IzinRoute izin={[IZIN_FITUR.penelitianLihat]}>
+                    <SidebarLayout>
+                      <ManajemenSliderLppm />
+                    </SidebarLayout>
+                  </IzinRoute>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/slider"
+              element={<Navigate to="/slider" replace />}
             />
 
             <Route path="*" element={<HalamanTidakDitemukan />} />

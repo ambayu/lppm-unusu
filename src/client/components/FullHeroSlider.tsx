@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { assetUrl } from "../lib/assets";
+import { fetchPublicSliders, LppmBannerSliderItem } from "../services/api";
 
 export interface HeroSlideItem {
   id: number;
@@ -54,21 +55,43 @@ const defaultHeroSlides: HeroSlideItem[] = [
 export const FullHeroSlider: React.FC = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [slides, setSlides] = useState<HeroSlideItem[]>(defaultHeroSlides);
 
   useEffect(() => {
-    if (isPaused) return;
+    fetchPublicSliders()
+      .then((res) => {
+        if (res.data.success && res.data.data.length > 0) {
+          const mapped: HeroSlideItem[] = res.data.data.map((item) => ({
+            id: item.id,
+            image: item.gambarUrl,
+            imageMobile: item.gambarMobileUrl || item.gambarUrl,
+            title: item.judul,
+            badge: "LPPM UNUSU",
+            headline: item.judul,
+            subheadline: item.subjudul || "Lembaga Penelitian dan Pengabdian kepada Masyarakat Universitas Nahdlatul Ulama Sumatera Utara.",
+          }));
+          setSlides(mapped);
+        }
+      })
+      .catch(() => {
+        // Fallback memakai defaultHeroSlides bawaan
+      });
+  }, []);
+
+  useEffect(() => {
+    if (isPaused || slides.length === 0) return;
     const timer = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % defaultHeroSlides.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, slides.length]);
 
   const prevSlide = () =>
-    setCurrentSlide((prev) => (prev === 0 ? defaultHeroSlides.length - 1 : prev - 1));
+    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
   const nextSlide = () =>
-    setCurrentSlide((prev) => (prev + 1) % defaultHeroSlides.length);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
 
-  const counter = `${String(currentSlide + 1).padStart(2, '0')} / ${String(defaultHeroSlides.length).padStart(2, '0')}`;
+  const counter = `${String(currentSlide + 1).padStart(2, '0')} / ${String(slides.length).padStart(2, '0')}`;
 
   return (
     <section
@@ -78,7 +101,7 @@ export const FullHeroSlider: React.FC = () => {
       onMouseLeave={() => setIsPaused(false)}
     >
       {/* Slides */}
-      {defaultHeroSlides.map((slide, index) => {
+      {slides.map((slide, index) => {
         const isActive = index === currentSlide;
         return (
           <div
@@ -148,7 +171,7 @@ export const FullHeroSlider: React.FC = () => {
 
       {/* Slide Indicators / Dots (kiri-bawah) */}
       <div className="absolute bottom-6 left-6 sm:left-8 z-20 flex items-center space-x-2">
-        {defaultHeroSlides.map((_, idx) => (
+        {slides.map((_, idx) => (
           <button
             key={idx}
             type="button"

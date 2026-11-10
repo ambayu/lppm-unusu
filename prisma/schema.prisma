@@ -241,5 +241,22 @@ model AuditLog {
   @@map("lppm_audit_log")
 }
 
+model LppmBannerSlider {
+  id              Int      @id @default(autoincrement())
+  judul           String   @db.VarChar(150)
+  subjudul        String?  @db.VarChar(255)
+  gambarUrl       String   @db.LongText
+  gambarMobileUrl String?  @db.LongText
+  linkUrl         String?  @db.VarChar(255)
+  urutan          Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([active, urutan])
+  @@map("lppm_banner_sliders")
+}
+
+
 
 

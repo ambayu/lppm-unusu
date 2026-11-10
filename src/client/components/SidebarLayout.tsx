@@ -21,6 +21,7 @@ import {
   IdentificationIcon,
   UserCircleIcon,
   UserGroupIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -88,6 +89,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       '/peran',
       '/izin',
       '/pengguna',
+      '/slider',
       '/profil',
     ];
     const longerMatch = allPaths.find(
@@ -152,6 +154,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       desc: 'Kemajuan Riset & Telaah Luaran',
       izin: IZIN_FITUR.monevLihat,
     },
+    {
+      path: '/slider',
+      label: 'Slider Hero LPPM',
+      icon: PhotoIcon,
+      desc: 'Banner Beranda Publik',
+      izin: IZIN_FITUR.penelitianLihat,
+    },
   ].filter((item) => bisa(item.izin));
 
   /** Menu tata kelola — hanya untuk pemegang izinnya. */
@@ -202,6 +211,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/pengguna') return 'Manajemen Penugasan Pengguna';
     if (path === '/pengguna/tambah') return 'Tugaskan Pengguna Baru';
     if (path.startsWith('/pengguna/edit/')) return 'Ubah Penugasan Pengguna';
+    if (path === '/slider' || path === '/admin/slider') return 'Manajemen Slider Hero LPPM';
     if (path === '/profil') return 'Profil Pengguna';
     return 'Lembaga Penelitian & Pengabdian Masyarakat';
   };

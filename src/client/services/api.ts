@@ -422,4 +422,35 @@ export interface DashboardStatsData {
 export const fetchDashboardStats = () =>
   api.get<{ success: boolean; data: DashboardStatsData }>('/dashboard/stats');
 
+// ==========================================
+// BANNER SLIDER HERO (`/api/sliders`, `/api/admin/sliders`)
+// ==========================================
+export interface LppmBannerSliderItem {
+  id: number;
+  judul: string;
+  subjudul?: string | null;
+  gambarUrl: string;
+  gambarMobileUrl?: string | null;
+  linkUrl?: string | null;
+  urutan: number;
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const fetchPublicSliders = () =>
+  api.get<{ success: boolean; data: LppmBannerSliderItem[] }>('/sliders');
+
+export const fetchAdminSliders = () =>
+  api.get<{ success: boolean; data: LppmBannerSliderItem[] }>('/admin/sliders');
+
+export const createAdminSlider = (data: Partial<LppmBannerSliderItem>) =>
+  api.post<{ success: boolean; message: string; data: LppmBannerSliderItem }>('/admin/sliders', data);
+
+export const updateAdminSlider = (id: number, data: Partial<LppmBannerSliderItem>) =>
+  api.put<{ success: boolean; message: string; data: LppmBannerSliderItem }>(`/admin/sliders/${id}`, data);
+
+export const deleteAdminSlider = (id: number) =>
+  api.delete<{ success: boolean; message: string }>(`/admin/sliders/${id}`);
+
 export default api;
