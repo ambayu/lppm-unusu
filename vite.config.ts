@@ -11,7 +11,7 @@ export default defineConfig(({ command }) => ({
   base: command === 'build' ? PROD_BASE : '/',
   plugins: [react()],
   server: {
-    port: 5178,
+    port: 5176,
     proxy: {
       '/api': {
         target: 'http://localhost:5005',

@@ -70,6 +70,11 @@ export const IZIN_FITUR = {
   penggunaKelola: 'users.manage',
   laporanLihat: 'laporan.view',
   laporanEkspor: 'laporan.export',
+  dokumenLihat: 'dokumen.view',
+  dokumenBuat: 'dokumen.create',
+  dokumenUbah: 'dokumen.edit',
+  dokumenHapus: 'dokumen.delete',
+  dokumenKelola: 'dokumen.manage',
 } as const;
 
 /** Label peran aplikasi lain — hanya untuk pesan, tidak untuk otorisasi. */

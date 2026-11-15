@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { PageShell } from '../components/PageShell';
 import { CardContainer } from '../components/CardContainer';
+import { DataTable } from '../components/DataTable';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorState } from '../components/ErrorState';
 import { useAuth } from '../context/AuthContext';
@@ -149,82 +150,110 @@ export const PenggunaPage: React.FC = () => {
 
       {!loading && !error && filteredUsers.length > 0 && (
         <CardContainer>
-          <div className="w-full overflow-x-auto">
-            <table className="w-full min-w-[1080px] text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs font-semibold uppercase tracking-wider">
-                  <th className="py-3.5 px-4 w-12 text-center">No</th>
-                  <th className="py-3.5 px-4">NIDN / NIM</th>
-                  <th className="py-3.5 px-4">Nama Lengkap</th>
-                  <th className="py-3.5 px-4">Email</th>
-                  <th className="py-3.5 px-4">Role Terkait</th>
-                  <th className="py-3.5 px-4">Status Akun</th>
-                  {canManage && <th className="py-3.5 px-4 w-28 text-center">Aksi</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredUsers.map((item, idx) => (
-                  <tr key={item.username} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="py-3.5 px-4 text-center text-slate-400 font-mono text-xs">
-                      {idx + 1}
-                    </td>
-                    <td className="py-3.5 px-4 font-mono font-semibold text-slate-900">
-                      {item.username}
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-900">
-                      {item.nama}
-                    </td>
-                    <td className="py-3.5 px-4 text-xs text-slate-600">
-                      {item.username.includes('@') ? item.username : `${item.username.toLowerCase()}@unusu.ac.id`}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-wrap gap-1.5 max-w-md">
-                        {item.roles.map((r) => (
-                          <span
-                            key={r.id}
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeForRole(
-                              r.kode
-                            )}`}
-                          >
-                            <ShieldCheckIcon className="w-3 h-3" />
-                            <span>{r.nama}</span>
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                        Aktif
-                      </span>
-                    </td>
-                    {canManage && (
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="inline-flex items-center gap-1">
+          <DataTable
+            minTableWidth="min-w-[1180px]"
+            rows={filteredUsers}
+            rowKey={(item) => item.username}
+            columns={[
+              {
+                key: 'no',
+                header: 'No',
+                headerClassName: 'w-12 text-center',
+                cellClassName: 'text-center text-slate-400 font-mono',
+                render: (_, idx) => idx + 1,
+              },
+              {
+                key: 'username',
+                header: 'NIDN / NIM',
+                headerClassName: 'w-40',
+                cellClassName: 'font-mono font-semibold text-slate-900',
+                render: (item) => item.username,
+              },
+              {
+                key: 'nama',
+                header: 'Nama Lengkap',
+                headerClassName: 'min-w-[200px]',
+                cellClassName: 'font-medium text-slate-900',
+                render: (item) => item.nama,
+              },
+              {
+                key: 'email',
+                header: 'Email',
+                headerClassName: 'min-w-[220px]',
+                cellClassName: 'text-slate-600 font-mono',
+                render: (item) =>
+                  item.username.includes('@')
+                    ? item.username
+                    : `${item.username.toLowerCase()}@unusu.ac.id`,
+              },
+              {
+                key: 'roles',
+                header: 'Role Terkait',
+                render: (item) =>
+                  item.roles.length === 0 ? (
+                    <span className="text-slate-400">-</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5 max-w-md">
+                      {item.roles.map((r) => (
+                        <span
+                          key={r.id}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full font-semibold border ${badgeForRole(
+                            r.kode,
+                          )}`}
+                        >
+                          <ShieldCheckIcon className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>{r.nama}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ),
+              },
+              {
+                key: 'status',
+                header: 'Status Akun',
+                headerClassName: 'w-36',
+                render: () => (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                    Aktif
+                  </span>
+                ),
+              },
+              ...(canManage
+                ? [
+                    {
+                      key: 'aksi',
+                      header: 'Aksi',
+                      headerClassName: 'w-28 text-center',
+                      cellClassName: 'text-center',
+                      render: (item: (typeof filteredUsers)[number]) => (
+                        <div className="inline-flex items-center justify-center gap-2">
                           <Link
                             to={`/pengguna/edit/${encodeURIComponent(item.username)}`}
-                            className="p-1.5 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-[8px] transition-colors"
+                            className="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-[8px] border border-slate-200 transition-colors"
                             title="Edit Pengguna"
+                            aria-label={`Edit ${item.nama}`}
                           >
                             <PencilSquareIcon className="w-4 h-4" />
                           </Link>
-                          {item.username !== 'admin' && !item.roles.some((r) => r.kode === 'SUPERADMIN') && (
-                            <button
-                              onClick={() => handleDelete(item)}
-                              className="p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-[8px] transition-colors"
-                              title="Hapus Pengguna"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          )}
+                          {item.username !== 'admin' &&
+                            !item.roles.some((r) => r.kode === 'SUPERADMIN') && (
+                              <button
+                                onClick={() => handleDelete(item)}
+                                className="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-[8px] border border-slate-200 transition-colors cursor-pointer"
+                                title="Hapus Pengguna"
+                                aria-label={`Hapus ${item.nama}`}
+                              >
+                                <TrashIcon className="w-4 h-4" />
+                              </button>
+                            )}
                         </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      ),
+                    },
+                  ]
+                : []),
+            ]}
+          />
         </CardContainer>
       )}
     </PageShell>

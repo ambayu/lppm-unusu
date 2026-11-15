@@ -16,6 +16,10 @@ import { PenggunaPage } from './pages/Pengguna';
 import { PenggunaFormPage } from './pages/PenggunaForm';
 import { MonevPage } from './pages/Monev';
 import { MonevFormPage } from './pages/MonevForm';
+import { DokumenLppmPage } from './pages/Dokumen';
+import { DokumenLppmFormPage } from './pages/DokumenForm';
+import { KategoriLppmPage } from './pages/Kategori';
+import { KategoriLppmFormPage } from './pages/KategoriForm';
 import { ManajemenSliderLppm } from './pages/ManajemenSliderLppm';
 import { ProfilPage } from './pages/Profil';
 import { LoginPage } from './pages/Login';
@@ -415,6 +419,78 @@ export function App() {
             <Route
               path="/admin/slider"
               element={<Navigate to="/slider" replace />}
+            />
+
+            {/* Dokumen LPPM Terpadu */}
+            <Route
+              path="/admin/arsip-dokumen"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <DokumenLppmPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/arsip-dokumen/tambah"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <DokumenLppmFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/arsip-dokumen/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <DokumenLppmFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/arsip-dokumen"
+              element={<Navigate to="/admin/arsip-dokumen" replace />}
+            />
+
+            {/* Kategori LPPM */}
+            <Route
+              path="/admin/kategori"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <KategoriLppmPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/kategori/tambah"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <KategoriLppmFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/kategori/edit/:id"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <KategoriLppmFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/kategori"
+              element={<Navigate to="/admin/kategori" replace />}
             />
 
             <Route path="*" element={<HalamanTidakDitemukan />} />

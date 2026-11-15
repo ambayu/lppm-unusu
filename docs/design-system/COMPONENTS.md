@@ -18,6 +18,71 @@ Dokumen ini mendaftarkan seluruh komponen bersama (shared components) yang terse
 | `OneUnusuMark` | `src/client/components/OneUnusuMark.tsx` | Cadangan / Utilitas | Emblem SVG ringkas ONE UNUSU berukuran default `96px` yang mendukung `@media (prefers-reduced-motion: reduce)`. |
 | `UserAuthorityCard` | `src/client/components/UserAuthorityCard.tsx` | **Aktif (Wajib di Panel Admin)** | Kartu otoritas pengguna berisi `USERNAME`, `HAK AKSES`, `UNIT KERJA`, dan `STATUS AKUN`. Dirender otomatis oleh `SidebarLayout` di atas konten halaman sehingga seluruh panel LPPM menampilkan identitas sesi secara seragam. |
 | `Navbar` | — (berkas dihapus) | **Dihapus** | Header navigasi horizontal lama berbasis `lucide-react` yang tidak pernah dirender. Berkas `src/client/components/Navbar.tsx` telah dihapus; navbar landing page kini inline di `src/client/pages/Landing.tsx`. |
+| `DataTable` | `src/client/components/DataTable.tsx` | **Aktif (Wajib)** | Satu-satunya komponen tabel data aplikasi. `ListPageTemplate` memakainya secara internal. Ukuran baku `size="md"`: header `text-xs` uppercase `tracking-wider` latar `bg-slate-50/70`, isi sel `text-sm` padding `py-3.5 px-4`. **Dilarang** menulis `<table>` inline. |
+| `NotificationModal` | `src/client/components/NotificationModal.tsx` | **Aktif (Wajib)** | Modal umpan balik sistem (`error` / `warning` / `confirm` / `info`) dengan palette emerald LPPM, pengganti `alert()` dan `window.confirm()`. |
+
+---
+
+## 1a. `DataTable`
+
+**Berkas**: `src/client/components/DataTable.tsx`
+
+```tsx
+interface DataTableColumn<T> {
+  key: string;
+  header: React.ReactNode;
+  render?: (row: T, index: number) => React.ReactNode;
+  headerClassName?: string;
+  cellClassName?: string;
+}
+
+interface DataTableProps<T> {
+  columns: DataTableColumn<T>[];
+  rows: T[];
+  rowKey: (row: T, index: number) => string | number;
+  loading?: boolean;
+  emptyMessage?: React.ReactNode;
+  size?: 'sm' | 'md';          // default 'md'
+  minTableWidth?: string;      // default 'min-w-[1080px]'
+  footer?: React.ReactNode;
+  className?: string;
+}
+```
+
+**Aturan pemakaian**
+- Semua daftar data merender lewat `DataTable` — langsung, atau lewat `ListPageTemplate`.
+- Tabel berkolom banyak wajib menaikkan `minTableWidth` (arsip dokumen: `min-w-[1560px]`) agar tidak berdesakan.
+- **Satu kolom = satu jenis data**: judul, nomor, tahun, kategori, tujuan publikasi, prodi, tanggal mulai, tanggal berakhir, status, berkas, aksi masing-masing berdiri sendiri. Nilai kosong `-`.
+- Aksesibilitas: `<th scope="col">`, `role="status"` untuk memuat/kosong.
+
+## 1b. `NotificationModal`
+
+**Berkas**: `src/client/components/NotificationModal.tsx`
+
+```tsx
+type NotificationType = 'success' | 'error' | 'warning' | 'info' | 'confirm';
+
+interface NotificationDetail {
+  field?: string;
+  message: string;
+}
+
+interface NotificationModalProps {
+  isOpen: boolean;
+  type?: NotificationType;      // default: 'info'
+  title?: string;
+  message: string;              // APA yang gagal, pada objek apa
+  details?: NotificationDetail[];
+  code?: string | null;         // status/kode HTTP
+  confirmLabel?: string;
+  cancelLabel?: string;
+  onConfirm?: () => void;
+  onClose: () => void;
+  loading?: boolean;
+}
+```
+
+**Aturan pesan**: sebut **apa** yang gagal beserta objeknya (mis. "Dokumen «X» gagal dihapus"), bukan "Gagal menyimpan dokumen." Dilarang memakai `alert()` / `window.confirm()`.
 
 ---
 

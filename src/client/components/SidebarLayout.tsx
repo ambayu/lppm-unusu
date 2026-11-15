@@ -22,6 +22,8 @@ import {
   UserCircleIcon,
   UserGroupIcon,
   PhotoIcon,
+  DocumentTextIcon,
+  FolderIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
@@ -86,6 +88,10 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       '/pengabdian',
       '/publikasi',
       '/monev',
+      '/admin/arsip-dokumen',
+      '/arsip-dokumen',
+      '/admin/kategori',
+      '/kategori',
       '/peran',
       '/izin',
       '/pengguna',
@@ -155,6 +161,20 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       izin: IZIN_FITUR.monevLihat,
     },
     {
+      path: '/admin/arsip-dokumen',
+      label: 'Dokumen',
+      icon: DocumentTextIcon,
+      desc: 'Pangkalan Arsip & Panduan',
+      izin: IZIN_FITUR.penelitianLihat,
+    },
+    {
+      path: '/admin/kategori',
+      label: 'Kategori',
+      icon: FolderIcon,
+      desc: 'Klasifikasi Dokumen Riset',
+      izin: IZIN_FITUR.penelitianLihat,
+    },
+    {
       path: '/slider',
       label: 'Slider Hero LPPM',
       icon: PhotoIcon,
@@ -202,6 +222,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/monev') return 'Monitoring & Evaluasi (Monev) Tridharma';
     if (path === '/monev/tambah') return 'Jadwalkan Monev Riset Baru';
     if (path.startsWith('/monev/edit/')) return 'Edit Penilaian Monev';
+    if (path === '/admin/arsip-dokumen' || path === '/arsip-dokumen') return 'Pangkalan Dokumen & Panduan LPPM';
+    if (path === '/admin/arsip-dokumen/tambah' || path === '/arsip-dokumen/tambah') return 'Tambah Dokumen LPPM Baru';
+    if (path.startsWith('/admin/arsip-dokumen/edit/') || path.startsWith('/arsip-dokumen/edit/')) return 'Edit Dokumen LPPM';
+    if (path === '/admin/kategori' || path === '/kategori') return 'Kategori Dokumen LPPM';
+    if (path === '/admin/kategori/tambah' || path === '/kategori/tambah') return 'Tambah Kategori LPPM';
+    if (path.startsWith('/admin/kategori/edit/') || path.startsWith('/kategori/edit/')) return 'Edit Kategori LPPM';
     if (path === '/peran') return 'Peran';
     if (path === '/peran/tambah') return 'Tambah Peran Baru';
     if (path.startsWith('/peran/edit/')) return 'Edit Peran';
@@ -252,7 +278,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           {/* Menu umum: Dashboard + Profil (paling atas, tanpa guard peran) */}
           <div>
             {!isCollapsed && (
-              <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+              <p className="px-3 pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                 UTAMA
               </p>
             )}
@@ -267,12 +293,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     onClick={() => setMobileOpen(false)}
                     title={isCollapsed ? item.label : undefined}
                     aria-current={active ? 'page' : undefined}
-                    className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                    className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-bold transition-all ${
                       isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                     } ${
                       active
                         ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
-                        : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                        : 'text-slate-700 hover:bg-[#F3EEF9] hover:text-violet-900'
                     }`}
                   >
                     <div
@@ -287,7 +313,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     {!isCollapsed && (
                       <div className="truncate">
                         <div className="leading-tight">{item.label}</div>
-                        <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                        <div className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
                           {item.desc}
                         </div>
                       </div>
@@ -300,7 +326,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
           <div>
             {!isCollapsed && (
-              <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+              <p className="px-3 pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                 MENU TRIDHARMA RISET
               </p>
             )}
@@ -315,12 +341,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     onClick={() => setMobileOpen(false)}
                     title={isCollapsed ? item.label : undefined}
                     aria-current={active ? 'page' : undefined}
-                    className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                    className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-bold transition-all ${
                       isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                     } ${
                       active
                         ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
-                        : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                        : 'text-slate-700 hover:bg-[#F3EEF9] hover:text-violet-900'
                     }`}
                   >
                     <div
@@ -335,7 +361,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                     {!isCollapsed && (
                       <div className="truncate">
                         <div className="leading-tight">{item.label}</div>
-                        <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                        <div className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
                           {item.desc}
                         </div>
                       </div>
@@ -353,7 +379,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
           {tataKelolaItems.length > 0 && (
             <div>
               {!isCollapsed && (
-                <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+                <p className="px-3 pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                   TATA KELOLA
                 </p>
               )}
@@ -368,12 +394,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       onClick={() => setMobileOpen(false)}
                       title={isCollapsed ? item.label : undefined}
                       aria-current={aktif ? 'page' : undefined}
-                      className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
+                      className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-bold transition-all ${
                         isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
                       } ${
                         aktif
                           ? 'bg-[#EDE8F5] text-violet-900 font-bold shadow-2xs'
-                          : 'text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900'
+                          : 'text-slate-700 hover:bg-[#F3EEF9] hover:text-violet-900'
                       }`}
                     >
                       <div
@@ -386,7 +412,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                       {!isCollapsed && (
                         <div className="truncate">
                           <div className="leading-tight">{item.label}</div>
-                          <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                          <div className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
                             {item.desc}
                           </div>
                         </div>
@@ -400,16 +426,16 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
 
           <div>
             {!isCollapsed && (
-              <p className="px-3 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">
+              <p className="px-3 pb-1 text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-1.5">
                 NAVIGASI
               </p>
             )}
             <div className="space-y-1.5">
               <Link
                 to="/"
-                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-medium transition-all ${
+                className={`w-full flex items-center min-h-[44px] rounded-[12px] text-[13.5px] font-semibold transition-all ${
                   isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5 gap-3'
-                } text-slate-600 hover:bg-[#F3EEF9] hover:text-violet-900`}
+                } text-slate-700 hover:bg-[#F3EEF9] hover:text-violet-900`}
                 title={isCollapsed ? 'Halaman Depan LPPM' : undefined}
               >
                 <div className="w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 bg-[#EDE8F5] text-violet-700">
@@ -418,7 +444,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                 {!isCollapsed && (
                   <div className="truncate">
                     <div className="leading-tight font-semibold">Halaman Depan</div>
-                    <div className="text-[10px] text-slate-400 font-normal truncate mt-0.5">
+                    <div className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
                       Beranda Profil LPPM UNUSU
                     </div>
                   </div>
