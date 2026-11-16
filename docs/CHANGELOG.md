@@ -1,5 +1,60 @@
 # CHANGELOG — LPPM UNUSU
 
+## [2026-11-21] — Sistem Kuesioner Monev Dinamis & Master Periode
+
+### Added
+- **5 Instrumen Kuesioner Monev Berbasis PDF**:
+  1. *Monev Pembelajaran* (20 butir pertanyaan mencakup proses belajar, kedisiplinan dosen, transparansi nilai, komunikasi, fasilitas, dan esai saran).
+  2. *Monev Kepuasan SDM terhadap Layanan Perguruan Tinggi* (10 butir pertanyaan mencakup kesejahteraan, sarpras, pengembangan karir dosen/tendik, dan iklim kerja).
+  3. *Monev Kepuasan Mahasiswa terhadap Layanan Informasi* (7 butir pertanyaan mencakup aksesibilitas web/portal, responsivitas unit, kejelasan, dan kepuasan umum).
+  4. *Monev Kepuasan Mahasiswa terhadap Pelaksanaan UTS* (8 butir pertanyaan mencakup sosialisasi jadwal, tata tertib, kesesuaian soal, pengawasan, dan kendala).
+  5. *Monev Kepuasan Mahasiswa terhadap Pelaksanaan UAS* (8 butir pertanyaan mencakup kalender akademik, kesesuaian capaian pembelajaran, integritas ujian, dan saran perbaikan).
+- **Struktur Database Monev Dinamis**:
+  - `MonevPeriode`: Master tahun akademik, semester, rentang tanggal, status (`DRAFT`, `AKTIF`, `DITUTUP`).
+  - `MonevSurvei`: Metadata instrumen kuesioner dan target audiens (`MAHASISWA`, `DOSEN_TENDIK`, `SEMUA`).
+  - `MonevPertanyaan`: Seksi kategori, teks butir pertanyaan, jenis skala Likert 1-5 atau esai, dan bobot urutan.
+  - `MonevRespon`: Data demografis agregat anonim dengan perlindungan hash satu arah `respondenHash` (mencegah duplikasi tanpa menyimpan relasi FK pengguna).
+  - `MonevJawaban`: Rekaman pilihan skala Likert (1–5) dan catatan esai masukan kualitatif.
+- **REST API Monev Dinamis**:
+  - `GET /api/monev-survei/periode` & `POST/PUT /api/monev-survei/periode`: Manajemen master periode monev.
+  - `GET /api/monev-survei/aktif`: Katalog kuesioner monev berjalan beserta status kelengkapan pengisian user.
+  - `GET /api/monev-survei/:id`: Detail instrumen kuesioner lengkap dengan butir pertanyaan per seksi.
+  - `POST /api/monev-survei/:id/submit`: Pengiriman respon kuesioner anonim yang aman dalam 1 transaksi basis data.
+  - `GET /api/monev-survei/:id/rekap`: Rekapitulasi agregat skor rerata dan daftar masukan teks konstruktif.
+- **Antarmuka Klien**:
+  - `MonevSurveiList.tsx`: Katalog kartu instrumen survei aktif dengan badge status pengerjaan.
+  - `MonevSurveiForm.tsx`: Formulir pengisian interaktif dengan opsi skala Likert 1–5 serta kotak esai saran.
+  - `MonevRekap.tsx`: Visualisasi bar distribusi frekuensi jawaban skala 1–5, rerata skor, dan ekspor ke berkas CSV.
+  - `MonevPeriode.tsx`: Manajemen master tahun akademik & semester dengan modal pembuatan dan pembaruan status.
+- **Hak Akses & Navigasi**:
+  - Permission baru: `monev.survei.view` (pengisian kuesioner) dan `monev.survei.manage` (kelola master periode & rekap).
+  - Menu sidebar "Kuesioner Monev" pada tata letak aplikasi.
+
+## [2026-11-20] — Tabel Pengguna Sendiri & Pendaftaran dari ONE UNUSU
+
+### Added
+- **Model `LppmUser` (`lppm_users`) dan `LppmUserRole` (`lppm_users_roles`).** Keanggotaan panel LPPM sekarang ditentukan oleh **adanya baris** di tabel ini, bukan ditebak dari nama peran SSO.
+  - `LppmUser` berkunci `userId` (id pengguna ONE UNUSU) yang stabil, sehingga penggantian username/NIDN tidak memutus penugasan peran.
+  - `LppmUserRole` mengacu ke `LppmUser.id`, bukan ke username seperti tabel lama `lppm_user_roles`.
+- **`GET /api/users/kandidat?search=`** — mencari pengguna di direktori ONE UNUSU lewat API key server. Minimal 2 karakter (`422`).
+- **`POST /api/users`** menerima `{ userIds, peran, kandidat }` dan memverifikasi ulang setiap id ke ONE UNUSU (`400` untuk id karangan, `409` untuk duplikat).
+- **`ModalPilihPengguna`** — modal pencarian dengan tabel bernomor urut, penanda "Sudah terdaftar", dan pemilihan peran.
+- **`ONE_UNUSU_API_KEY`** pada `.env` server, diterbitkan lewat API Hub ONE UNUSU.
+
+### Changed
+- **`ambilAksesLokalPengguna(userId, username, ssoRole)`** menggantikan `dapatkanAksesLokalPengguna`. **Tidak ada auto-provisioning**: pengguna yang belum terdaftar ditolak, bukan dibuatkan akun.
+- **`putuskanAkses({ ssoRole, roles, statusAkun })`** — urutan pemeriksaan: Superadmin → keanggotaan → status → peran. Kode penolakan: `NOT_REGISTERED`, `INACTIVE`, `NO_ROLE`.
+- **SUPERADMIN otomatis memegang seluruh izin LPPM** lewat `seluruhIzin()`. Sebelumnya bypass saja membuat daftar `izin` kosong sehingga setiap endpoint membalas `403` dan panel terkunci permanen — termasuk halaman yang dibutuhkan untuk memperbaikinya.
+- **`PUT /api/users/:id` dan `DELETE /api/users/:id`** kini memakai id numerik (bukan username). Akun Superadmin tidak dapat dinonaktifkan maupun dihapus.
+- **`GET /api/users`** membaca `lppm_users` beserta perannya, mengembalikan `peran: string[]` (kode peran).
+- **Rute ubah pengguna** menjadi `/pengguna/edit/:id` (sebelumnya `:username`).
+- **`lib/appAccess.ts` ditulis ulang** untuk model keanggotaan: `IZIN_MASUK`, `foreignAppForRole`, dan `foreign-app` dihapus; `AccessDenialCode` kini `not-registered` | `inactive-account` | `no-role` | `role-not-allowed` | `invalid-scope` | `unauthenticated`.
+- **Interceptor `api.ts`** menangani `NOT_REGISTERED`/`INACTIVE`/`NO_ROLE` dan mengarahkan ke `/akses-ditolak` dengan alasan yang tepat.
+
+### Verified
+- Uji end-to-end 12/12: `search` pendek → `422`, `search "sep"` → 2 hasil, daftar → `201`, duplikat → `409`, id karangan → `400`, ubah peran → `200` (tersimpan sebagai `REVIEWER`), nonaktifkan → `200`, hapus → `200`.
+- Superadmin bypass lewat tiket SSO asli: `200` dengan izin penuh.
+
 ## [2026-11-19] — Callback SSO Token-Only
 
 ### Changed

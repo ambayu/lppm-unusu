@@ -88,6 +88,8 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       '/pengabdian',
       '/publikasi',
       '/monev',
+      '/monev-survei',
+      '/admin/monev-periode',
       '/admin/arsip-dokumen',
       '/arsip-dokumen',
       '/admin/kategori',
@@ -115,6 +117,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       label: 'Dashboard Laporan',
       icon: HomeIcon,
       desc: 'Ringkasan Grafik Tiap Menu',
+    },
+    {
+      path: '/monev-survei',
+      label: 'Kuesioner Monev',
+      icon: ClipboardDocumentCheckIcon,
+      desc: 'Survei Mutu & Kepuasan Mahasiswa',
     },
     {
       path: '/profil',
@@ -186,6 +194,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   /** Menu tata kelola — hanya untuk pemegang izinnya. */
   const tataKelolaItems = [
     {
+      path: '/admin/monev-periode',
+      label: 'Periode Monev',
+      icon: CalendarDaysIcon,
+      desc: 'Master Jadwal & Masa Kuesioner',
+      izin: IZIN_FITUR.monevSurveiKelola,
+    },
+    {
       path: '/pengguna',
       label: 'Pengguna',
       icon: UserGroupIcon,
@@ -234,9 +249,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/izin') return 'Izin';
     if (path === '/izin/tambah') return 'Tambah Izin Baru';
     if (path.startsWith('/izin/edit/')) return 'Edit Izin';
-    if (path === '/pengguna') return 'Manajemen Penugasan Pengguna';
-    if (path === '/pengguna/tambah') return 'Tugaskan Pengguna Baru';
-    if (path.startsWith('/pengguna/edit/')) return 'Ubah Penugasan Pengguna';
+    if (path === '/pengguna') return 'Manajemen Pengguna';
+    if (path === '/pengguna/tambah') return 'Tambah Pengguna';
+    if (path.startsWith('/pengguna/edit/')) return 'Ubah Pengguna';
     if (path === '/slider' || path === '/admin/slider') return 'Manajemen Slider Hero LPPM';
     if (path === '/profil') return 'Profil Pengguna';
     return 'Lembaga Penelitian & Pengabdian Masyarakat';

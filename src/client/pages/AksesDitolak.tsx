@@ -12,7 +12,6 @@ import {
   APP_NAME,
   APP_FULL_NAME,
   evaluatePanelAccess,
-  foreignAppForRole,
   labelForSsoRole,
 } from '../lib/appAccess';
 
@@ -20,31 +19,23 @@ import {
  * Halaman 403 khusus ekosistem ONE UNUSU.
  *
  * Dipakai ketika pengguna terautentikasi tetapi TIDAK berhak masuk panel LPPM
- * (mis. admin LPM). Menjelaskan alasan penolakan secara eksplisit — bukan
- * membuang pengguna diam-diam ke halaman lain.
+ * (belum didaftarkan, nonaktif, atau belum diberi peran). Menjelaskan alasan
+ * penolakan secara eksplisit — bukan membuang pengguna diam-diam ke halaman lain.
  */
 export function AksesDitolakPage() {
   const [params] = useSearchParams();
   const { user, logout } = useAuth();
 
   const decision = evaluatePanelAccess(user);
-  const reason = (params.get('reason') as ReturnType<typeof evaluatePanelAccess>['code']) || decision.code;
   const roleFromQuery = params.get('role');
   const fromPath = params.get('from');
 
   const effectiveRole = roleFromQuery || user?.ssoRole || null;
-  const foreignApp = foreignAppForRole(effectiveRole) || decision.foreignApp || params.get('app');
 
-  const title =
-    reason === 'foreign-app' && foreignApp
-      ? `Akun ${labelForSsoRole(effectiveRole)} tidak dapat masuk panel LPPM`
-      : decision.title || 'Akses panel LPPM ditolak';
+  const title = decision.title || 'Akses panel LPPM ditolak';
 
   const message =
-    reason === 'foreign-app' && foreignApp
-      ? `Peran Anda terdaftar sebagai administrator ${foreignApp}. Setiap aplikasi pada ekosistem ONE UNUSU memiliki panel terpisah, sehingga akun ${foreignApp} tidak diizinkan membuka ${APP_NAME}.`
-      : decision.message ||
-        'Akun Anda tidak memiliki izin untuk membuka panel manajemen LPPM UNUSU.';
+    decision.message || 'Akun Anda tidak memiliki izin untuk membuka panel manajemen LPPM UNUSU.';
 
   return (
     <div className="min-h-screen w-full bg-[#F1F5F9] flex items-center justify-center p-5 sm:p-8">
@@ -80,14 +71,6 @@ export function AksesDitolakPage() {
               <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Panel ini</dt>
               <dd className="mt-1 text-sm font-semibold text-slate-900">LPPM UNUSU</dd>
             </div>
-            {foreignApp && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 sm:col-span-2">
-                <dt className="text-[10px] font-bold uppercase tracking-widest text-amber-800">
-                  Panel yang sesuai untuk akun Anda
-                </dt>
-                <dd className="mt-1 text-sm font-bold text-amber-900">{foreignApp}</dd>
-              </div>
-            )}
             {fromPath && (
               <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 sm:col-span-2">
                 <dt className="text-[10px] font-bold uppercase tracking-widest text-slate-500">

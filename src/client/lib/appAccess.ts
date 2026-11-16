@@ -1,16 +1,17 @@
 /**
- * Otorisasi LPPM UNUSU — BERBASIS IZIN, SUMBERNYA SSO
- * ---------------------------------------------------
- * Modul ini TIDAK memutuskan akses dari nama peran. Nama peran SSO
- * (`ADMIN_LPPM`, `DOSEN`, ...) hanya metadata tampilan: ia tidak membuktikan
- * apa pun tentang hak seseorang, dan admin aplikasi lain bisa memilikinya.
+ * Otorisasi LPPM UNUSU — BERBASIS KEANGGOTAAN
+ * -------------------------------------------
+ * Panel LPPM memiliki tabel pengguna dan peran sendiri (`lppm_users` +
+ * `lppm_users_roles`). Keanggotaan di tabel itulah SATU-SATUNYA alasan
+ * seseorang dapat masuk, dan hanya Admin LPPM yang dapat menambahkannya —
+ * pengguna dipilih dari direktori ONE UNUSU, tidak pernah dibuat otomatis.
  *
- * Yang menentukan adalah daftar KUNCI IZIN yang dibawa sesi. Izin itu berasal
- * dari ONE UNUSU — tempat pengguna, peran, dan pemetaan peran -> izin dikelola
- * (`permissions` + `role_permissions`). LPPM tidak menyimpan salinannya.
+ * Modul ini TIDAK menebak akses dari nama peran SSO. Nama peran kampus
+ * (`ADMIN_LPPM`, `DOSEN`, ...) hanya metadata tampilan. Satu-satunya pengecualian
+ * adalah SUPERADMIN ekosistem, yang selalu diloloskan sebagai jaring pengaman.
  *
- * Karena izin ikut saat login, mencabut izin di panel SSO berlaku pada login
- * berikutnya, bukan seketika pada token yang sudah terbit.
+ * Izin fitur diturunkan server dari peran lokal LPPM dan ikut dikirim pada
+ * sesi, sehingga UI tidak perlu menebak apa pun.
  */
 
 /** Identitas aplikasi ini pada gateway SSO ONE UNUSU. */
@@ -19,20 +20,16 @@ export const APP_NAME = 'LPPM UNUSU';
 export const APP_FULL_NAME = 'Lembaga Penelitian & Pengabdian kepada Masyarakat';
 
 // ===========================================================================
-// KUNCI IZIN
+// TINGKAT AKSES
 // ===========================================================================
 
-const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '223ea0752e7619e2';
-
-/** Izin masuk panel, satu per tingkat. */
-export const IZIN_MASUK = {
-  admin: `${SSO_CLIENT_ID}:masuk_admin`,
-  dosen: `${SSO_CLIENT_ID}:masuk_dosen`,
-  reviewer: `${SSO_CLIENT_ID}:masuk_reviewer`,
-  mahasiswa: `${SSO_CLIENT_ID}:masuk_mahasiswa`,
-} as const;
-
-export type TingkatMasuk = keyof typeof IZIN_MASUK;
+/**
+ * Tingkat akses panel LPPM.
+ *
+ * Nilainya ditentukan SERVER dari peran lokal pengguna, bukan dari izin masuk
+ * global (izin `masuk_*` sudah dihapus dari model akses).
+ */
+export type TingkatMasuk = 'admin' | 'dosen' | 'reviewer' | 'mahasiswa';
 
 export const LABEL_TINGKAT: Record<TingkatMasuk, string> = {
   admin: 'Administrator LPPM',
@@ -61,6 +58,8 @@ export const IZIN_FITUR = {
   monevBuat: 'monev.create',
   monevKelola: 'monev.manage',
   monevReview: 'monev.review',
+  monevSurveiLihat: 'monev.survei.view',
+  monevSurveiKelola: 'monev.survei.manage',
 
   peranLihat: 'roles.view',
   peranKelola: 'roles.manage',
@@ -77,16 +76,7 @@ export const IZIN_FITUR = {
   dokumenKelola: 'dokumen.manage',
 } as const;
 
-/** Label peran aplikasi lain — hanya untuk pesan, tidak untuk otorisasi. */
-export const FOREIGN_APP_ADMIN_ROLES: Record<string, string> = {
-  ADMIN_LPM: 'LPM UNUSU',
-  ADMIN_ESURAT: 'E-Surat UNUSU',
-  ADMIN_SARPRAS: 'Sarpras UNUSU',
-  ADMIN_AKREDITASI: 'Akreditasi UNUSU',
-  ADMIN_LMS: 'LMS UNUSU',
-  ADMIN_SSO: 'ONE UNUSU',
-};
-
+/** Label peran SSO — hanya untuk pesan/tampilan, tidak untuk otorisasi. */
 export const SSO_ROLE_LABEL: Record<string, string> = {
   SUPERADMIN: 'Superadmin',
   ADMIN_LPPM: 'Admin LPPM',
@@ -138,19 +128,16 @@ export function bisaSalahSatu(subject: AccessSubject | null | undefined, ...kunc
 }
 
 /**
- * Tingkat masuk tertinggi.
+ * Tingkat akses tertinggi.
  *
  * Server selalu memilih tingkat tertinggi, jadi urutannya penting: admin
  * menang atas dosen, dosen menang atas reviewer, dan seterusnya.
  */
 export function tingkatDari(subject?: AccessSubject | null): TingkatMasuk | null {
   if (!subject) return null;
-  if (subject.tingkat && subject.tingkat in IZIN_MASUK) return subject.tingkat as TingkatMasuk;
-  const dimiliki = new Set(izinDari(subject));
-  if (dimiliki.has(IZIN_MASUK.admin)) return 'admin';
-  if (dimiliki.has(IZIN_MASUK.dosen)) return 'dosen';
-  if (dimiliki.has(IZIN_MASUK.reviewer)) return 'reviewer';
-  if (dimiliki.has(IZIN_MASUK.mahasiswa)) return 'mahasiswa';
+  if (subject.tingkat && subject.tingkat in LABEL_TINGKAT) {
+    return subject.tingkat as TingkatMasuk;
+  }
   return null;
 }
 
@@ -158,14 +145,14 @@ export function punyaIzinMasuk(subject?: AccessSubject | null): boolean {
   return tingkatDari(subject) !== null;
 }
 
-/** Admin LPPM: pemegang izin mengelola sistem. */
+/** Admin LPPM: pemegang peran admin lokal. */
 export function isAdminLppm(subject?: AccessSubject | null): boolean {
   return tingkatDari(subject) === 'admin';
 }
 
-/** Superadmin lintas aplikasi — tetap diperiksa lewat izinnya. */
+/** Superadmin ekosistem — diloloskan server sebagai jaring pengaman. */
 export function isSuperadmin(subject?: AccessSubject | null): boolean {
-  return bisa(subject, IZIN_MASUK.admin) && (subject?.ssoRole ?? '').toUpperCase() === 'SUPERADMIN';
+  return (subject?.ssoRole ?? '').toUpperCase() === 'SUPERADMIN';
 }
 
 export function isDosenPeneliti(subject?: AccessSubject | null): boolean {
@@ -182,15 +169,15 @@ export function canManageSystem(subject?: AccessSubject | null): boolean {
 
 export type AccessDenialCode =
   | 'unauthenticated'
-  | 'foreign-app'
+  | 'not-registered'
+  | 'inactive-account'
+  | 'no-role'
   | 'role-not-allowed'
   | 'invalid-scope';
 
 export interface AccessDecision {
   allowed: boolean;
   code?: AccessDenialCode;
-  /** Nama aplikasi asal pengguna, mis. "LPM UNUSU". */
-  foreignApp?: string | null;
   title?: string;
   message?: string;
 }
@@ -200,14 +187,11 @@ export function labelForSsoRole(ssoRole?: string | null): string {
   return SSO_ROLE_LABEL[ssoRole] ?? ssoRole;
 }
 
-export function foreignAppForRole(ssoRole?: string | null): string | null {
-  if (!ssoRole) return null;
-  return FOREIGN_APP_ADMIN_ROLES[ssoRole] ?? null;
-}
-
 /**
- * Putusan akses panel. Sumber utama adalah `appAccess` dari server; bila tidak
- * ada (sesi lama), dipakai daftar izin.
+ * Putusan akses panel.
+ *
+ * Sumber utamanya `appAccess` dari server (dihitung dari keanggotaan pengguna
+ * di tabel LPPM). Tanpa data itu, akses DITOLAK — fail-closed.
  */
 export function evaluatePanelAccess(subject?: AccessSubject | null): AccessDecision {
   if (!subject) {
@@ -229,46 +213,53 @@ export function evaluatePanelAccess(subject?: AccessSubject | null): AccessDecis
   }
 
   // Server sudah memutuskan — hormati putusannya.
-  if (subject.appAccess && subject.appAccess.allowed === false) {
-    const alasan = subject.appAccess.reason;
-    if (alasan === 'foreign_app_admin') {
-      const appLain = foreignAppForRole(subject.ssoRole);
-      return {
-        allowed: false,
-        code: 'foreign-app',
-        foreignApp: appLain,
-        title: `Akun ${labelForSsoRole(subject.ssoRole)} tidak dapat masuk panel LPPM`,
-        message: `Peran Anda adalah administrator ${appLain ?? 'aplikasi lain'}. Setiap aplikasi memiliki panel terpisah.`,
-      };
+  if (subject.appAccess) {
+    if (subject.appAccess.allowed) return { allowed: true };
+
+    switch (subject.appAccess.reason) {
+      case 'not_registered':
+        return {
+          allowed: false,
+          code: 'not-registered',
+          title: 'Akun belum terdaftar di LPPM',
+          message:
+            'Akun ONE UNUSU Anda belum didaftarkan sebagai pengguna panel LPPM. Minta Admin LPPM mendaftarkan akun Anda melalui menu Manajemen Pengguna.',
+        };
+      case 'inactive_account':
+        return {
+          allowed: false,
+          code: 'inactive-account',
+          title: 'Akun LPPM sedang nonaktif',
+          message:
+            'Akun LPPM Anda sedang dinonaktifkan. Minta Admin LPPM mengaktifkan kembali sebelum mencoba masuk lagi.',
+        };
+      case 'no_role':
+        return {
+          allowed: false,
+          code: 'no-role',
+          title: 'Peran LPPM belum ditetapkan',
+          message:
+            'Akun Anda sudah terdaftar, tetapi belum diberi peran. Tanpa peran, tidak ada izin fitur yang bisa dipakai.',
+        };
+      default:
+        return {
+          allowed: false,
+          code: 'role-not-allowed',
+          title: 'Akses panel LPPM ditolak',
+          message:
+            'Akun Anda belum memiliki akses ke panel LPPM. Hubungi Admin LPPM untuk penyesuaian peran.',
+        };
     }
-    return {
-      allowed: false,
-      code: 'role-not-allowed',
-      title: 'Belum memiliki izin masuk LPPM',
-      message:
-        'Akun Anda belum ditugaskan peran pada panel LPPM. Hubungi Administrator LPPM untuk memberikan izin masuk.',
-    };
   }
 
   if (punyaIzinMasuk(subject)) return { allowed: true };
 
-  const appLain = foreignAppForRole(subject.ssoRole);
-  if (appLain) {
-    return {
-      allowed: false,
-      code: 'foreign-app',
-      foreignApp: appLain,
-      title: `Akun ${labelForSsoRole(subject.ssoRole)} tidak dapat masuk panel LPPM`,
-      message: `Peran Anda adalah administrator ${appLain}. Setiap aplikasi memiliki panel terpisah — silakan kelola ${appLain} melalui panel aplikasi tersebut.`,
-    };
-  }
-
   return {
     allowed: false,
-    code: 'role-not-allowed',
-    title: 'Belum memiliki izin masuk LPPM',
+    code: 'not-registered',
+    title: 'Akun belum terdaftar di LPPM',
     message:
-      'Akun Anda belum ditugaskan peran pada panel LPPM. Hubungi Administrator LPPM untuk memberikan izin masuk.',
+      'Akun ONE UNUSU Anda belum didaftarkan sebagai pengguna panel LPPM. Minta Admin LPPM mendaftarkan akun Anda.',
   };
 }
 
@@ -281,7 +272,8 @@ export function roleBadgeLabel(subject?: AccessSubject | null): string {
   if (!subject) return 'Tamu';
   const tingkat = tingkatDari(subject);
   if (tingkat) return LABEL_TINGKAT[tingkat];
-  return labelForSsoRole(subject.ssoRole);
+  if (isSuperadmin(subject)) return 'Superadmin';
+  return 'Belum Terdaftar';
 }
 
 export const ACCESS_DENIED_PATH = '/akses-ditolak';

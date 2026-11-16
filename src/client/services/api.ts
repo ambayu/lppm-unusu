@@ -37,7 +37,7 @@ export interface AppAccessInfo {
   app: string;
   appName: string;
   allowed: boolean;
-  reason: 'allowed' | 'no_izin_masuk' | 'foreign_app_admin' | 'missing_role';
+  reason: 'allowed' | 'not_registered' | 'inactive_account' | 'no_role' | 'superadmin_bypass';
   ssoRole: string;
   tingkat: string | null;
   roleLabel: string;
@@ -92,15 +92,27 @@ api.interceptors.response.use(
     const path = window.location.pathname;
     const code = error.response?.data?.code as string | undefined;
 
-    // Sesi milik aplikasi lain (mis. admin LPM) tidak boleh dipakai di panel ini:
-    // bersihkan sesi lalu tampilkan halaman 403 yang menjelaskan alasannya.
-    if (status === 403 && (code === 'FOREIGN_APP_TOKEN' || code === 'FOREIGN_APP_ADMIN')) {
+    // Keanggotaan di luar cakupan aplikasi (belum terdaftar / nonaktif / tanpa
+    // peran): sesi lokal dibersihkan agar tidak ada sisa kredensial di peramban.
+    if (
+      status === 403 &&
+      (code === 'FOREIGN_APP_TOKEN' ||
+        code === 'NOT_REGISTERED' ||
+        code === 'INACTIVE' ||
+        code === 'NO_ROLE')
+    ) {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
       const base = import.meta.env.BASE_URL || '/';
-      const deniedUrl = `${base}${base.endsWith('/') ? '' : '/'}akses-ditolak?reason=${
-        code === 'FOREIGN_APP_ADMIN' ? 'foreign-app' : 'invalid-scope'
-      }`;
+      const alasan =
+        code === 'NOT_REGISTERED'
+          ? 'not-registered'
+          : code === 'INACTIVE'
+            ? 'inactive-account'
+            : code === 'NO_ROLE'
+              ? 'no-role'
+              : 'invalid-scope';
+      const deniedUrl = `${base}${base.endsWith('/') ? '' : '/'}akses-ditolak?reason=${alasan}`;
       if (!path.endsWith('/akses-ditolak')) {
         window.location.replace(deniedUrl);
       }
@@ -287,23 +299,87 @@ export const deletePermission = (id: number | string) =>
   api.delete<{ success: boolean; message?: string }>(`/permissions/${id}`);
 
 // ==========================================
-// PENUGASAN PENGGUNA LOKAL LPPM (MULTI-ROLE)
+// PENGGUNA LPPM (DARI DIREKTORI ONE UNUSU)
 // ==========================================
-export interface UserRoleAssignment {
+export interface PenggunaLppm {
+  id: number;
+  userId: number;
   username: string;
   nama: string;
-  roles: { id: number; kode: string; nama: string }[];
-  roleIds: number[];
-  createdAt: string;
+  email: string | null;
+  ssoRole: string | null;
+  status: string;
+  role: string | null;
+  peran: string[];
+  createdAt?: string;
 }
 
-export const fetchUsers = () => api.get<{ success: boolean; data: UserRoleAssignment[] }>('/users');
-export const createUserAssignment = (data: { username: string; nama: string; roleIds: number[] }) =>
-  api.post<{ success: boolean; message: string; data: UserRoleAssignment }>('/users', data);
-export const updateUserAssignment = (username: string, data: { nama?: string; roleIds: number[] }) =>
-  api.put<{ success: boolean; message: string; data: UserRoleAssignment }>(`/users/${encodeURIComponent(username)}`, data);
-export const deleteUserAssignment = (username: string) =>
-  api.delete<{ success: boolean; message: string }>(`/users/${encodeURIComponent(username)}`);
+/** Pengguna ONE UNUSU yang bisa dipilih pada tabel tambah pengguna. */
+export interface KandidatPenggunaOne {
+  id: number;
+  username: string;
+  nama: string;
+  email: string | null;
+  noHp?: string | null;
+  nim?: string | null;
+  nidn?: string | null;
+  nip?: string | null;
+  fakultas?: string | null;
+  prodi?: string | null;
+  jenisKelamin?: string | null;
+  avatar?: string | null;
+  isActive?: boolean;
+  role?: string | null;
+  roles?: string[];
+  sudahTerdaftar: boolean;
+}
+
+export const fetchUsers = () => api.get<{ success: boolean; data: PenggunaLppm[] }>('/users');
+
+export interface KriteriaKandidat {
+  search?: string;
+  role?: string;
+  fakultas?: string;
+  prodi?: string;
+}
+
+export const cariKandidatPengguna = (kriteria: KriteriaKandidat | string = {}) => {
+  const params: Record<string, string> = {};
+  if (typeof kriteria === 'string') {
+    if (kriteria) params.search = kriteria;
+  } else {
+    if (kriteria.search) params.search = kriteria.search;
+    if (kriteria.role) params.role = kriteria.role;
+    if (kriteria.fakultas) params.fakultas = kriteria.fakultas;
+    if (kriteria.prodi) params.prodi = kriteria.prodi;
+  }
+
+  return api.get<{
+    success: boolean;
+    data: KandidatPenggunaOne[];
+    meta: { total: number; search: string; role: string; fakultas: string; prodi: string };
+  }>('/users/kandidat', { params });
+};
+
+/**
+ * Mendaftarkan pengguna ONE UNUSU ke LPPM.
+ *
+ * `peran` bersifat opsional: pengguna didaftarkan lebih dulu tanpa peran, lalu
+ * peran diatur satu per satu lewat modal "Atur Peran" pada daftar pengguna.
+ */
+export const createUserAssignment = (data: {
+  userIds: number[];
+  peran?: string[];
+  kandidat?: Array<{ id: number; nama?: string; username?: string }>;
+}) => api.post<{ success: boolean; message: string; data: PenggunaLppm[] }>('/users', data);
+
+export const updateUserAssignment = (
+  id: number | string,
+  data: { peran?: string[]; status?: string }
+) => api.put<{ success: boolean; message: string }>(`/users/${id}`, data);
+
+export const deleteUserAssignment = (id: number | string) =>
+  api.delete<{ success: boolean; message: string }>(`/users/${id}`);
 
 // ==========================================
 // MONITORING & EVALUASI (MONEV) API
@@ -624,5 +700,125 @@ export const updateDokumen = (id: number | string, data: Partial<DokumenRecord>)
 
 export const deleteDokumen = (id: number | string) =>
   api.delete<{ success: boolean; message: string }>(`/dokumen/${id}`);
+
+// =============================================================================
+// MONEV SURVEI & PERIODE DINAMIS API
+// =============================================================================
+
+export interface MonevPeriodeItem {
+  id: number;
+  kode: string;
+  nama: string;
+  tahunAkademik: string;
+  semester: string;
+  tanggalMulai?: string | null;
+  tanggalSelesai?: string | null;
+  status: 'DRAFT' | 'AKTIF' | 'DITUTUP';
+  deskripsi?: string | null;
+  createdAt?: string;
+  _count?: {
+    surveiList: number;
+    responList: number;
+  };
+}
+
+export interface MonevSurveiItem {
+  id: number;
+  kode: string;
+  judul: string;
+  deskripsi?: string | null;
+  targetAudiens: 'MAHASISWA' | 'DOSEN_TENDIK' | 'SEMUA';
+  urutan: number;
+  totalPertanyaan?: number;
+  totalRespon?: number;
+  sudahMengisi?: boolean;
+  tanggalMengisi?: string | null;
+}
+
+export interface MonevPertanyaanItem {
+  id: number;
+  surveiId: number;
+  seksi?: string | null;
+  kode?: string | null;
+  teks: string;
+  tipe: 'SKALA_5' | 'PILIHAN_GANDA' | 'KOTAK_CENTANG' | 'TEKS_SINGKAT' | 'ESAI';
+  opsi?: any;
+  wajib: boolean;
+  urutan: number;
+}
+
+export interface MonevSurveiDetail {
+  id: number;
+  kode: string;
+  judul: string;
+  deskripsi?: string | null;
+  targetAudiens: 'MAHASISWA' | 'DOSEN_TENDIK' | 'SEMUA';
+  periode: MonevPeriodeItem;
+  pertanyaanList: MonevPertanyaanItem[];
+}
+
+export interface RekapPertanyaanItem {
+  id: number;
+  seksi?: string | null;
+  teks: string;
+  tipe: string;
+  totalJawaban: number;
+  rerata?: number;
+  distribusi?: Record<number, number>;
+  daftarJawaban?: string[];
+}
+
+export interface RekapMonevData {
+  survei: {
+    id: number;
+    judul: string;
+    kode: string;
+    targetAudiens: string;
+    periode: string;
+    totalRespon: number;
+  };
+  data: RekapPertanyaanItem[];
+}
+
+// Client API Methods
+export const fetchMonevPeriode = () =>
+  api.get<{ success: boolean; data: MonevPeriodeItem[] }>('/monev-survei/periode');
+
+export const createMonevPeriode = (data: Partial<MonevPeriodeItem>) =>
+  api.post<{ success: boolean; data: MonevPeriodeItem; message: string }>('/monev-survei/periode', data);
+
+export const updateMonevPeriode = (id: number | string, data: Partial<MonevPeriodeItem>) =>
+  api.put<{ success: boolean; data: MonevPeriodeItem; message: string }>(`/monev-survei/periode/${id}`, data);
+
+export const fetchMonevSurveiAktif = () =>
+  api.get<{ success: boolean; periode: MonevPeriodeItem | null; data: MonevSurveiItem[] }>('/monev-survei/aktif');
+
+export const fetchMonevSurveiDetail = (id: number | string) =>
+  api.get<{ success: boolean; data: MonevSurveiDetail }>(`/monev-survei/${id}`);
+
+export const submitMonevSurvei = (
+  id: number | string,
+  payload: {
+    demografi?: {
+      prodi?: string;
+      fakultas?: string;
+      semester?: string;
+      mataKuliah?: string;
+      dosenPengampu?: string;
+    };
+    jawaban: Array<{
+      pertanyaanId: number;
+      nilaiSkala?: number | null;
+      nilaiTeks?: string | null;
+    }>;
+  }
+) =>
+  api.post<{ success: boolean; message: string }>(`/monev-survei/${id}/submit`, payload);
+
+export const fetchRekapMonevSurvei = (id: number | string) =>
+  api.get<{ success: boolean; survei: RekapMonevData['survei']; data: RekapPertanyaanItem[] }>(
+    `/monev-survei/${id}/rekap`
+  );
+
 
 export default api;

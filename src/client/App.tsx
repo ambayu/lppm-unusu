@@ -16,6 +16,10 @@ import { PenggunaPage } from './pages/Pengguna';
 import { PenggunaFormPage } from './pages/PenggunaForm';
 import { MonevPage } from './pages/Monev';
 import { MonevFormPage } from './pages/MonevForm';
+import { MonevSurveiListPage } from './pages/MonevSurveiList';
+import { MonevSurveiFormPage } from './pages/MonevSurveiForm';
+import { MonevRekapPage } from './pages/MonevRekap';
+import { MonevPeriodePage } from './pages/MonevPeriode';
 import { DokumenLppmPage } from './pages/Dokumen';
 import { DokumenLppmFormPage } from './pages/DokumenForm';
 import { KategoriLppmPage } from './pages/Kategori';
@@ -386,7 +390,7 @@ export function App() {
               }
             />
             <Route
-              path="/pengguna/edit/:username"
+              path="/pengguna/edit/:id"
               element={
                 <ProtectedRoute>
                   <IzinRoute izin={[IZIN_FITUR.penggunaKelola, IZIN_FITUR.peranKelola]}>
@@ -432,6 +436,48 @@ export function App() {
                       <MonevFormPage />
                     </SidebarLayout>
                   </IzinRoute>
+                </ProtectedRoute>
+              }
+            />
+
+            {/* 8. Kuesioner Survei Monev Dinamis (Mahasiswa & Civitas) */}
+            <Route
+              path="/monev-survei"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevSurveiListPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev-survei/:id"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevSurveiFormPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev-survei/:id/rekap"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevRekapPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin/monev-periode"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevPeriodePage />
+                  </SidebarLayout>
                 </ProtectedRoute>
               }
             />

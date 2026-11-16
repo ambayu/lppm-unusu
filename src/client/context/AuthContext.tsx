@@ -7,7 +7,6 @@ const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '223ea0752e7619e2';
 import {
   APP_SCOPE,
   IZIN_FITUR,
-  IZIN_MASUK,
   type TingkatMasuk,
   bisa as bisaUntuk,
   bisaSalahSatu as bisaSalahSatuUntuk,
@@ -161,7 +160,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: tingkatDari(user) === 'admin',
       canManageSystem: bisaUntuk(user, IZIN_FITUR.peranKelola, IZIN_FITUR.izinKelola),
       isDosen: bisaUntuk(user, IZIN_FITUR.penelitianBuat),
-      isSuperadmin: bisaUntuk(user, IZIN_MASUK.admin) && (user?.ssoRole ?? '').toUpperCase() === 'SUPERADMIN',
+      isSuperadmin: (user?.ssoRole ?? '').toUpperCase() === 'SUPERADMIN',
       roleLabel: roleBadgeLabel(user),
       izin,
       tingkat,

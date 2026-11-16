@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
+import { seedMonevDinamis } from "./seed-monev-data.js";
 
 dotenv.config();
 
@@ -35,6 +36,8 @@ async function main() {
     { kode: "monev.create", nama: "Jadwalkan Monev Baru", modul: "Monev", deskripsi: "Dapat menetapkan jadwal dan menunjuk reviewer monev riset/pengabdian" },
     { kode: "monev.review", nama: "Beri Nilai & Rekomendasi Monev", modul: "Monev", deskripsi: "Dapat mengisi capaian luaran, skor kemajuan, dan rekomendasi monev" },
     { kode: "monev.manage", nama: "Kelola Administrasi Monev", modul: "Monev", deskripsi: "Dapat mengubah status kelayakan dan mengunggah berita acara monev" },
+    { kode: "monev.survei.view", nama: "Lihat & Isi Kuesioner Monev", modul: "Monev", deskripsi: "Dapat melihat dan mengisi survei kuesioner monev dinamis" },
+    { kode: "monev.survei.manage", nama: "Kelola Master Monev Dinamis", modul: "Monev", deskripsi: "Dapat mengatur periode, membuat jenis kuesioner, dan melihat rekap hasil monev" },
 
     // Peran & Hak Akses (Role & Permission Management)
     { kode: "roles.view", nama: "Lihat Menu Peran", modul: "Peran & Hak Akses", deskripsi: "Dapat melihat daftar peran pengguna sistem LPPM" },
@@ -197,6 +200,9 @@ async function main() {
       },
     });
   }
+
+  // 4. Seed Monev Dinamis (5 Kuesioner & Pertanyaan Lengkap)
+  await seedMonevDinamis(prisma);
 
   console.log("Seeding desentralisasi hak akses LPPM UNUSU selesai.");
 }

@@ -194,12 +194,19 @@ export function SsoCallbackPage() {
 
         // Penolakan lintas aplikasi (mis. admin LPM) diarahkan ke halaman 403
         // yang menjelaskan alasan, bukan sekadar pesan error generik.
-        if (code === 'FOREIGN_APP_ADMIN' || code === 'ROLE_NOT_ALLOWED') {
+        if (code === 'NOT_REGISTERED' || code === 'INACTIVE' || code === 'NO_ROLE' || code === 'ROLE_NOT_ALLOWED') {
           window.location.replace(
             accessDeniedUrl({
-              reason: code === 'FOREIGN_APP_ADMIN' ? 'foreign-app' : 'role-not-allowed',
+              reason:
+                code === 'NOT_REGISTERED'
+                  ? 'not-registered'
+                  : code === 'INACTIVE'
+                    ? 'inactive-account'
+                    : code === 'NO_ROLE'
+                      ? 'no-role'
+                      : 'role-not-allowed',
               role: data?.role ?? null,
-              app: data?.foreignApp ?? data?.app ?? null,
+              app: data?.app ?? null,
               from: '/sso/callback',
             })
           );
