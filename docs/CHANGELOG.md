@@ -1,5 +1,12 @@
 # CHANGELOG — LPPM UNUSU
 
+## [2026-11-19] — Callback SSO Token-Only
+
+### Changed
+- Callback SSO beralih ke pola token-only (`/sso/callback?token=...`). Browser tidak lagi mengirim `client_id`, backend mengambil identitas aplikasi dari env `SSO_CLIENT_ID` saat verifikasi ke ONE.
+- Membersihkan token dari address bar segera setelah dibaca demi keamanan.
+
+
 ## [2026-11-18] — Slider Hero Berbasis Berkas dengan Dukungan Video
 
 ### Added
