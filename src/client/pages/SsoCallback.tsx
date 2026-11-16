@@ -190,7 +190,7 @@ export function SsoCallbackPage() {
     return () => {
       cancelled = true;
     };
-  }, [params, saveSession]);
+  }, [saveSession]);
 
   // Verifikasi tiket menunggu request jaringan nyata (server-to-server), jadi
   // layar tunggu penuh memang pantas ditampilkan. Gayanya disamakan dengan
