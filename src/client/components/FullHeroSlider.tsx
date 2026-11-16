@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 import { assetUrl } from "../lib/assets";
 import { fetchPublicSliders, LppmBannerSliderItem } from "../services/api";
+import { JENIS_MEDIA, jenisMedia, type JenisMedia } from "../lib/mediaSlider";
 
 export interface HeroSlideItem {
   id: number;
@@ -11,6 +12,8 @@ export interface HeroSlideItem {
   badge: string;
   headline: string;
   subheadline: string;
+  /** Slide video tidak memakai timer; perpindahan menunggu `onEnded`. */
+  jenis: JenisMedia;
 }
 
 const defaultHeroSlides: HeroSlideItem[] = [
@@ -22,6 +25,7 @@ const defaultHeroSlides: HeroSlideItem[] = [
     badge: "Riset Ilmiah & Inovasi",
     headline: "Pusat Riset Terapan & Inovasi Teknologi",
     subheadline: "Mendorong keunggulan riset saintifik terapan dan hilirisasi inovasi berlandaskan nilai Aswaja An-Nahdliyah.",
+    jenis: JENIS_MEDIA.GAMBAR,
   },
   {
     id: 2,
@@ -31,6 +35,7 @@ const defaultHeroSlides: HeroSlideItem[] = [
     badge: "Hibah Kompetitif Nasional",
     headline: "Penguatan Kapasitas Peneliti & PKM",
     subheadline: "Fasilitasi pendanaan riset dosen pemula, skema terapan, dan pemberdayaan masyarakat Sumatera Utara.",
+    jenis: JENIS_MEDIA.GAMBAR,
   },
   {
     id: 3,
@@ -40,6 +45,7 @@ const defaultHeroSlides: HeroSlideItem[] = [
     badge: "Dampak Nyata Komunitas",
     headline: "Pengabdian Berbasis Kemitraan Umat",
     subheadline: "Mengabdi untuk kemaslahatan masyarakat melalui transfer keilmuan dan teknologi tepat guna.",
+    jenis: JENIS_MEDIA.GAMBAR,
   },
   {
     id: 4,
@@ -49,6 +55,7 @@ const defaultHeroSlides: HeroSlideItem[] = [
     badge: "Scopus & SINTA Terakreditasi",
     headline: "Publikasi Bereputasi & Perolehan HKI",
     subheadline: "Mendukung diseminasi karya ilmiah civitas akademika UNUSU pada jurnal nasional terindeks dan internasional.",
+    jenis: JENIS_MEDIA.GAMBAR,
   },
 ];
 
@@ -69,6 +76,7 @@ export const FullHeroSlider: React.FC = () => {
             badge: "LPPM UNUSU",
             headline: item.judul,
             subheadline: item.subjudul || "Lembaga Penelitian dan Pengabdian kepada Masyarakat Universitas Nahdlatul Ulama Sumatera Utara.",
+            jenis: jenisMedia(item.gambarUrl),
           }));
           setSlides(mapped);
         }
@@ -78,13 +86,17 @@ export const FullHeroSlider: React.FC = () => {
       });
   }, []);
 
+  // Slide video tidak memakai timer: perpindahan menunggu video selesai agar
+  // isinya tidak terpotong. Slide gambar tetap berotasi tiap 6 detik.
+  const slideAktifVideo = slides[currentSlide]?.jenis === JENIS_MEDIA.VIDEO;
+
   useEffect(() => {
-    if (isPaused || slides.length === 0) return;
+    if (isPaused || slides.length === 0 || slideAktifVideo) return;
     const timer = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(timer);
-  }, [isPaused, slides.length]);
+  }, [isPaused, slides.length, slideAktifVideo]);
 
   const prevSlide = () =>
     setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
@@ -111,19 +123,36 @@ export const FullHeroSlider: React.FC = () => {
               isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
             }`}
           >
-            {/* 80% Visual Gambar: Full background coverage dengan subtle zoom visual */}
-            <picture className="absolute inset-0 w-full h-full">
-              <source media="(max-width: 640px)" srcSet={slide.imageMobile} />
-              <img
+            {/* 80% Visual Media: Full background coverage dengan subtle zoom visual */}
+            {slide.jenis === JENIS_MEDIA.VIDEO ? (
+              // Video bisu + playsInline agar autoplay diizinkan peramban.
+              // Setelah selesai, slider berpindah ke slide berikutnya.
+              <video
                 src={slide.image}
-                alt={slide.title}
-                width={1280}
-                height={720}
-                className="w-full h-full object-cover object-center transform scale-100 hover:scale-105 transition-transform duration-7000 ease-out"
-                loading={index === 0 ? "eager" : "lazy"}
-                decoding="async"
+                className="absolute inset-0 w-full h-full object-cover object-center"
+                muted
+                playsInline
+                autoPlay
+                preload={index === 0 ? "auto" : "metadata"}
+                aria-label={slide.title}
+                onEnded={() => {
+                  if (isActive) nextSlide();
+                }}
               />
-            </picture>
+            ) : (
+              <picture className="absolute inset-0 w-full h-full">
+                <source media="(max-width: 640px)" srcSet={slide.imageMobile} />
+                <img
+                  src={slide.image}
+                  alt={slide.title}
+                  width={1280}
+                  height={720}
+                  className="w-full h-full object-cover object-center transform scale-100 hover:scale-105 transition-transform duration-7000 ease-out"
+                  loading={index === 0 ? "eager" : "lazy"}
+                  decoding="async"
+                />
+              </picture>
+            )}
 
             {/* Gradient Overlay Transparan: soft violet gradient mempertahankan 80% kejelasan gambar */}
             <div className="absolute inset-0 bg-gradient-to-t from-violet-950/90 via-violet-950/30 to-transparent" />
