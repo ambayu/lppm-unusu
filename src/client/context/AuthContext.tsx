@@ -87,16 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       try {
         const ssoStatus = await checkOneUnusuSession();
         if (ssoStatus?.authenticated === false) {
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          if (!cancelled) {
-            setUser(null);
-            setLoading(false);
-          }
-          return;
-        }
-
-        if (
+          // Jika token lokal LPPM masih valid, jangan langsung buang sesi ke login loop.
+          // Cukup log warning agar pengguna tetap bisa beraktivitas dengan sesi lokalnya.
+          console.warn('[SSO] Sesi pusat ONE UNUSU tidak terdeteksi aktif, mempertahankan sesi lokal LPPM.');
+        } else if (
           ssoStatus?.authenticated === true &&
           ssoStatus.user?.username &&
           parsedUser?.username &&
