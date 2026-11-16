@@ -69,24 +69,16 @@ const clientDistPath = path.resolve(process.cwd(), "dist/client");
 app.use(express.static(clientDistPath));
 app.use("/lppm", express.static(clientDistPath));
 
-/**
- * Normalisasi alamat tanpa awalan aplikasi.
+/*
+ * Pengalihan paksa ke awalan `/lppm` DIHAPUS.
  *
- * Aplikasi ini dipasang di sub-path `/lppm`. Bila pengunjung membuka `/login`
- * (tanpa awalan), SPA tetap termuat karena fallback SPA mengirim index.html,
- * tetapi router berjalan dengan basename kosong dan alamatnya berubah menjadi
- * `/lppm/login` begitu halaman dimuat ulang — pengguna merasa "terlempar".
- * Pengalihan di sisi server membuat semua tautan lama langsung mendarat pada
- * bentuk yang benar, sebelum React sempat berjalan.
- *
- * Hanya jalur halaman yang dialihkan; `/api`, berkas statis, dan media
- * dibiarkan agar tidak merusak aset maupun permintaan data.
+ * Aplikasi kini dilayani pada akar domainnya, sejalan dengan `urlRedirect`
+ * SSO di database ONE (`https://lppm.unusu.ac.id/sso/callback`). Pengalihan
+ * lama membuat setiap halaman callback dibelokkan ke `/lppm/sso/callback`
+ * sehingga router tidak menemukan rute yang cocok dan pengguna tidak pernah
+ * sampai ke panel. Awalan `/lppm` masih dilayani sebagai alias statis di atas
+ * agar tautan lama tidak mati.
  */
-app.get(/^\/(?!lppm(\/|$)|api(\/|$)|assets(\/|$)|media(\/|$)).*/, (req: Request, res: Response, next: NextFunction) => {
-  // Permintaan berkas (mengandung titik) diteruskan ke static/fallback.
-  if (req.path.includes(".")) return next();
-  return res.redirect(302, `/lppm${req.originalUrl}`);
-});
 
 // Media slider hero (gambar & video) disajikan sebagai berkas statis publik.
 try {
