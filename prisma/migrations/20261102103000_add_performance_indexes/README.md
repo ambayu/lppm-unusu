@@ -12,7 +12,7 @@ Migrasi ini **hanya menambah index** (additive DDL). Tidak ada:
 - `UPDATE` / `DELETE` / backfill data,
 - perubahan tipe data, enum, atau constraint yang sudah ada.
 
-Total **15 index baru** pada 5 tabel:
+Total **14 index baru** pada 4 tabel:
 
 | Tabel | Index baru | Query yang dilayani |
 | --- | --- | --- |
@@ -20,7 +20,6 @@ Total **15 index baru** pada 5 tabel:
 | `lppm_pengabdian` | `createdAt`, `tahun+status`, `mitra`, `nidn` | `GET /api/pengabdian` (sort, filter, rekap mitra) |
 | `lppm_publikasi` | `tahun`, `jenis+tahun`, `penulis` | `GET /api/publikasi` (sort tahun, filter jenis, riwayat penulis) |
 | `lppm_monitoring_evaluasi` | `createdAt`, `tanggalJadwal`, `nidnReviewer` | `GET /api/monev` (pagination, agenda, riwayat reviewer) |
-| `lppm_permissions` | `modul` | `GET /api/permissions` (`ORDER BY modul, kode`) |
 
 Index lama dari migrasi `20261028090000_create_monitoring_evaluasi`
 (`penelitianId`, `pengabdianId`, `jenisProgram+status`, `tahap`) **tidak diubah**.
@@ -44,7 +43,7 @@ Index lama dari migrasi `20261028090000_create_monitoring_evaluasi`
 
 - Waktu pembuatan index proporsional dengan jumlah baris; pada volume data saat ini
   diperkirakan **< 5 detik per index**.
-- Beban tulis (`INSERT/UPDATE`) naik tipis karena MySQL harus memelihara 15 index
+- Beban tulis (`INSERT/UPDATE`) naik tipis karena MySQL harus memelihara 14 index
   tambahan. Ini trade-off yang disengaja untuk mempercepat query daftar/filter.
 - `lppm_publikasi.penulis` dan `lppm_pengabdian.mitra` adalah `VARCHAR(191)`;
   bila nanti perlu `FULLTEXT`, itu migrasi terpisah.

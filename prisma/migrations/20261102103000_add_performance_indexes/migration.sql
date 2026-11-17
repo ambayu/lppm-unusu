@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Migration : 20261102103000_add_performance_indexes
 -- Tujuan    : Menambah index pendukung untuk query daftar, filter, dan pagination
---             pada modul Penelitian, Pengabdian, Publikasi, Monev, dan Permission.
+--             pada modul Penelitian, Pengabdian, Publikasi, dan Monev.
 -- Sifat     : ADDITIVE ONLY — tidak ada DROP TABLE / DROP COLUMN / UPDATE data.
 --             Aman dijalankan pada data produksi (tidak mengubah satu baris pun).
 -- Status    : BELUM DIEKSEKUSI. Menunggu approval (lihat README.md di folder ini).
@@ -74,13 +74,6 @@ CREATE INDEX `lppm_monitoring_evaluasi_tanggalJadwal_idx`
 
 CREATE INDEX `lppm_monitoring_evaluasi_nidnReviewer_idx`
   ON `lppm_monitoring_evaluasi` (`nidnReviewer`);
-
--- -----------------------------------------------------------------------------
--- 5. lppm_permissions
---    Query acuan: GET /api/permissions (ORDER BY modul ASC, kode ASC)
--- -----------------------------------------------------------------------------
-CREATE INDEX `lppm_permissions_modul_idx`
-  ON `lppm_permissions` (`modul`);
 
 -- =============================================================================
 -- VERIFIKASI PASCA-MIGRASI (jalankan manual, tidak dieksekusi otomatis):

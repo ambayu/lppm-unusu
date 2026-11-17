@@ -4,7 +4,7 @@
 -- Aman dijalankan pada database produksi kapan pun.
 -- =============================================================================
 
--- 1. Daftar index yang diharapkan (harus muncul 15 baris setelah migrasi)
+-- 1. Daftar index yang diharapkan (harus muncul 14 baris setelah migrasi)
 SELECT TABLE_NAME, INDEX_NAME,
        GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) AS kolom
 FROM information_schema.STATISTICS
@@ -23,8 +23,7 @@ WHERE TABLE_SCHEMA = DATABASE()
     'lppm_publikasi_penulis_idx',
     'lppm_monitoring_evaluasi_createdAt_idx',
     'lppm_monitoring_evaluasi_tanggalJadwal_idx',
-    'lppm_monitoring_evaluasi_nidnReviewer_idx',
-    'lppm_permissions_modul_idx'
+     'lppm_monitoring_evaluasi_nidnReviewer_idx'
   )
 GROUP BY TABLE_NAME, INDEX_NAME
 ORDER BY TABLE_NAME, INDEX_NAME;
@@ -35,7 +34,7 @@ SELECT TABLE_NAME,
 FROM information_schema.TABLES
 WHERE TABLE_SCHEMA = DATABASE()
   AND TABLE_NAME IN ('lppm_penelitian','lppm_pengabdian','lppm_publikasi',
-                     'lppm_monitoring_evaluasi','lppm_permissions')
+                     'lppm_monitoring_evaluasi')
 GROUP BY TABLE_NAME;
 
 -- 3. EXPLAIN query acuan

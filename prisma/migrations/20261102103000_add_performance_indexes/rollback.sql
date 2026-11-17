@@ -28,8 +28,5 @@ DROP INDEX `lppm_monitoring_evaluasi_createdAt_idx` ON `lppm_monitoring_evaluasi
 DROP INDEX `lppm_monitoring_evaluasi_tanggalJadwal_idx` ON `lppm_monitoring_evaluasi`;
 DROP INDEX `lppm_monitoring_evaluasi_nidnReviewer_idx` ON `lppm_monitoring_evaluasi`;
 
--- 5. lppm_permissions
-DROP INDEX `lppm_permissions_modul_idx` ON `lppm_permissions`;
-
 -- Setelah rollback, catat di tabel _prisma_migrations (bila migrasi sempat
 -- diterapkan) atau cukup hapus folder migrasi ini dari riwayat dev.
