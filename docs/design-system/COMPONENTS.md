@@ -6,6 +6,23 @@ Dokumen ini mendaftarkan seluruh komponen bersama (shared components) yang terse
 
 ## 1. Daftar Komponen Bersama
 
+### Layout halaman publik
+
+`src/client/pages/Landing.tsx` memuat `PublicLayout` (props `children`) dan
+`PublicFooter`, dipakai oleh landing utama beserta seksi layanan/informasi.
+Layout menyediakan strip identitas, `Navbar`, satu area `main`, dan footer;
+hero hanya tampil di beranda. Komponen ini tetap lokal pada modul publik,
+bukan template panel CRUD. Peta rute: `docs/routes/public/RULES.md`.
+
+### Aksi baris bersama
+
+`src/client/components/RowActionButton.tsx` menyediakan tautan/tombol ikon
+minimum 44×44px dengan focus ring, `title` dan `aria-label` dari `label`.
+Props: `to`, `onClick`, `label`, `variant` (`default`/`danger`), `disabled`,
+`children`. Tautan disabled dirender sebagai tombol disabled tanpa navigasi.
+Gunakan untuk aksi edit/hapus/preview; ikon Heroicons 16px disediakan halaman.
+Header tetap memakai `ListActionButton`, bukan tombol aksi baris.
+
 | Nama Komponen | Path Berkas | Status Penggunaan | Tanggung Jawab Utama |
 |---|---|---|---|
 | `SidebarLayout` | `src/client/components/SidebarLayout.tsx` | **Aktif (Wajib untuk Admin)** | Kerangka aplikasi ber-sidebar (sticky desktop sidebar, mobile drawer, topbar `88px` dengan breadcrumb & profil, serta footer). |

@@ -1,0 +1,30 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const ts = require('typescript');
+const vm = require('node:vm');
+const source = fs.readFileSync(path.join(__dirname, '../src/client/components/RowActionButton.tsx'), 'utf8');
+const compiled = ts.transpileModule(source, { compilerOptions: { jsx: ts.JsxEmit.ReactJSX, module: ts.ModuleKind.CommonJS } }).outputText;
+const exportsObject = {};
+vm.runInNewContext(compiled, { exports: exportsObject, require });
+const render = exportsObject.RowActionButton;
+const link = render({ to: '/edit/1', label: 'Ubah kategori', children: 'ikon' });
+assert.equal(link.props.to, '/edit/1');
+assert.equal(link.props['aria-label'], 'Ubah kategori');
+assert.match(link.props.className, /min-w-\[44px\] min-h-\[44px\]/);
+const disabled = render({ to: '/edit/1', label: 'Ubah', disabled: true });
+assert.equal(disabled.type, 'button');
+assert.equal(disabled.props.disabled, true);
+assert.equal(disabled.props.to, undefined);
+const onClick = () => {};
+const danger = render({ label: 'Hapus', variant: 'danger', onClick });
+assert.equal(danger.props.onClick, onClick);
+assert.match(danger.props.className, /border-rose-200/);
+const form = fs.readFileSync(path.join(__dirname, '../src/client/components/FormPageTemplate.tsx'), 'utf8');
+assert.doesNotMatch(form, /h-\[42px\]/);
+assert.match(form, /disabled=\{submitDisabled \|\| submitting\}/);
+for (const page of ['MonevPeriode', 'MonevKategori', 'MonevSoal', 'MonevResponden', 'ManajemenSliderLppm']) {
+  const pageSource = fs.readFileSync(path.join(__dirname, `../src/client/pages/${page}.tsx`), 'utf8');
+  assert.match(pageSource, /<RowActionButton\b/, `${page}: aksi bersama`);
+}
+console.log('PASS: aksi navigasi, disabled, label, geometri dan destruktif');

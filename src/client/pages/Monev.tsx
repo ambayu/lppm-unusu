@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { RowActionButton } from '../components/RowActionButton';
+import { NotificationModal } from '../components/NotificationModal';
+import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
 import {
   fetchMonev,
   deleteMonev,
@@ -8,7 +10,7 @@ import {
   TahapMonev,
   StatusMonev,
 } from '../services/api';
-import { ListPageTemplate } from '../components/ListPageTemplate';
+import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
 import {
   ClipboardDocumentCheckIcon,
   PlusIcon,
@@ -29,6 +31,9 @@ export const MonevPage: React.FC = () => {
   const [selectedTahap, setSelectedTahap] = useState<string>('SEMUA');
   const [selectedStatus, setSelectedStatus] = useState<string>('SEMUA');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [akanDihapus, setAkanDihapus] = useState<{ id: number; nama: string } | null>(null);
+  const [galat, setGalat] = useState<DeskripsiGalat | null>(null);
+  const [pesanEkspor, setPesanEkspor] = useState(false);
 
   const loadData = () => {
     setLoading(true);
@@ -42,9 +47,10 @@ export const MonevPage: React.FC = () => {
       .then((res) => {
         setList(res.data.data || []);
       })
-      .catch((err) => {
-        console.error(err);
-        setError(err.response?.data?.message || 'Gagal memuat agenda monitoring & evaluasi.');
+      .catch((err: unknown) => {
+        const rincian = deskripsikanGalat(err, 'Memuat Monev', 'daftar agenda monitoring dan evaluasi');
+        setError(rincian.message);
+        setGalat(rincian);
       })
       .finally(() => setLoading(false));
   };
@@ -63,14 +69,17 @@ export const MonevPage: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const handleDelete = async (id: number, kode: string) => {
-    if (!window.confirm(`Yakin ingin menghapus agenda Monev "${kode}"?`)) return;
+  const handleDelete = async () => {
+    if (!akanDihapus || deletingId !== null) return;
+    const { id, nama } = akanDihapus;
     setDeletingId(id);
     try {
       await deleteMonev(id);
+      setAkanDihapus(null);
       loadData();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal menghapus data monev');
+    } catch (err: unknown) {
+      setAkanDihapus(null);
+      setGalat(deskripsikanGalat(err, 'Menghapus Monev', `agenda monev «${nama}»`));
     } finally {
       setDeletingId(null);
     }
@@ -87,7 +96,7 @@ export const MonevPage: React.FC = () => {
 
   const handleExportCsv = () => {
     if (list.length === 0) {
-      alert('Tidak ada data monev untuk diekspor.');
+      setPesanEkspor(true);
       return;
     }
 
@@ -110,7 +119,7 @@ export const MonevPage: React.FC = () => {
       'Dibuat Pada',
     ];
 
-    const escapeCsv = (val: any) => {
+    const escapeCsv = (val: unknown) => {
       if (val === null || val === undefined) return '""';
       const str = String(val).replace(/"/g, '""');
       return `"${str}"`;
@@ -186,6 +195,7 @@ export const MonevPage: React.FC = () => {
   };
 
   return (
+    <>
     <ListPageTemplate<MonevItem>
       title="Monitoring & Evaluasi (Monev)"
       description="Instrumen pemantauan kemajuan riset dosen dan pengabdian masyarakat UNUSU serta penilaian luaran berkala."
@@ -196,21 +206,14 @@ export const MonevPage: React.FC = () => {
       }
       actions={
         <>
-          <button
+          <ListActionButton
             onClick={handleExportCsv}
-            className="inline-flex items-center gap-2 px-3.5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-700 hover:bg-slate-50 text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
-            title="Ekspor CSV"
+            variant="secondary"
+            icon={<ArrowDownTrayIcon className="w-4 h-4" />}
           >
-            <ArrowDownTrayIcon className="w-4 h-4 text-slate-500" />
-            <span className="hidden sm:inline">Ekspor CSV</span>
-          </button>
-          <Link
-            to="/monev/tambah"
-            className="inline-flex items-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-xs sm:text-sm font-bold transition-all shadow-2xs hover:shadow-md cursor-pointer"
-          >
-            <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-            <span>Tambah Data</span>
-          </Link>
+            Ekspor CSV
+          </ListActionButton>
+          <ListActionButton to="/monev/tambah" icon={<PlusIcon className="w-4 h-4" />}>Tambah Data</ListActionButton>
         </>
       }
       stats={
@@ -511,25 +514,28 @@ export const MonevPage: React.FC = () => {
           cellClassName: 'text-center',
           render: (item) => (
             <div className="flex items-center justify-center gap-1.5">
-              <Link
+              <RowActionButton
                 to={`/monev/edit/${item.id}`}
-                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
-                title="Edit Monev"
+                label={`Edit monev ${item.kodeMonev}`}
               >
                 <PencilSquareIcon className="w-4 h-4" />
-              </Link>
-              <button
-                onClick={() => handleDelete(item.id, item.kodeMonev)}
+              </RowActionButton>
+              <RowActionButton
+                onClick={() => setAkanDihapus({ id: item.id, nama: item.kodeMonev })}
                 disabled={deletingId === item.id}
-                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
-                title="Hapus Monev"
+                variant="danger"
+                label={`Hapus monev ${item.kodeMonev}`}
               >
                 <TrashIcon className="w-4 h-4" />
-              </button>
+              </RowActionButton>
             </div>
           ),
         },
       ]}
     />
+    <NotificationModal isOpen={Boolean(akanDihapus)} type="confirm" title="Hapus Monev?" message={`Agenda monev «${akanDihapus?.nama ?? ''}» akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`} confirmLabel="Hapus Monev" onConfirm={handleDelete} onClose={() => setAkanDihapus(null)} loading={deletingId !== null} />
+    <NotificationModal isOpen={Boolean(galat)} type="error" title={galat?.title} message={galat?.message ?? ''} details={galat?.details} code={galat?.code} onClose={() => setGalat(null)} />
+    <NotificationModal isOpen={pesanEkspor} type="info" title="Ekspor Monev" message="Tidak ada data monev untuk diekspor." onClose={() => setPesanEkspor(false)} />
+    </>
   );
 };

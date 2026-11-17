@@ -95,7 +95,7 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
       info: 'Informasi Sistem',
     }[type] || 'Informasi Sistem';
 
-  /* Konfigurasi visual per jenis — palette LPPM (emerald) + merah untuk kegagalan. */
+  /* Hijau hanya untuk sukses; informasi mengikuti violet LPPM. */
   const configMap = {
     success: {
       icon: CheckCircleIcon,
@@ -110,12 +110,12 @@ export const NotificationModal: React.FC<NotificationModalProps> = ({
     info: {
       icon: InformationCircleIcon,
       badge: 'Informasi Layanan',
-      accentBar: 'bg-emerald-600',
-      iconBg: 'bg-emerald-50',
-      iconBorder: 'border-emerald-200',
-      iconColor: 'text-emerald-700',
-      badgeClass: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-      btnClass: 'bg-emerald-700 hover:bg-emerald-800 focus-visible:ring-emerald-700',
+      accentBar: 'bg-violet-700',
+      iconBg: 'bg-violet-50',
+      iconBorder: 'border-violet-200',
+      iconColor: 'text-violet-700',
+      badgeClass: 'bg-violet-50 text-violet-800 border-violet-200',
+      btnClass: 'bg-violet-700 hover:bg-violet-800 focus-visible:ring-violet-700',
     },
     warning: {
       icon: ExclamationTriangleIcon,

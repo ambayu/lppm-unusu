@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { RowActionButton } from '../components/RowActionButton';
+import { NotificationModal } from '../components/NotificationModal';
+import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
 import { fetchPengabdian, deletePengabdian, PengabdianItem } from '../services/api';
-import { ListPageTemplate } from '../components/ListPageTemplate';
+import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
 import {
   HeartIcon,
   PlusIcon,
@@ -19,15 +21,18 @@ export const PengabdianPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('SEMUA');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [akanDihapus, setAkanDihapus] = useState<{ id: number; nama: string } | null>(null);
+  const [galat, setGalat] = useState<DeskripsiGalat | null>(null);
 
   const loadData = () => {
     setLoading(true);
     setError(null);
     fetchPengabdian()
       .then((res) => setList(res.data.data))
-      .catch((err) => {
-        console.error(err);
-        setError(err.response?.data?.message || 'Gagal memuat data pengabdian.');
+      .catch((err: unknown) => {
+        const rincian = deskripsikanGalat(err, 'Memuat Pengabdian', 'daftar kegiatan PKM');
+        setError(rincian.message);
+        setGalat(rincian);
       })
       .finally(() => setLoading(false));
   };
@@ -36,14 +41,17 @@ export const PengabdianPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (id: number, judul: string) => {
-    if (!window.confirm(`Yakin ingin menghapus kegiatan PKM "${judul}"?`)) return;
+  const handleDelete = async () => {
+    if (!akanDihapus || deletingId !== null) return;
+    const { id, nama } = akanDihapus;
     setDeletingId(id);
     try {
       await deletePengabdian(id);
+      setAkanDihapus(null);
       loadData();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal menghapus kegiatan PKM');
+    } catch (err: unknown) {
+      setAkanDihapus(null);
+      setGalat(deskripsikanGalat(err, 'Menghapus Pengabdian', `kegiatan PKM «${nama}»`));
     } finally {
       setDeletingId(null);
     }
@@ -70,6 +78,7 @@ export const PengabdianPage: React.FC = () => {
   const totalDana = list.reduce((acc, curr) => acc + Number(curr.danaDisetujui || 0), 0);
 
   return (
+    <>
     <ListPageTemplate<PengabdianItem>
       title="Pengabdian Kepada Masyarakat (PKM)"
       description="Pemberdayaan mitra UMKM, pesantren binaan, dan komunitas melalui transfer kepakaran teknologi terapan civitas UNUSU."
@@ -80,21 +89,8 @@ export const PengabdianPage: React.FC = () => {
       }
       actions={
         <>
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="inline-flex items-center justify-center p-2.5 h-[42px] w-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
-            title="Segarkan Data"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <Link
-            to="/pengabdian/tambah"
-            className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
-          >
-            <PlusIcon className="w-5 h-5 text-amber-400" />
-            <span>Tambah Data</span>
-          </Link>
+          <ListActionButton onClick={loadData} disabled={loading} variant="secondary" icon={<ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}>Segarkan</ListActionButton>
+          <ListActionButton to="/pengabdian/tambah" icon={<PlusIcon className="w-4 h-4" />}>Tambah Data</ListActionButton>
         </>
       }
       stats={
@@ -274,25 +270,27 @@ export const PengabdianPage: React.FC = () => {
           cellClassName: 'text-center',
           render: (item) => (
             <div className="flex items-center justify-center gap-1.5">
-              <Link
+              <RowActionButton
                 to={`/pengabdian/edit/${item.id}`}
-                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
-                title="Edit PKM"
+                label={`Edit pengabdian ${item.judul}`}
               >
                 <PencilSquareIcon className="w-4 h-4" />
-              </Link>
-              <button
-                onClick={() => handleDelete(item.id, item.judul)}
+              </RowActionButton>
+              <RowActionButton
+                onClick={() => setAkanDihapus({ id: item.id, nama: item.judul })}
                 disabled={deletingId === item.id}
-                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
-                title="Hapus PKM"
+                variant="danger"
+                label={`Hapus pengabdian ${item.judul}`}
               >
                 <TrashIcon className="w-4 h-4" />
-              </button>
+              </RowActionButton>
             </div>
           ),
         },
       ]}
     />
+    <NotificationModal isOpen={Boolean(akanDihapus)} type="confirm" title="Hapus Pengabdian?" message={`Kegiatan PKM «${akanDihapus?.nama ?? ''}» akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`} confirmLabel="Hapus Pengabdian" onConfirm={handleDelete} onClose={() => setAkanDihapus(null)} loading={deletingId !== null} />
+    <NotificationModal isOpen={Boolean(galat)} type="error" title={galat?.title} message={galat?.message ?? ''} details={galat?.details} code={galat?.code} onClose={() => setGalat(null)} />
+    </>
   );
 };

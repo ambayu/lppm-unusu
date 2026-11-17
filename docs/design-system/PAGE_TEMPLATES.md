@@ -35,7 +35,7 @@ pemanggil existing serta dicatat di registri ini.
 |---|---|---|---|
 | **A. List / Table Page Template** | `/penelitian`, `/pengabdian`, `/publikasi` | `ProtectedRoute` -> `SidebarLayout` | `AdminPanelTemplate` -> [1. KPI Grid 4 Kolom] + [2. `CardContainer` Filter & Search] + [3. `CardContainer` Tabel Horizontal Scroll] |
 | **B. Form Page Template (Add / Edit)** | `/penelitian/tambah`, `/penelitian/edit/:id`, `/pengabdian/tambah`, `/pengabdian/edit/:id`, `/publikasi/tambah`, `/publikasi/edit/:id` | `ProtectedRoute` -> `SidebarLayout` | `AdminPanelTemplate` -> `<form>` -> [Multiple `CardContainer` per Seksi Field] + [Baris Tombol `Batal` & `Simpan`] |
-| **C. Public Landing Page** | `/` | Tanpa `SidebarLayout` | Top Announcement Strip + Sticky Public Header + `FullHeroSlider` + Seksi Profil, 3 Pilar Layanan, Skema Hibah, Statistik Kinerja, Alur Pengajuan, & Footer Kampus |
+| **C. Halaman publik** | `/` beserta anchor layanan/informasi | Tanpa `SidebarLayout` | Beranda memuat hero, layanan, skema, kinerja dan alur. Rute informasi lama dialihkan ke anchor. Lihat `docs/routes/public/RULES.md`. |
 | **D. Authentication & SSO Pages** | `/login`, `/sso/callback` | Tanpa `SidebarLayout` | Split-screen Login (`LoginPage` dengan `AnimatedFlatSsoLogo` & wallpaper kampus) serta Card Verifikasi Token Sekali Pakai (`SsoCallbackPage`) |
 
 *Dashboard*: Rute `/dashboard` aktif dan memakai `DashboardPageTemplate`, terpisah dari template tabel CRUD.
@@ -131,7 +131,7 @@ Sebelum membuat halaman baru di `src/client/pages/`:
   ```
 - **Poin Penting**:
   1. Tidak perlu lagi menulis `<form>`, blok galat, dan baris tombol Batal/Simpan secara manual — semuanya disediakan template.
-  2. Baris aksi (Batal + Simpan) selalu berada di **bawah** formulir dengan tap target minimal 42px.
+   2. Baris aksi (Batal + Simpan) selalu berada di **bawah** formulir dengan tap target minimal 44px dan fokus keyboard violet. Field dinonaktifkan saat detail belum siap atau penyimpanan berlangsung.
   3. `submitLabel` default otomatis: `Simpan Perubahan` saat `isEdit`, `Simpan Data` saat menambah.
   4. Tombol "Batal" mengarah ke `backTo`; tombol "Kembali" pada header juga mengarah ke sana.
   5. `accentClassName` disesuaikan dengan palette aplikasi (ESurat emerald, LPM/LPPM biru/violet, dll).
@@ -189,11 +189,11 @@ Seluruh aplikasi memakai satu struktur navbar yang sama (acuan:
 - `<header className="sticky top-0 z-50 bg-white border-b border-[#CBD5E1]">` dengan baris `h-16`.
 - **Kiri** — brand: kotak logo 36×36 (`w-9 h-9 rounded-[10px]`) berwarna primer repo, nama
   aplikasi, dan subteks kecil.
-- **Tengah** — menu desktop (`hidden md:flex`), tiap item ikon + label, `rounded-[8px]`,
+- **Tengah** — menu desktop (`hidden xl:flex`), Beranda/Monev/Layanan serta dropdown Informasi (Skema Hibah, Kinerja, Alur Pengajuan); label tidak membungkus, `rounded-[8px]`,
   item aktif memakai warna primer repo dan ditandai `aria-current="page"`.
 - **Kanan** — belum login: tautan "Website Kampus" + tombol "Masuk SSO" → `/login`
   (seluruh autentikasi lewat ONE UNUSU SSO). Sudah login: identitas (`user?.nama` — **LPPM
-  tidak punya field `name`**) + tombol `Keluar`. Hamburger `md:hidden`
+  tidak punya field `name`**) dipadatkan menjadi avatar hingga breakpoint 2xl + tombol `Keluar`. Hamburger `xl:hidden`
   (`min-h-[44px] min-w-[44px]`, `aria-label`, `aria-expanded`).
 - Menu mobile menutup diri setelah tautan diklik.
 - Navbar **disembunyikan di rute panel** (prefix rute modul + `/admin`), karena panel sudah

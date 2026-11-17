@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { RowActionButton } from '../components/RowActionButton';
 import { useAuth } from '../context/AuthContext';
 import { fetchDokumen, deleteDokumen, DokumenRecord } from '../services/api';
 import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
@@ -35,12 +35,10 @@ export const DokumenLppmPage: React.FC = () => {
       .then((res) => {
         setDocuments(res.data.data);
       })
-      .catch((err) => {
-        console.error(err);
-        setError(err.response?.data?.message || 'Gagal memuat arsip dokumen LPPM.');
-        setGalat(
-          deskripsikanGalat(err, 'Memuat Arsip Dokumen', 'daftar arsip dokumen LPPM'),
-        );
+      .catch((err: unknown) => {
+        const rincian = deskripsikanGalat(err, 'Memuat Arsip Dokumen', 'daftar arsip dokumen LPPM');
+        setError(rincian.message);
+        setGalat(rincian);
       })
       .finally(() => setLoading(false));
   };
@@ -50,14 +48,14 @@ export const DokumenLppmPage: React.FC = () => {
   }, []);
 
   const jalankanHapus = async () => {
-    if (!akanDihapus) return;
+    if (!akanDihapus || deletingId !== null) return;
     const target = akanDihapus;
     setDeletingId(target.id);
     try {
       await deleteDokumen(target.id);
       setAkanDihapus(null);
       loadData();
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setAkanDihapus(null);
       setGalat(
@@ -255,24 +253,20 @@ export const DokumenLppmPage: React.FC = () => {
           render: (item) =>
             bolehMenulis ? (
               <div className="inline-flex items-center justify-center gap-2">
-                <Link
+                <RowActionButton
                   to={`/admin/arsip-dokumen/edit/${item.id}`}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-[8px] border border-slate-200 text-slate-600 hover:text-emerald-800 hover:bg-emerald-50 transition cursor-pointer"
-                  title="Sunting Dokumen"
-                  aria-label={`Sunting ${item.judul}`}
+                  label={`Sunting dokumen ${item.judul}`}
                 >
                   <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
-                </Link>
-                <button
-                  type="button"
+                </RowActionButton>
+                <RowActionButton
                   onClick={() => setAkanDihapus(item)}
                   disabled={deletingId === item.id}
-                  title="Hapus Dokumen"
-                  aria-label={`Hapus ${item.judul}`}
-                  className="inline-flex items-center justify-center w-9 h-9 rounded-[8px] border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white transition cursor-pointer disabled:opacity-50"
+                  variant="danger"
+                  label={`Hapus dokumen ${item.judul}`}
                 >
                   <TrashIcon className="w-4 h-4" aria-hidden="true" />
-                </button>
+                </RowActionButton>
               </div>
             ) : (
               'Hanya Baca'

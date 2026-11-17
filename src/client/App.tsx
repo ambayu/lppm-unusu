@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { LandingPage } from './pages/Landing';
+import { LandingPage, LayananPage, SkemaHibahPage, KinerjaPage, AlurPengajuanPage } from './pages/Landing';
 import { DashboardPage } from './pages/Dashboard';
 import { PenelitianPage } from './pages/Penelitian';
 import { PenelitianFormPage } from './pages/PenelitianForm';
@@ -20,6 +20,7 @@ import { MonevSurveiListPage } from './pages/MonevSurveiList';
 import { MonevSurveiFormPage } from './pages/MonevSurveiForm';
 import { MonevRekapPage } from './pages/MonevRekap';
 import { MonevPeriodePage } from './pages/MonevPeriode';
+import { MonevSasaranPage } from './pages/MonevSasaran';
 import { MonevKategoriPage } from './pages/MonevKategori';
 import { MonevSoalPage } from './pages/MonevSoal';
 import { MonevRespondenPage } from './pages/MonevResponden';
@@ -142,6 +143,10 @@ export function App() {
           <Routes>
             {/* Landing page publik tanpa sidebar (tidak ada redirect default ke /admin) */}
             <Route path="/" element={<LandingPage />} />
+            <Route path="/layanan" element={<LayananPage />} />
+            <Route path="/skema-hibah" element={<SkemaHibahPage />} />
+            <Route path="/kinerja" element={<KinerjaPage />} />
+            <Route path="/alur-pengajuan" element={<AlurPengajuanPage />} />
 
             {/* SSO & Auth */}
             <Route path="/login" element={<LoginPage />} />
@@ -443,12 +448,21 @@ export function App() {
               }
             />
 
-            {/* 8. Kuesioner Survei Monev Dinamis (Mahasiswa & Civitas Langsung di Halaman Publik) */}
+            {/* 8. Kuesioner Survei Monev Dinamis (Publik) */}
             <Route path="/monev-survei" element={<MonevSurveiListPage />} />
             <Route path="/monev-survei/:id" element={<MonevSurveiFormPage />} />
-            <Route path="/monev-survei/:id/rekap" element={<MonevRekapPage />} />
 
             {/* 9. Master Monev di Panel Admin */}
+            <Route
+              path="/monev-survei/:id/rekap"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevRekapPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/admin/monev-periode"
               element={
@@ -462,6 +476,20 @@ export function App() {
             <Route
               path="/monev-periode"
               element={<Navigate to="/admin/monev-periode" replace />}
+            />
+            <Route
+              path="/admin/monev-sasaran"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevSasaranPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev-sasaran"
+              element={<Navigate to="/admin/monev-sasaran" replace />}
             />
             <Route
               path="/monev-kategori"
@@ -523,6 +551,11 @@ export function App() {
             {['/admin/monev-periode/tambah', '/admin/monev-periode/edit/:id'].map((path) => (
               <Route key={path} path={path} element={
                 <ProtectedRoute><SidebarLayout><MonevPeriodePage /></SidebarLayout></ProtectedRoute>
+              } />
+            ))}
+            {['/admin/monev-sasaran/tambah', '/admin/monev-sasaran/edit/:id'].map((path) => (
+              <Route key={path} path={path} element={
+                <ProtectedRoute><SidebarLayout><MonevSasaranPage /></SidebarLayout></ProtectedRoute>
               } />
             ))}
             {['/monev-kategori/tambah', '/monev-kategori/edit/:id'].map((path) => (

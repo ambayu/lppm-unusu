@@ -396,6 +396,23 @@ model MonevPeriode {
   @@map("lppm_monev_periode")
 }
 
+model MonevSasaranAudiens {
+  id        Int      @id @default(autoincrement())
+  kode      String   @unique @db.VarChar(50) // misal: MAHASISWA, DOSEN_TENDIK, SEMUA, ALUMNI
+  nama      String   @db.VarChar(150)        // misal: Mahasiswa
+  sublabel  String?  @db.VarChar(200)        // misal: Survei Evaluasi Pembelajaran & Ujian
+  deskripsi String?  @db.Text
+  badge     String?  @db.VarChar(100)        // misal: Civitas Mahasiswa
+  ikon      String?  @db.VarChar(50)         // misal: AcademicCapIcon, BriefcaseIcon, BuildingLibraryIcon
+  urutan    Int      @default(0)
+  aktif     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([aktif, urutan])
+  @@map("lppm_monev_sasaran_audiens")
+}
+
 model MonevSurvei {
   id             Int                @id @default(autoincrement())
   periodeId      Int

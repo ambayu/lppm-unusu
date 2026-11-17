@@ -20,9 +20,9 @@ Gunakan nilai radius sudut dan ukuran yang konsisten sesuai dengan komponen aktu
 |---|---|---|
 | Panel Utama (`AdminPanelTemplate`) | `rounded-[16px] border border-[#CBD5E1]` | Radius `16px`, padding header & body `p-5 sm:p-6` |
 | Kartu Kontainer (`CardContainer`) & KPI Card | `rounded-[14px] border border-[#CBD5E1]` | Radius `14px`, padding konten `p-5` (KPI: `p-4 sm:p-5`) |
-| Item Navigasi Sidebar, Tombol Aksi, & Input Form | `rounded-[12px]` | Radius `12px`, tinggi tombol utama `h-[42px]` |
+| Item Navigasi Sidebar, Tombol Aksi, & Input Form | `rounded-[12px]` | Radius `12px`, target tombol utama minimum `44px` |
 | Tombol Toggle Sidebar & Mobile Header Button | `rounded-[10px] border border-[#CBD5E1]` | Radius `10px` |
-| Ikon Indikator di Dalam Sidebar & Tombol Aksi Tabel | `rounded-[8px]` | Radius `8px` (`w-8 h-8` untuk nav icon, `p-1.5` untuk aksi tabel) |
+| Ikon Indikator di Dalam Sidebar & Tombol Aksi Tabel | `rounded-[8px]` | Radius `8px`; nav icon `w-8 h-8`, aksi tabel `RowActionButton` minimum `44×44px` dengan ikon `16px` |
 | Tinggi Header Sidebar & Topbar Desktop | `h-[88px]` | Tinggi presisi `88px` agar garis `border-b` sejajar lurus |
 
 ---

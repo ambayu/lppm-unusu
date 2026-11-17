@@ -1,5 +1,8 @@
 # Dokumentasi Proyek LPPM UNUSU
 
+- [Halaman publik dan navigasi](./routes/public/RULES.md).
+- Regresi halaman publik: `node tests/public-pages.test.cjs`.
+
 Selamat datang di repositori dokumentasi teknis dan desain untuk **LPPM UNUSU** (Lembaga Penelitian dan Pengabdian kepada Masyarakat — Universitas Nahdlatul Ulama Sumatera Utara).
 
 ## Tujuan Proyek

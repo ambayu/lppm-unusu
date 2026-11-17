@@ -1,5 +1,49 @@
 # CHANGELOG — LPPM UNUSU
 
+## [2026-11-18] — Kembalikan seksi landing utama
+
+- Layanan, Skema Hibah, Kinerja dan Alur Pengajuan kembali tampil di beranda.
+  Navbar ringkas dipertahankan dengan tautan anchor; rute terpisah dialihkan
+  ke seksi terkait agar tautan lama tetap bekerja. Tes publik disesuaikan.
+
+## [2026-11-18] — Halaman publik terpisah dan navbar ringkas
+
+- Memisahkan Layanan, Skema Hibah, Kinerja dan Alur Pengajuan ke rute publik
+  tersendiri; beranda mempertahankan hero/pengantar. Semua memakai satu
+  `PublicLayout`, `Navbar`, dan `PublicFooter` tanpa duplikasi seksi.
+- Navbar desktop memuat Beranda, Monev, Layanan dan dropdown Informasi.
+  Menu hamburger dipakai di bawah xl; identitas akun dipadatkan hingga 2xl.
+- Hash landing lama dialihkan ke rute baru; `#tentang` tetap menggulir.
+- Menghapus pengambilan arsip terproteksi dan angka statis dari halaman publik.
+  Kinerja menampilkan keterangan bahwa rekap publik belum tersedia.
+- Aturan rute, registri template/komponen dan tes publik diperbarui. Endpoint
+  slider existing tidak diubah; akses hero anonim perlu verifikasi terpisah.
+
+## [2026-11-18] — Kolom kategori Monev
+
+### Changed
+- Menghapus kolom `Urutan` dari tabel kategori Monev; kolom `No` tetap tersedia dan pengaturan urutan pada form tidak diubah.
+- Menghapus kolom `Urutan` dari tabel soal Monev, termasuk daftar yang difilter melalui `surveiId`; pengaturan urutan pada form tetap dipertahankan.
+
+## [2026-11-18] — Nomor urut tabel
+
+### Changed
+- Semua tabel `DataTable` memiliki kolom pertama `No`, judul/isi rata tengah dan nomor urut berdasarkan baris yang tampil. Kolom No lama dinormalisasi agar tidak ganda; nomor dokumen tetap dipertahankan.
+
+## [2026-11-18] — Keseragaman detail aksi dan field panel
+
+### Added
+- `RowActionButton` menyediakan tombol ikon minimum 44×44px, fokus keyboard dan label aksesibel; tes komponen mencakup navigasi, disabled dan varian destruktif.
+
+### Changed
+- Aksi master Monev dan kartu slider memakai tombol bersama; Kelola Soal tetap mempertahankan teks/penghitung dengan geometri 44px. Header Monev memakai ikon segarkan/tambah dan label `Tambah Data`.
+- Aksi edit/hapus daftar inti, dokumen, kategori, izin, pengguna dan kartu peran memakai tombol bersama; konfirmasi dan galat aksi panel memakai `NotificationModal` menggantikan dialog browser.
+- Field master Monev, dokumen, kategori dan pengguna memakai fokus violet serta radius konsisten; heading biodata/peran pengguna menggunakan prop `CardContainer`.
+- Tombol form minimum 44px; field terkunci saat penyimpanan. Modal informasi memakai violet, sedangkan sukses tetap hijau dan galat tetap rose.
+
+### Documentation
+- Aturan aksi bersama dan token ukuran diperbarui dalam registri komponen, template, desain dan aturan halaman.
+
 ## [2026-11-18] — Keputusan akses masuk per peran ONE UNUSU
 
 - Ditegaskan di `docs/PROJECT_RULES.md`: saat login, akun dicari berdasarkan `userId` ONE; akun aktif memakai peran/izin yang sudah ditetapkan melalui Manajemen Pengguna LPPM, tanpa penetapan ulang atau pemetaan peran otomatis.

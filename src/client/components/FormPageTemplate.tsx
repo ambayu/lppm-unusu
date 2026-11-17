@@ -85,7 +85,7 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
       actions={
         <Link
           to={backTo}
-          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold shadow-2xs transition-all shrink-0"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 min-h-[44px] rounded-[12px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold shadow-2xs transition-all shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700"
         >
           <ArrowLeftIcon className="w-4 h-4 text-slate-500" aria-hidden="true" />
           <span>{backLabel}</span>
@@ -110,7 +110,7 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
             </div>
           )}
 
-          <fieldset disabled={submitDisabled} className="min-w-0 space-y-6">
+          <fieldset disabled={submitDisabled || submitting} className="min-w-0 space-y-6">
             {children}
           </fieldset>
 
@@ -121,14 +121,14 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
                 type="button"
                 onClick={onCancel}
                 disabled={submitting}
-                className="inline-flex items-center justify-center px-5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold transition-all shadow-2xs disabled:opacity-50"
+                className="inline-flex items-center justify-center px-5 py-2.5 min-h-[44px] rounded-[12px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold transition-all shadow-2xs disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700"
               >
                 {cancelLabel}
               </button>
             ) : (
               <Link
                 to={backTo}
-                className="inline-flex items-center justify-center px-5 py-2.5 h-[42px] rounded-[12px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold transition-all shadow-2xs"
+                className="inline-flex items-center justify-center px-5 py-2.5 min-h-[44px] rounded-[12px] border border-[#CBD5E1] bg-white hover:bg-slate-50 text-slate-700 text-sm font-bold transition-all shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700"
               >
                 {cancelLabel}
               </Link>
@@ -137,7 +137,7 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
             <button
               type="submit"
               disabled={submitting || submitDisabled}
-              className={`inline-flex items-center justify-center gap-2.5 px-6 py-2.5 h-[42px] rounded-[12px] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer ${accentClassName}`}
+              className={`inline-flex items-center justify-center gap-2.5 px-6 py-2.5 min-h-[44px] rounded-[12px] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700 focus-visible:ring-offset-2 ${accentClassName}`}
             >
               <CheckIcon className={`w-5 h-5 ${submitIconClassName}`} aria-hidden="true" />
               <span>{submitting ? 'Menyimpan...' : finalSubmitLabel}</span>

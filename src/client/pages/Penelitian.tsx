@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { RowActionButton } from '../components/RowActionButton';
+import { NotificationModal } from '../components/NotificationModal';
+import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
 import { fetchPenelitian, deletePenelitian, PenelitianItem } from '../services/api';
-import { ListPageTemplate } from '../components/ListPageTemplate';
+import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
 import {
   BeakerIcon,
   PlusIcon,
@@ -19,6 +21,9 @@ export const PenelitianPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [selectedBidangFokus, setSelectedBidangFokus] = useState('SEMUA');
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [akanDihapus, setAkanDihapus] = useState<{ id: number; nama: string } | null>(null);
+  const [galat, setGalat] = useState<DeskripsiGalat | null>(null);
+  const [pesanEkspor, setPesanEkspor] = useState(false);
 
   const loadData = () => {
     setLoading(true);
@@ -28,9 +33,10 @@ export const PenelitianPage: React.FC = () => {
         const rawData = res.data?.data;
         setList(Array.isArray(rawData) ? rawData : []);
       })
-      .catch((err) => {
-        console.error(err);
-        setError(err.response?.data?.message || 'Gagal memuat data penelitian.');
+      .catch((err: unknown) => {
+        const rincian = deskripsikanGalat(err, 'Memuat Penelitian', 'daftar penelitian LPPM');
+        setError(rincian.message);
+        setGalat(rincian);
       })
       .finally(() => setLoading(false));
   };
@@ -39,14 +45,17 @@ export const PenelitianPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (id: number, judul?: string) => {
-    if (!window.confirm(`Yakin ingin menghapus proposal penelitian "${judul || 'ini'}"?`)) return;
+  const handleDelete = async () => {
+    if (!akanDihapus || deletingId !== null) return;
+    const { id, nama } = akanDihapus;
     setDeletingId(id);
     try {
       await deletePenelitian(id);
+      setAkanDihapus(null);
       loadData();
-    } catch (err: any) {
-      alert(err.response?.data?.message || 'Gagal menghapus penelitian');
+    } catch (err: unknown) {
+      setAkanDihapus(null);
+      setGalat(deskripsikanGalat(err, 'Menghapus Penelitian', `penelitian «${nama}»`));
     } finally {
       setDeletingId(null);
     }
@@ -93,7 +102,7 @@ export const PenelitianPage: React.FC = () => {
 
   const handleExportExcel = () => {
     if (filteredList.length === 0) {
-      alert('Tidak ada data penelitian untuk diekspor.');
+      setPesanEkspor(true);
       return;
     }
 
@@ -111,7 +120,7 @@ export const PenelitianPage: React.FC = () => {
       'Tanggal Dibuat',
     ];
 
-    const escapeCsv = (val: any) => {
+    const escapeCsv = (val: unknown) => {
       if (val === null || val === undefined) return '""';
       const str = String(val).replace(/"/g, '""');
       return `"${str}"`;
@@ -148,6 +157,7 @@ export const PenelitianPage: React.FC = () => {
   };
 
   return (
+    <>
     <ListPageTemplate<PenelitianItem>
       title="Pangkalan Data Penelitian Dosen"
       description="Kelola usulan hibah, pemantauan kemajuan riset, dan pelaporan luaran penelitian civitas akademika UNUSU."
@@ -158,30 +168,16 @@ export const PenelitianPage: React.FC = () => {
       }
       actions={
         <>
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="inline-flex items-center justify-center p-2.5 h-[42px] w-[42px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
-            title="Segarkan Data"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
-          <button
+          <ListActionButton onClick={loadData} disabled={loading} variant="secondary" icon={<ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}>Segarkan</ListActionButton>
+          <ListActionButton
             onClick={handleExportExcel}
             disabled={loading || filteredList.length === 0}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] border border-emerald-600 bg-white hover:bg-emerald-50 text-emerald-700 text-sm font-bold transition-all shadow-2xs hover:shadow-sm disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-            title="Export Data ke Excel (.csv)"
+            variant="secondary"
+            icon={<ArrowDownTrayIcon className="w-4 h-4" />}
           >
-            <ArrowDownTrayIcon className="w-5 h-5 text-emerald-600" />
-            <span>Export Excel</span>
-          </button>
-          <Link
-            to="/penelitian/tambah"
-            className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
-          >
-            <PlusIcon className="w-5 h-5 text-amber-400" />
-            <span>Tambah Data</span>
-          </Link>
+            Export Excel
+          </ListActionButton>
+          <ListActionButton to="/penelitian/tambah" icon={<PlusIcon className="w-4 h-4" />}>Tambah Data</ListActionButton>
         </>
       }
       stats={
@@ -357,25 +353,28 @@ export const PenelitianPage: React.FC = () => {
           cellClassName: 'text-center',
           render: (item) => (
             <div className="flex items-center justify-center gap-1.5">
-              <Link
+              <RowActionButton
                 to={`/penelitian/edit/${item.id}`}
-                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors shadow-2xs"
-                title="Edit Penelitian"
+                label={`Edit penelitian ${item.judul}`}
               >
                 <PencilSquareIcon className="w-4 h-4" />
-              </Link>
-              <button
-                onClick={() => handleDelete(item.id, item.judul)}
+              </RowActionButton>
+              <RowActionButton
+                onClick={() => setAkanDihapus({ id: item.id, nama: item.judul })}
                 disabled={deletingId === item.id}
-                className="p-1.5 rounded-[8px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition-colors shadow-2xs cursor-pointer"
-                title="Hapus Penelitian"
+                variant="danger"
+                label={`Hapus penelitian ${item.judul}`}
               >
                 <TrashIcon className="w-4 h-4" />
-              </button>
+              </RowActionButton>
             </div>
           ),
         },
       ]}
     />
+    <NotificationModal isOpen={Boolean(akanDihapus)} type="confirm" title="Hapus Penelitian?" message={`Penelitian «${akanDihapus?.nama ?? ''}» akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`} confirmLabel="Hapus Penelitian" onConfirm={handleDelete} onClose={() => setAkanDihapus(null)} loading={deletingId !== null} />
+    <NotificationModal isOpen={Boolean(galat)} type="error" title={galat?.title} message={galat?.message ?? ''} details={galat?.details} code={galat?.code} onClose={() => setGalat(null)} />
+    <NotificationModal isOpen={pesanEkspor} type="info" title="Ekspor Penelitian" message="Tidak ada data penelitian untuk diekspor." onClose={() => setPesanEkspor(false)} />
+    </>
   );
 };

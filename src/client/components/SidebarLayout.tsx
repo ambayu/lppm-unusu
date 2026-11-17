@@ -213,6 +213,12 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       izin: IZIN_FITUR.monevSurveiKelola,
     },
     {
+      path: '/admin/monev-sasaran',
+      label: 'Sasaran Audiens',
+      desc: 'Mahasiswa, Dosen, Tendik, dll',
+      izin: IZIN_FITUR.monevSurveiKelola,
+    },
+    {
       path: '/admin/monev-periode',
       label: 'Periode Monev',
       desc: 'Tahun Akademik & Masa Kuesioner',
@@ -223,12 +229,6 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       label: 'Monev Responden',
       desc: 'Log Pengisi & Detail Respon Masuk',
       izin: IZIN_FITUR.monevSurveiKelola,
-    },
-    {
-      path: '/monev',
-      label: 'Monev Riset & PKM',
-      desc: 'Penilaian Luaran & Kemajuan Hibah',
-      izin: IZIN_FITUR.monevLihat,
     },
   ].filter((item) => !item.izin || bisa(item.izin));
 
@@ -278,6 +278,7 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path.startsWith('/monev-survei/') && path.endsWith('/rekap')) return 'Rekapitulasi Hasil Survei Monev';
     if (path.startsWith('/monev-survei/')) return 'Isi Kuesioner Monev';
     if (path === '/monev-kategori') return 'Kategori Instrumen Monev';
+    if (path === '/admin/monev-sasaran' || path === '/monev-sasaran') return 'Sasaran Audiens Monev';
     if (path === '/admin/monev-periode' || path === '/monev-periode') return 'Master Periode Monev';
     if (path === '/monev-soal') return 'Monev Soal (Bank Soal Mutu)';
     if (path === '/monev-responden') return 'Monev Responden (Daftar Pengisi)';

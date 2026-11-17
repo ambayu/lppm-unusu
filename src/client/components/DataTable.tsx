@@ -82,6 +82,9 @@ export function DataTable<T>({
    */
   const headTypeClass = `${headClass} font-bold leading-tight`;
   const cellTypeClass = `${tableTextClass} font-medium leading-normal`;
+  const dataColumns = columns.filter((column) =>
+    column.key !== 'no' && !(typeof column.header === 'string' && /^no\.?$/i.test(column.header.trim()))
+  );
 
   if (loading) {
     return (
@@ -111,7 +114,8 @@ export function DataTable<T>({
         >
           <thead>
             <tr className="border-b border-[#CBD5E1] bg-slate-50/70 text-slate-600 font-bold uppercase tracking-wider">
-              {columns.map((col) => (
+              <th scope="col" className={`${cellPadding} ${headTypeClass} w-16 text-center normal-case`}>No</th>
+              {dataColumns.map((col) => (
                 <th
                   key={col.key}
                   scope="col"
@@ -125,7 +129,8 @@ export function DataTable<T>({
           <tbody className="divide-y divide-[#CBD5E1]/60">
             {rows.map((row, index) => (
               <tr key={rowKey(row, index)} className="hover:bg-slate-50/80 transition-colors">
-                {columns.map((col) => (
+                <td className={`${cellPadding} ${cellTypeClass} text-center tabular-nums`}>{index + 1}</td>
+                {dataColumns.map((col) => (
                   <td key={col.key} className={`${cellPadding} ${cellTypeClass} ${col.cellClassName ?? ''}`}>
                     {col.render
                       ? col.render(row, index)

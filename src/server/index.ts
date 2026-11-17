@@ -482,6 +482,7 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
   // Endpoint survei publik & pengisian kuesioner mutu anonim dapat diakses tanpa token
   const isPublicMonev =
     req.path === "/monev-survei/aktif" ||
+    (req.path === "/monev-survei/sasaran-audiens" && req.method === "GET") ||
     (/^\/monev-survei\/\d+$/.test(req.path) && req.method === "GET") ||
     (/^\/monev-survei\/\d+\/submit$/.test(req.path) && req.method === "POST");
 
@@ -2722,6 +2723,147 @@ app.delete("/api/dokumen/:id", requirePermission("dokumen.delete"), async (req: 
 });
 
 // ===========================================================================
+// MONEV SASARAN AUDIENS MASTER API
+// ===========================================================================
+
+// GET /api/monev-survei/sasaran-audiens (Publik & Admin)
+app.get("/api/monev-survei/sasaran-audiens", async (_req: Request, res: Response) => {
+  try {
+    let list = await prisma.monevSasaranAudiens.findMany({
+      orderBy: [{ urutan: "asc" }, { id: "asc" }],
+    });
+
+    // Seed default awal jika tabel masih kosong
+    if (list.length === 0) {
+      await prisma.monevSasaranAudiens.createMany({
+        data: [
+          {
+            kode: "MAHASISWA",
+            nama: "Mahasiswa",
+            sublabel: "Survei Evaluasi Pembelajaran & Ujian",
+            deskripsi: "Evaluasi proses belajar mengajar dosen, perkuliahan, fasilitas praktikum, dan pelaksanaan ujian semester.",
+            badge: "Civitas Mahasiswa",
+            ikon: "AcademicCapIcon",
+            urutan: 1,
+            aktif: true,
+          },
+          {
+            kode: "DOSEN_TENDIK",
+            nama: "Dosen & Tenaga Kependidikan",
+            sublabel: "Survei Kepuasan Kerja & Layanan Kampus",
+            deskripsi: "Evaluasi iklim akademik, sarana prasarana penunjang riset, tata kelola SDM, dan kepuasan layanan operasional.",
+            badge: "Dosen & Tendik",
+            ikon: "BriefcaseIcon",
+            urutan: 2,
+            aktif: true,
+          },
+          {
+            kode: "SEMUA",
+            nama: "Seluruh Civitas Akademika",
+            sublabel: "Survei Layanan Informasi & Tata Kelola Umum",
+            deskripsi: "Evaluasi kepuasan sistem informasi terpadu, perpustakaan, transparansi birokrasi, dan mutu layanan kampus.",
+            badge: "Umum / Semua",
+            ikon: "BuildingLibraryIcon",
+            urutan: 3,
+            aktif: true,
+          },
+        ],
+      });
+      list = await prisma.monevSasaranAudiens.findMany({
+        orderBy: [{ urutan: "asc" }, { id: "asc" }],
+      });
+    }
+
+    res.json({ success: true, data: list });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal memuat sasaran audiens: " + (error?.message || "") });
+  }
+});
+
+// POST /api/monev-survei/sasaran-audiens (Admin)
+app.post("/api/monev-survei/sasaran-audiens", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const { kode, nama, sublabel, deskripsi, badge, ikon, urutan, aktif } = req.body;
+    if (!kode || !nama) {
+      return res.status(400).json({ success: false, message: "Kode dan Nama sasaran wajib diisi" });
+    }
+
+    const created = await prisma.monevSasaranAudiens.create({
+      data: {
+        kode: String(kode).trim().toUpperCase(),
+        nama: String(nama).trim(),
+        sublabel: sublabel ? String(sublabel).trim() : null,
+        deskripsi: deskripsi ? String(deskripsi).trim() : null,
+        badge: badge ? String(badge).trim() : null,
+        ikon: ikon ? String(ikon).trim() : "UserGroupIcon",
+        urutan: Number(urutan) || 0,
+        aktif: aktif !== undefined ? Boolean(aktif) : true,
+      },
+    });
+
+    res.status(201).json({ success: true, data: created, message: "Sasaran audiens berhasil ditambahkan" });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return res.status(400).json({ success: false, message: `Kode sasaran «${req.body.kode}» sudah digunakan.` });
+    }
+    res.status(500).json({ success: false, message: "Gagal membuat sasaran audiens: " + (error?.message || "") });
+  }
+});
+
+// PUT /api/monev-survei/sasaran-audiens/:id (Admin)
+app.put("/api/monev-survei/sasaran-audiens/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { nama, sublabel, deskripsi, badge, ikon, urutan, aktif } = req.body;
+
+    const updated = await prisma.monevSasaranAudiens.update({
+      where: { id },
+      data: {
+        nama: nama ? String(nama).trim() : undefined,
+        sublabel: sublabel !== undefined ? (sublabel ? String(sublabel).trim() : null) : undefined,
+        deskripsi: deskripsi !== undefined ? (deskripsi ? String(deskripsi).trim() : null) : undefined,
+        badge: badge !== undefined ? (badge ? String(badge).trim() : null) : undefined,
+        ikon: ikon !== undefined ? (ikon ? String(ikon).trim() : "UserGroupIcon") : undefined,
+        urutan: urutan !== undefined ? Number(urutan) : undefined,
+        aktif: aktif !== undefined ? Boolean(aktif) : undefined,
+      },
+    });
+
+    res.json({ success: true, data: updated, message: "Sasaran audiens berhasil diperbarui" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui sasaran audiens: " + (error?.message || "") });
+  }
+});
+
+// DELETE /api/monev-survei/sasaran-audiens/:id (Admin)
+app.delete("/api/monev-survei/sasaran-audiens/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const item = await prisma.monevSasaranAudiens.findUnique({ where: { id } });
+    if (!item) {
+      return res.status(404).json({ success: false, message: "Sasaran audiens tidak ditemukan" });
+    }
+
+    // Cek apakah ada survei yang menggunakan kode sasaran ini
+    const terpakai = await prisma.monevSurvei.count({
+      where: { targetAudiens: item.kode as any },
+    });
+
+    if (terpakai > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Tidak dapat menghapus sasaran «${item.nama}» karena masih digunakan oleh ${terpakai} instrumen kuesioner.`,
+      });
+    }
+
+    await prisma.monevSasaranAudiens.delete({ where: { id } });
+    res.json({ success: true, message: "Sasaran audiens berhasil dihapus" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal menghapus sasaran audiens: " + (error?.message || "") });
+  }
+});
+
+// ===========================================================================
 // MONEV SURVEI & PERIODE DINAMIS API
 // ===========================================================================
 
@@ -2794,6 +2936,35 @@ app.put("/api/monev-survei/periode/:id", requirePermission("monev.survei.manage"
     res.json({ success: true, data: updated, message: "Periode berhasil diperbarui" });
   } catch (error: any) {
     res.status(500).json({ success: false, message: "Gagal memperbarui periode: " + (error?.message || "") });
+  }
+});
+
+// DELETE /api/monev-survei/periode/:id (Hapus periode monev)
+app.delete("/api/monev-survei/periode/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, message: "ID periode tidak valid." });
+    }
+
+    const jumlahSurvei = await prisma.monevSurvei.count({
+      where: { periodeId: id },
+    });
+
+    if (jumlahSurvei > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Tidak dapat menghapus periode ini karena masih memiliki ${jumlahSurvei} instrumen survei terkait. Hapus atau pindahkan instrumen survei terlebih dahulu.`,
+      });
+    }
+
+    await prisma.monevPeriode.delete({
+      where: { id },
+    });
+
+    res.json({ success: true, message: "Periode monev berhasil dihapus." });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal menghapus periode: " + (error?.message || "") });
   }
 });
 

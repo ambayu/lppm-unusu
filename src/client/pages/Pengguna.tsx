@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { RowActionButton } from '../components/RowActionButton';
 import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
 import { NotificationModal } from '../components/NotificationModal';
 import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
@@ -277,23 +278,21 @@ export const PenggunaPage: React.FC = () => {
                       cellClassName: 'text-center',
                       render: (item: (typeof filteredUsers)[number]) => (
                         <div className="inline-flex items-center justify-center gap-2">
-                          <Link
+                          <RowActionButton
                             to={`/pengguna/edit/${item.id}`}
-                            className="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-violet-600 hover:bg-violet-50 rounded-[8px] border border-slate-200 transition-colors"
-                            title="Edit Pengguna"
-                            aria-label={`Edit ${item.nama}`}
+                            label={`Edit pengguna ${item.nama}`}
                           >
                             <PencilSquareIcon className="w-4 h-4" />
-                          </Link>
+                          </RowActionButton>
                           {!isSuperadmin(item) && (
-                            <button
+                            <RowActionButton
                                onClick={() => setAkanDihapus(item)}
-                              className="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-[8px] border border-slate-200 transition-colors cursor-pointer"
-                              title="Hapus Pengguna"
-                              aria-label={`Hapus ${item.nama}`}
+                              variant="danger"
+                              disabled={menghapus}
+                              label={`Hapus pengguna ${item.nama}`}
                             >
                               <TrashIcon className="w-4 h-4" />
-                            </button>
+                            </RowActionButton>
                           )}
                         </div>
                       ),

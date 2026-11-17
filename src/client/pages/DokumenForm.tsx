@@ -327,7 +327,7 @@ export const DokumenLppmFormPage: React.FC = () => {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label htmlFor="judul" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="judul" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Judul Dokumen <span className="text-red-500">*</span>
               </label>
               <input
@@ -337,12 +337,12 @@ export const DokumenLppmFormPage: React.FC = () => {
                 value={formData.judul}
                 onChange={(e) => setFormData({ ...formData, judul: e.target.value })}
                 placeholder="Masukkan judul dokumen LPPM"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="nomor" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="nomor" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Nomor Dokumen
               </label>
               <input
@@ -351,12 +351,12 @@ export const DokumenLppmFormPage: React.FC = () => {
                 value={formData.nomor}
                 onChange={(e) => setFormData({ ...formData, nomor: e.target.value })}
                 placeholder="Contoh: UNUSU/LPPM/PND/2026/012"
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="kategoriId" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="kategoriId" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Kategori <span className="text-red-500">*</span>
               </label>
               <select
@@ -364,7 +364,7 @@ export const DokumenLppmFormPage: React.FC = () => {
                 required
                 value={formData.kategoriId}
                 onChange={(e) => setFormData({ ...formData, kategoriId: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               >
                 <option value="">Pilih Kategori</option>
                 {kategoriList.map((kat) => (
@@ -376,7 +376,7 @@ export const DokumenLppmFormPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="tahun" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="tahun" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Tahun Dokumen <span className="text-red-500">*</span>
               </label>
               <input
@@ -389,12 +389,12 @@ export const DokumenLppmFormPage: React.FC = () => {
                 placeholder="Contoh: 2026"
                 value={formData.tahun}
                 onChange={(e) => setFormData({ ...formData, tahun: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="tujuanPublish" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="tujuanPublish" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Tujuan Publikasi <span className="text-red-500">*</span>
               </label>
               <select
@@ -409,7 +409,7 @@ export const DokumenLppmFormPage: React.FC = () => {
                     prodiName: val === 'prodi' ? prev.prodiName : '',
                   }));
                 }}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               >
                 <option value="lppm">LPPM (Internal Lembaga)</option>
                 <option value="prodi">Program Studi (Prodi)</option>
@@ -418,7 +418,7 @@ export const DokumenLppmFormPage: React.FC = () => {
 
             {formData.tujuanPublish === 'prodi' && (
               <div>
-                <label htmlFor="prodiCode" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label htmlFor="prodiCode" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Pilih Program Studi <span className="text-red-500">*</span>
                 </label>
                 <select
@@ -433,7 +433,7 @@ export const DokumenLppmFormPage: React.FC = () => {
                       prodiName: selected ? `${selected.name}${selected.degree ? ` (${selected.degree})` : ''}` : '',
                     }));
                   }}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
                 >
                   <option value="">Pilih Program Studi Tujuan</option>
                   {prodiList.map((p) => (
@@ -456,7 +456,7 @@ export const DokumenLppmFormPage: React.FC = () => {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label htmlFor="tanggalDokumen" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="tanggalDokumen" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Tanggal Dokumen
               </label>
               <input
@@ -464,12 +464,12 @@ export const DokumenLppmFormPage: React.FC = () => {
                 type="date"
                 value={formData.tanggalDokumen}
                 onChange={(e) => setFormData({ ...formData, tanggalDokumen: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="tanggalMulaiBerlaku" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="tanggalMulaiBerlaku" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Tanggal Mulai Berlaku
               </label>
               <input
@@ -477,12 +477,12 @@ export const DokumenLppmFormPage: React.FC = () => {
                 type="date"
                 value={formData.tanggalMulaiBerlaku}
                 onChange={(e) => setFormData({ ...formData, tanggalMulaiBerlaku: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="tanggalBerakhir" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="tanggalBerakhir" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Tanggal Berakhir
               </label>
               <input
@@ -490,19 +490,19 @@ export const DokumenLppmFormPage: React.FC = () => {
                 type="date"
                 value={formData.tanggalBerakhir}
                 onChange={(e) => setFormData({ ...formData, tanggalBerakhir: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="status" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="status" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Status
               </label>
               <select
                 id="status"
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               >
                 <option value="Aktif">Aktif</option>
                 <option value="Draft">Draft</option>
@@ -518,7 +518,7 @@ export const DokumenLppmFormPage: React.FC = () => {
         >
           <div className="space-y-4">
             <div>
-              <label htmlFor="keterangan" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="keterangan" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Keterangan
               </label>
               <textarea
@@ -527,12 +527,12 @@ export const DokumenLppmFormPage: React.FC = () => {
                 value={formData.keterangan}
                 onChange={(e) => setFormData({ ...formData, keterangan: e.target.value })}
                 placeholder="Tuliskan ringkasan isi dokumen atau panduan teknis..."
-                className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
               />
             </div>
 
             <div>
-              <label htmlFor="uploadFile" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              <label htmlFor="uploadFile" className="block text-xs font-bold text-slate-700 mb-1.5">
                 Upload File PDF {isEdit ? '(Opsional - Biarkan kosong bila tidak diganti)' : ''}
               </label>
               <input
@@ -541,7 +541,7 @@ export const DokumenLppmFormPage: React.FC = () => {
                 accept=".pdf,application/pdf"
                 disabled={mengunggah}
                 onChange={handleFileUpload}
-                className="w-full px-3.5 py-2 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-900 hover:file:bg-emerald-100 transition disabled:opacity-60"
+                className="w-full px-3.5 py-2 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 file:mr-4 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-semibold file:bg-violet-50 file:text-violet-900 hover:file:bg-violet-100 transition-colors disabled:opacity-60"
               />
               <p className="text-[11px] text-slate-500 mt-1">
                 Format berkas wajib PDF. Maksimal {BATAS_UKURAN_PDF_MB} MB.
@@ -578,14 +578,14 @@ export const DokumenLppmFormPage: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
               <div>
-                <label htmlFor="tampilkanDiWebsite" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label htmlFor="tampilkanDiWebsite" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Tampilkan di Website
                 </label>
                 <select
                   id="tampilkanDiWebsite"
                   value={formData.tampilkanDiWebsite}
                   onChange={(e) => setFormData({ ...formData, tampilkanDiWebsite: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
                 >
                   <option value="Ya">Ya</option>
                   <option value="Tidak">Tidak</option>
@@ -593,14 +593,14 @@ export const DokumenLppmFormPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="dokumenAkreditasi" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label htmlFor="dokumenAkreditasi" className="block text-xs font-bold text-slate-700 mb-1.5">
                   Dokumen Akreditasi
                 </label>
                 <select
                   id="dokumenAkreditasi"
                   value={formData.dokumenAkreditasi}
                   onChange={(e) => setFormData({ ...formData, dokumenAkreditasi: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-lg text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-600 focus:border-transparent transition"
+                  className="w-full px-3.5 py-2.5 bg-white border border-[#CBD5E1] rounded-[12px] text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-violet-600 transition-colors"
                 >
                   <option value="Tidak">Tidak</option>
                   <option value="Ya">Ya</option>

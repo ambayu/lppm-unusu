@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
-import { ListPageTemplate } from '../components/ListPageTemplate';
+import { RowActionButton } from '../components/RowActionButton';
+import { NotificationModal } from '../components/NotificationModal';
+import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
+import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
 import { useAuth } from '../context/AuthContext';
 import { IZIN_FITUR } from '../lib/appAccess';
 import {
@@ -36,6 +38,9 @@ export const IzinPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [selectedModul, setSelectedModul] = useState<string>('SEMUA');
+  const [akanDihapus, setAkanDihapus] = useState<PermissionItem | null>(null);
+  const [menghapus, setMenghapus] = useState(false);
+  const [galat, setGalat] = useState<DeskripsiGalat | null>(null);
 
   // Tombol ubah/tambah muncul atas dasar izin, bukan nama peran.
   const isAdmin = bisa(IZIN_FITUR.izinKelola);
@@ -46,9 +51,10 @@ export const IzinPage: React.FC = () => {
     try {
       const res = await fetchPermissions();
       setPermissions(res.data.data || []);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.response?.data?.message || 'Gagal memuat katalog hak izin');
+    } catch (err: unknown) {
+      const rincian = deskripsikanGalat(err, 'Memuat Izin', 'katalog hak izin LPPM');
+      setError(rincian.message);
+      setGalat(rincian);
     } finally {
       setLoading(false);
     }
@@ -58,14 +64,19 @@ export const IzinPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (perm: PermissionItem) => {
-    if (window.confirm(`Yakin ingin menghapus hak izin "${perm.nama}" (${perm.kode})?`)) {
-      try {
-        await deletePermission(perm.id);
-        loadData();
-      } catch (err: any) {
-        alert(err?.response?.data?.message || 'Gagal menghapus hak izin');
-      }
+  const handleDelete = async () => {
+    if (!akanDihapus || menghapus) return;
+    const perm = akanDihapus;
+    setMenghapus(true);
+    try {
+      await deletePermission(perm.id);
+      setAkanDihapus(null);
+      loadData();
+    } catch (err: unknown) {
+      setAkanDihapus(null);
+      setGalat(deskripsikanGalat(err, 'Menghapus Izin', `hak izin «${perm.nama}» (${perm.kode})`));
+    } finally {
+      setMenghapus(false);
     }
   };
 
@@ -99,23 +110,9 @@ export const IzinPage: React.FC = () => {
         }
         actions={
           <>
-            <button
-              onClick={loadData}
-              disabled={loading}
-              className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
-              title="Segarkan Data"
-              aria-label="Muat ulang katalog izin"
-            >
-              <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-            </button>
+            <ListActionButton onClick={loadData} disabled={loading} variant="secondary" icon={<ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}>Segarkan</ListActionButton>
             {isAdmin && (
-              <Link
-                to="/izin/tambah"
-                className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-2xs hover:shadow-sm cursor-pointer"
-              >
-                <PlusIcon className="w-5 h-5" aria-hidden="true" />
-                <span>Tambah Data</span>
-              </Link>
+              <ListActionButton to="/izin/tambah" icon={<PlusIcon className="w-4 h-4" />}>Tambah Data</ListActionButton>
             )}
           </>
         }
@@ -239,22 +236,20 @@ export const IzinPage: React.FC = () => {
                   cellClassName: 'text-center',
                   render: (perm: PermissionItem) => (
                     <div className="flex items-center justify-center gap-1.5">
-                      <Link
+                      <RowActionButton
                         to={`/izin/edit/${perm.id}`}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[#CBD5E1] text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors cursor-pointer"
-                        title="Edit Izin"
-                        aria-label={`Edit izin ${perm.nama}`}
+                        label={`Edit izin ${perm.nama}`}
                       >
                         <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(perm)}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[#CBD5E1] text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                        title="Hapus Izin"
-                        aria-label={`Hapus izin ${perm.nama}`}
+                      </RowActionButton>
+                      <RowActionButton
+                        onClick={() => setAkanDihapus(perm)}
+                        variant="danger"
+                        disabled={menghapus}
+                        label={`Hapus izin ${perm.nama}`}
                       >
                         <TrashIcon className="w-4 h-4" aria-hidden="true" />
-                      </button>
+                      </RowActionButton>
                     </div>
                   ),
                 },
@@ -262,6 +257,8 @@ export const IzinPage: React.FC = () => {
             : []),
         ]}
       />
+      <NotificationModal isOpen={Boolean(akanDihapus)} type="confirm" title="Hapus Izin?" message={`Hak izin «${akanDihapus?.nama ?? ''}» (${akanDihapus?.kode ?? ''}) akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`} confirmLabel="Hapus Izin" onConfirm={handleDelete} onClose={() => setAkanDihapus(null)} loading={menghapus} />
+      <NotificationModal isOpen={Boolean(galat)} type="error" title={galat?.title} message={galat?.message ?? ''} details={galat?.details} code={galat?.code} onClose={() => setGalat(null)} />
 
       {/* Form tambah/ubah izin kini halaman penuh: /izin/tambah & /izin/edit/:id */}
     </>

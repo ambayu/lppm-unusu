@@ -1,5 +1,8 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { RowActionButton } from '../components/RowActionButton';
+import { ListActionButton } from '../components/ListPageTemplate';
+import { NotificationModal } from '../components/NotificationModal';
+import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
 import { PageShell } from '../components/PageShell';
 import { CardContainer } from '../components/CardContainer';
 import { EmptyState } from '../components/EmptyState';
@@ -31,6 +34,10 @@ export const PeranPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [akanDihapus, setAkanDihapus] = useState<RoleItem | null>(null);
+  const [menghapus, setMenghapus] = useState(false);
+  const [galat, setGalat] = useState<DeskripsiGalat | null>(null);
+  const [peranDilindungi, setPeranDilindungi] = useState(false);
 
   // Tombol ubah/tambah muncul atas dasar izin, bukan nama peran.
   const isAdmin = bisa(IZIN_FITUR.peranKelola);
@@ -45,9 +52,10 @@ export const PeranPage: React.FC = () => {
       ]);
       setRoles(rolesRes.data.data || []);
       setPermissions(permsRes.data.data || []);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.response?.data?.message || 'Gagal memuat data peran sistem');
+    } catch (err: unknown) {
+      const rincian = deskripsikanGalat(err, 'Memuat Peran', 'daftar peran dan izin LPPM');
+      setError(rincian.message);
+      setGalat(rincian);
     } finally {
       setLoading(false);
     }
@@ -57,18 +65,24 @@ export const PeranPage: React.FC = () => {
     loadData();
   }, []);
 
-  const handleDelete = async (role: RoleItem) => {
+  const handleDelete = async () => {
+    if (!akanDihapus || menghapus) return;
+    const role = akanDihapus;
     if (role.kode === 'SUPERADMIN') {
-      alert('Peran SUPERADMIN tidak dapat dihapus');
+      setAkanDihapus(null);
+      setPeranDilindungi(true);
       return;
     }
-    if (window.confirm(`Yakin ingin menghapus peran "${role.nama}"?`)) {
-      try {
-        await deleteRole(role.id);
-        loadData();
-      } catch (err: any) {
-        alert(err?.response?.data?.message || 'Gagal menghapus peran');
-      }
+    setMenghapus(true);
+    try {
+      await deleteRole(role.id);
+      setAkanDihapus(null);
+      loadData();
+    } catch (err: unknown) {
+      setAkanDihapus(null);
+      setGalat(deskripsikanGalat(err, 'Menghapus Peran', `peran «${role.nama}»`));
+    } finally {
+      setMenghapus(false);
     }
   };
 
@@ -93,6 +107,7 @@ export const PeranPage: React.FC = () => {
   }, [roles, search]);
 
   return (
+    <>
     <PageShell
       title="Manajemen Peran Pengguna"
       description="Konfigurasi peran (role) sistem LPPM UNUSU dan alokasi hak izin operasional Tridharma perguruan tinggi."
@@ -104,23 +119,9 @@ export const PeranPage: React.FC = () => {
       }
       actions={
         <div className="flex items-center gap-2.5">
-          <button
-            onClick={loadData}
-            disabled={loading}
-            className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-[12px] border border-[#CBD5E1] bg-white text-slate-600 hover:text-violet-900 hover:bg-[#F3EEF9] transition-colors cursor-pointer shadow-2xs"
-            title="Segarkan Data"
-            aria-label="Muat ulang daftar peran"
-          >
-            <ArrowPathIcon className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
-          </button>
+          <ListActionButton onClick={loadData} disabled={loading} variant="secondary" icon={<ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />}>Segarkan</ListActionButton>
           {isAdmin && (
-            <Link
-              to="/peran/tambah"
-              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-2xs hover:shadow-sm cursor-pointer"
-            >
-              <PlusIcon className="w-5 h-5" aria-hidden="true" />
-              <span>Tambah Data</span>
-            </Link>
+            <ListActionButton to="/peran/tambah" icon={<PlusIcon className="w-4 h-4" />}>Tambah Data</ListActionButton>
           )}
         </div>
       }
@@ -192,23 +193,21 @@ export const PeranPage: React.FC = () => {
 
                       {isAdmin && (
                         <div className="flex items-center gap-1">
-                          <Link
+                          <RowActionButton
                             to={`/peran/edit/${role.id}`}
-                            className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[#CBD5E1] text-slate-600 hover:text-violet-700 hover:bg-violet-50 transition-colors cursor-pointer"
-                            title="Edit Peran & Izin"
-                            aria-label={`Edit peran ${role.nama}`}
+                            label={`Edit peran dan izin ${role.nama}`}
                           >
                             <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
-                          </Link>
+                          </RowActionButton>
                           {!isSuper && (
-                            <button
-                              onClick={() => handleDelete(role)}
-                              className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[8px] border border-[#CBD5E1] text-slate-600 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                              title="Hapus Peran"
-                              aria-label={`Hapus peran ${role.nama}`}
+                            <RowActionButton
+                              onClick={() => setAkanDihapus(role)}
+                              variant="danger"
+                              disabled={menghapus}
+                              label={`Hapus peran ${role.nama}`}
                             >
                               <TrashIcon className="w-4 h-4" aria-hidden="true" />
-                            </button>
+                            </RowActionButton>
                           )}
                         </div>
                       )}
@@ -263,6 +262,10 @@ export const PeranPage: React.FC = () => {
 
       {/* Form tambah/ubah peran kini halaman penuh: /peran/tambah & /peran/edit/:id */}
     </PageShell>
+    <NotificationModal isOpen={Boolean(akanDihapus)} type="confirm" title="Hapus Peran?" message={`Peran «${akanDihapus?.nama ?? ''}» akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.`} confirmLabel="Hapus Peran" onConfirm={handleDelete} onClose={() => setAkanDihapus(null)} loading={menghapus} />
+    <NotificationModal isOpen={Boolean(galat)} type="error" title={galat?.title} message={galat?.message ?? ''} details={galat?.details} code={galat?.code} onClose={() => setGalat(null)} />
+    <NotificationModal isOpen={peranDilindungi} type="warning" title="Peran Dilindungi" message="Peran SUPERADMIN tidak dapat dihapus." onClose={() => setPeranDilindungi(false)} />
+    </>
   );
 };
 export default PeranPage;

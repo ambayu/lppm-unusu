@@ -722,6 +722,20 @@ export interface MonevPeriodeItem {
   };
 }
 
+export interface MonevSasaranAudiensItem {
+  id: number;
+  kode: string;
+  nama: string;
+  sublabel?: string | null;
+  deskripsi?: string | null;
+  badge?: string | null;
+  ikon?: string | null;
+  urutan: number;
+  aktif: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface MonevSurveiItem {
   id: number;
   periodeId?: number;
@@ -820,11 +834,26 @@ export interface RekapMonevData {
 export const fetchMonevPeriode = () =>
   api.get<{ success: boolean; data: MonevPeriodeItem[] }>('/monev-survei/periode');
 
+export const fetchMonevSasaranAudiens = () =>
+  api.get<{ success: boolean; data: MonevSasaranAudiensItem[] }>('/monev-survei/sasaran-audiens');
+
+export const createMonevSasaranAudiens = (data: Partial<MonevSasaranAudiensItem>) =>
+  api.post<{ success: boolean; data: MonevSasaranAudiensItem; message: string }>('/monev-survei/sasaran-audiens', data);
+
+export const updateMonevSasaranAudiens = (id: number | string, data: Partial<MonevSasaranAudiensItem>) =>
+  api.put<{ success: boolean; data: MonevSasaranAudiensItem; message: string }>(`/monev-survei/sasaran-audiens/${id}`, data);
+
+export const deleteMonevSasaranAudiens = (id: number | string) =>
+  api.delete<{ success: boolean; message: string }>(`/monev-survei/sasaran-audiens/${id}`);
+
 export const createMonevPeriode = (data: Partial<MonevPeriodeItem>) =>
   api.post<{ success: boolean; data: MonevPeriodeItem; message: string }>('/monev-survei/periode', data);
 
 export const updateMonevPeriode = (id: number | string, data: Partial<MonevPeriodeItem>) =>
   api.put<{ success: boolean; data: MonevPeriodeItem; message: string }>(`/monev-survei/periode/${id}`, data);
+
+export const deleteMonevPeriode = (id: number | string) =>
+  api.delete<{ success: boolean; message: string }>(`/monev-survei/periode/${id}`);
 
 export const fetchMonevSurveiAktif = () =>
   api.get<{ success: boolean; periode: MonevPeriodeItem | null; data: MonevSurveiItem[] }>('/monev-survei/aktif');

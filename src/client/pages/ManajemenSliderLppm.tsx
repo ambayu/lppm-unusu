@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { RowActionButton } from '../components/RowActionButton';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   PhotoIcon,
@@ -318,7 +319,7 @@ export const ManajemenSliderLppm: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleToggleStatus(item)}
-                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                  className={`inline-flex min-h-[44px] items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold ${
                     item.active
                       ? 'text-amber-800 bg-amber-50 hover:bg-amber-100'
                       : 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100'
@@ -328,21 +329,19 @@ export const ManajemenSliderLppm: React.FC = () => {
                   <span>{item.active ? 'Nonaktifkan' : 'Aktifkan'}</span>
                 </button>
                 <div className="flex items-center gap-1.5">
-                  <Link
+                  <RowActionButton
                     to={`/slider/edit/${item.id}`}
-                    className="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
-                    title="Edit Slider"
+                    label={`Ubah slider ${item.judul}`}
                   >
                     <PencilSquareIcon className="w-4 h-4" />
-                  </Link>
-                  <button
-                    type="button"
+                  </RowActionButton>
+                  <RowActionButton
                     onClick={() => setItemToDelete(item)}
-                    className="p-1.5 rounded-lg border border-rose-200 bg-white text-rose-600 hover:bg-rose-50"
-                    title="Hapus Slider"
+                    variant="danger"
+                    label={`Hapus slider ${item.judul}`}
                   >
                     <TrashIcon className="w-4 h-4" />
-                  </button>
+                  </RowActionButton>
                 </div>
               </div>
             </div>

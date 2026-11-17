@@ -4,6 +4,7 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { PageShell } from './PageShell';
 import { DataTable } from './DataTable';
 import { CardContainer } from './CardContainer';
+export { RowActionButton } from './RowActionButton';
 
 /* -------------------------------------------------------------------------- */
 /* Tipe kolom tabel                                                           */
@@ -135,7 +136,7 @@ export const ListActionButton: React.FC<ListActionButtonProps> = ({
   type = 'button',
 }) => {
   const base =
-    'inline-flex items-center justify-center px-4 py-2.5 rounded-[12px] font-bold text-xs transition min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed';
+    'inline-flex items-center justify-center px-4 py-2.5 rounded-[12px] font-bold text-xs transition min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-700 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
   const style =
     variant === 'primary'
       ? `text-white shadow-xs ${accentClassName}`
