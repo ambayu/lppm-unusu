@@ -13,8 +13,10 @@ import {
   ArrowTrendingUpIcon,
   CheckCircleIcon,
   ArrowPathIcon,
+  GlobeAltIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
-import { fetchDashboardStats, DashboardStatsData } from '../services/api';
+import { fetchDashboardStats, fetchVisitorAnalytics, DashboardStatsData, VisitorAnalyticsData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ErrorState } from '../components/ErrorState';
 import { DashboardPageTemplate } from '../components/DashboardPageTemplate';
@@ -82,6 +84,7 @@ const tanggalId = (iso?: string | null) => {
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStatsData | null>(null);
+  const [visitors, setVisitors] = useState<VisitorAnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -93,11 +96,19 @@ export const DashboardPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchDashboardStats();
+      const [res, resVisitors] = await Promise.all([
+        fetchDashboardStats(),
+        fetchVisitorAnalytics().catch(() => ({ data: { success: false, data: null as any } })),
+      ]);
+
       if (res.data?.success && res.data.data) {
         setStats(res.data.data);
       } else {
         setError('Server tidak mengembalikan ringkasan dashboard.');
+      }
+
+      if (resVisitors.data?.success && resVisitors.data.data) {
+        setVisitors(resVisitors.data.data);
       }
     } catch (err: any) {
       setStats(null);
@@ -309,23 +320,23 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="bg-white border border-[#CBD5E1] rounded-[14px] p-4 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Rata Kemajuan Monev</span>
-                <ArrowTrendingUpIcon className="w-4 h-4 text-violet-700" aria-hidden="true" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Kunjungan Hari Ini</span>
+                <EyeIcon className="w-4 h-4 text-emerald-600" aria-hidden="true" />
               </div>
               <p className="mt-1.5 text-lg font-extrabold text-slate-900 tabular-nums">
-                {ringkasan?.monevRataKemajuan ?? 0}%
+                {angkaId(visitors?.hitsHariIni ?? 0)} <span className="text-xs font-semibold text-slate-400">hit</span>
               </p>
-              <p className="text-[11px] text-slate-400">{ringkasan?.monevDinilai ?? 0} kegiatan dinilai reviewer</p>
+              <p className="text-[11px] text-slate-400">Kunjungan portal LPPM hari ini</p>
             </div>
             <div className="bg-white border border-[#CBD5E1] rounded-[14px] p-4 shadow-xs">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Serapan Dana Monev</span>
-                <CalendarDaysIcon className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Kunjungan Bulan Ini</span>
+                <GlobeAltIcon className="w-4 h-4 text-violet-700" aria-hidden="true" />
               </div>
               <p className="mt-1.5 text-lg font-extrabold text-slate-900 tabular-nums">
-                {ringkasan?.monevRataSerapanDana ?? 0}%
+                {angkaId(visitors?.hitsBulanIni ?? 0)} <span className="text-xs font-semibold text-slate-400">hit</span>
               </p>
-              <p className="text-[11px] text-slate-400">Rata-rata realisasi anggaran</p>
+              <p className="text-[11px] text-slate-400">Total akumulasi bulan berjalan</p>
             </div>
           </div>
 
@@ -494,6 +505,59 @@ export const DashboardPage: React.FC = () => {
                   size={116}
                 />
               </div>
+            </ReportCard>
+
+            {/* Laporan Hit Kunjungan per Negara */}
+            <ReportCard
+              title="Statistik Kunjungan per Negara"
+              subtitle="Distribusi asal pengunjung portal LPPM UNUSU"
+            >
+              {visitors?.negara && visitors.negara.length > 0 ? (
+                <div className="space-y-3 py-1">
+                  {visitors.negara.map((n) => (
+                    <div key={n.kode} className="space-y-1">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-violet-50 text-violet-700 border border-violet-100">
+                            {n.kode}
+                          </span>
+                          {n.nama}
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          {angkaId(n.jumlah)} <span className="text-[10px] font-normal text-slate-400">({n.persentase}%)</span>
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-violet-600 transition-all duration-500"
+                          style={{ width: `${Math.max(2, n.persentase)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500">Belum ada rekaman hit negara.</p>
+              )}
+            </ReportCard>
+
+            {/* Laporan Kunjungan per Bulan */}
+            <ReportCard
+              title="Statistik Kunjungan per Bulan"
+              subtitle="Tren volume trafik hit 12 bulan terakhir"
+            >
+              {visitors?.perBulan && visitors.perBulan.length > 0 ? (
+                <ColumnChart
+                  data={visitors.perBulan.map((pb) => ({
+                    label: pb.label,
+                    value: pb.jumlah,
+                  }))}
+                  color="#0891B2"
+                  unit=" hit"
+                />
+              ) : (
+                <p className="text-xs text-slate-500">Belum ada data bulanan.</p>
+              )}
             </ReportCard>
           </div>
 

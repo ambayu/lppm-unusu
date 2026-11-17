@@ -69,10 +69,176 @@ app.use(cors({
  */
 app.use(express.json({ limit: "10mb" }));
 
-// Static client
-const clientDistPath = path.resolve(process.cwd(), "dist/client");
-app.use(express.static(clientDistPath));
-app.use("/lppm", express.static(clientDistPath));
+// ===========================================================================
+// MIDDLEWARE TRACKING HIT / VISITOR (LPPM)
+// ===========================================================================
+
+const COUNTRY_MAP: Record<string, string> = {
+  ID: "Indonesia",
+  US: "United States",
+  SG: "Singapore",
+  MY: "Malaysia",
+  JP: "Japan",
+  GB: "United Kingdom",
+  AU: "Australia",
+  DE: "Germany",
+  NL: "Netherlands",
+  CN: "China",
+  KR: "South Korea",
+  IN: "India",
+  SA: "Saudi Arabia",
+};
+
+/**
+ * Middleware untuk mencatat hit kunjungan publik ke database secara asynchronous (non-blocking).
+ */
+app.use((req: Request, _res: Response, next: NextFunction) => {
+  // Hanya catat path relevan (hindari file statis, vite hmr, api internal polling tertentu)
+  const p = req.path;
+  const isIgnored =
+    p.startsWith("/@") ||
+    p.startsWith("/src") ||
+    p.startsWith("/node_modules") ||
+    p.includes(".") || // berkas berekstensi seperti css, js, png, dll
+    p === "/api/dashboard/stats" ||
+    p === "/api/analytics/visitors";
+
+  if (!isIgnored && req.method === "GET") {
+    const rawIp = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.socket.remoteAddress || "127.0.0.1";
+    const ipHash = crypto.createHash("sha256").update(rawIp).digest("hex").substring(0, 32);
+
+    // Ambil header geolokasi Cloudflare / proxy jika tersedia
+    const cfCountry = ((req.headers["cf-ipcountry"] || req.headers["x-country-code"]) as string)?.toUpperCase();
+    const countryCode = cfCountry && COUNTRY_MAP[cfCountry] ? cfCountry : "ID";
+    const countryName = COUNTRY_MAP[countryCode] || "Indonesia";
+    const userAgent = (req.headers["user-agent"] || "").substring(0, 250);
+
+    // Jalankan pencatatan secara background agar tidak memperlambat response
+    prisma.lppmVisitorLog.create({
+      data: {
+        ipHash,
+        countryCode,
+        countryName,
+        path: p.substring(0, 250),
+        userAgent,
+      },
+    }).catch(() => {
+      // Abaikan error background logging
+    });
+  }
+
+  next();
+});
+
+// GET /api/analytics/visitors (Analitik kunjungan per hari, per bulan, dan sebaran negara)
+app.get("/api/analytics/visitors", async (_req: Request, res: Response) => {
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const [totalHits, totalUniqueVisitors, countryGroups, allLogsRecent] = await Promise.all([
+      prisma.lppmVisitorLog.count(),
+      prisma.lppmVisitorLog.findMany({
+        distinct: ["ipHash"],
+        select: { ipHash: true },
+      }),
+      prisma.lppmVisitorLog.groupBy({
+        by: ["countryCode", "countryName"],
+        _count: { _all: true },
+        orderBy: { _count: { countryCode: "desc" } },
+        take: 10,
+      }),
+      prisma.lppmVisitorLog.findMany({
+        where: { createdAt: { gte: thirtyDaysAgo } },
+        select: { createdAt: true },
+        orderBy: { createdAt: "asc" },
+      }),
+    ]);
+
+    // Agregasi Kunjungan Per Hari (30 hari terakhir)
+    const dailyMap = new Map<string, number>();
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const key = d.toISOString().substring(0, 10);
+      dailyMap.set(key, 0);
+    }
+
+    allLogsRecent.forEach((log) => {
+      const key = log.createdAt.toISOString().substring(0, 10);
+      if (dailyMap.has(key)) {
+        dailyMap.set(key, (dailyMap.get(key) || 0) + 1);
+      }
+    });
+
+    const perHari = Array.from(dailyMap.entries()).map(([tanggal, jumlah]) => ({
+      tanggal,
+      label: new Date(tanggal).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }),
+      jumlah,
+    }));
+
+    // Agregasi Kunjungan Per Bulan (12 bulan terakhir)
+    const monthlyMap = new Map<string, number>();
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      monthlyMap.set(key, 0);
+    }
+
+    const oneYearAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
+    const yearlyLogs = await prisma.lppmVisitorLog.findMany({
+      where: { createdAt: { gte: oneYearAgo } },
+      select: { createdAt: true },
+    });
+
+    yearlyLogs.forEach((log) => {
+      const key = `${log.createdAt.getFullYear()}-${String(log.createdAt.getMonth() + 1).padStart(2, "0")}`;
+      if (monthlyMap.has(key)) {
+        monthlyMap.set(key, (monthlyMap.get(key) || 0) + 1);
+      }
+    });
+
+    const perBulan = Array.from(monthlyMap.entries()).map(([bulan, jumlah]) => {
+      const [yearStr, monthStr] = bulan.split("-");
+      const d = new Date(Number(yearStr), Number(monthStr) - 1, 1);
+      return {
+        bulan,
+        label: d.toLocaleDateString("id-ID", { month: "short", year: "numeric" }),
+        jumlah,
+      };
+    });
+
+    // Breakdown Negara
+    const negara = countryGroups.map((cg) => ({
+      kode: cg.countryCode,
+      nama: cg.countryName,
+      jumlah: cg._count._all,
+      persentase: totalHits > 0 ? Math.round((cg._count._all / totalHits) * 100) : 0,
+    }));
+
+    // Hitung hari ini & bulan ini
+    const todayKey = now.toISOString().substring(0, 10);
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+
+    res.json({
+      success: true,
+      data: {
+        totalHits,
+        totalUniqueVisitors: totalUniqueVisitors.length,
+        hitsHariIni: dailyMap.get(todayKey) || 0,
+        hitsBulanIni: monthlyMap.get(currentMonthKey) || 0,
+        negara,
+        perHari,
+        perBulan,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal memuat analitik pengunjung: " + (error?.message || "") });
+  }
+});
+
 
 /*
  * Pengalihan paksa ke awalan `/lppm` DIHAPUS.
@@ -2458,7 +2624,7 @@ app.get("/api/dokumen", requirePermission("dokumen.view"), async (req: Request, 
         { prodiName: { contains: search } },
       ];
     }
-    if (status) where.status = status;
+    if (status && status !== "SEMUA") where.status = status;
     if (tahun) where.tahun = tahun;
     if (tujuanPublish) where.tujuanPublish = tujuanPublish;
     if (prodiCode) where.prodiCode = prodiCode;

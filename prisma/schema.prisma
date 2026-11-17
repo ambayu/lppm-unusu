@@ -499,3 +499,23 @@ model MonevJawaban {
   @@map("lppm_monev_jawaban")
 }
 
+// =============================================================================
+// ANALITIK TRAFIK & KUNJUNGAN NEGARA (LPPM VISITOR LOGS)
+// =============================================================================
+
+model LppmVisitorLog {
+  id          Int      @id @default(autoincrement())
+  ipHash      String   @db.VarChar(64)  // anonymized hash dari IP demi privasi
+  countryCode String   @default("ID") @db.VarChar(10) // misal: ID, US, SG, MY, JP
+  countryName String   @default("Indonesia") @db.VarChar(100)
+  city        String?  @db.VarChar(100)
+  path        String   @db.VarChar(255) // misal: /, /monev-survei, /penelitian
+  userAgent   String?  @db.VarChar(255)
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([countryCode])
+  @@map("lppm_visitor_logs")
+}
+
+

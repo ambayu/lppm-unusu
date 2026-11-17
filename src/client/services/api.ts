@@ -885,6 +885,33 @@ export const fetchRekapMonevSurvei = (id: number | string) =>
     `/monev-survei/${id}/rekap`
   );
 
+export interface VisitorAnalyticsData {
+  totalHits: number;
+  totalUniqueVisitors: number;
+  hitsHariIni: number;
+  hitsBulanIni: number;
+  negara: Array<{
+    kode: string;
+    nama: string;
+    jumlah: number;
+    persentase: number;
+  }>;
+  perHari: Array<{
+    tanggal: string;
+    label: string;
+    jumlah: number;
+  }>;
+  perBulan: Array<{
+    bulan: string;
+    label: string;
+    jumlah: number;
+  }>;
+}
+
+export const fetchVisitorAnalytics = () =>
+  api.get<{ success: boolean; data: VisitorAnalyticsData }>('/analytics/visitors');
+
+
 // Kategori Monev
 export const fetchMonevKategori = (params?: { periodeId?: number | string }) =>
   api.get<{ success: boolean; data: MonevSurveiItem[] }>('/monev-survei/kategori', { params });
