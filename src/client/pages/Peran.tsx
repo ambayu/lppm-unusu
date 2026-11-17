@@ -119,7 +119,7 @@ export const PeranPage: React.FC = () => {
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-2xs hover:shadow-sm cursor-pointer"
             >
               <PlusIcon className="w-5 h-5" aria-hidden="true" />
-              <span>Tambah Peran</span>
+              <span>Tambah Data</span>
             </Link>
           )}
         </div>

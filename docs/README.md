@@ -61,11 +61,11 @@ Pastikan berkas `.env` di root proyek memiliki variabel berikut:
 - `SSO_BASE_URL`: URL backend ONE UNUSU Gateway (default: `http://localhost:5000`)
 - `SSO_CLIENT_ID`: Identitas klien SSO (default: `lppm-unusu`)
 - `SSO_CLIENT_KEY`: Kunci rahasia klien SSO untuk verifikasi server-to-server
-- `VITE_ONE_UNUSU_URL`: URL frontend portal ONE UNUSU (default: `http://localhost:5173`)
+- `VITE_ONE_UNUSU_URL`: URL frontend portal ONE UNUSU (default: `http://localhost:5183`)
 - `VITE_SSO_CLIENT_ID`: Client ID pada pengalihan login frontend (default: `lppm-unusu`)
 
 ### 2. Perintah NPM
-- `npm run dev`: Menjalankan server Express (`localhost:5005`) dan Vite dev server (`localhost:5178`) secara bersamaan.
+- `npm run dev`: Menjalankan server Express (`localhost:5005`) dan Vite dev server (`localhost:5176`) secara bersamaan.
 - `npm run build`: Membangun bundel produksi frontend (`dist/client`) dan mengompilasi TypeScript server (`dist/server`).
 - `npm start`: Menjalankan server produksi dari `dist/server/index.js`.
 - `npm run prisma:generate`: Menghasilkan ulang Prisma Client.
@@ -74,10 +74,13 @@ Pastikan berkas `.env` di root proyek memiliki variabel berikut:
 
 ## Aliran Data & Sub-Path Produksi
 
-1. Pada mode pengembangan (`vite`), aplikasi berjalan di root path `/` pada port `5178` dengan proxy `/api` diarahkan ke `http://localhost:5005`.
+1. Pada mode pengembangan (`vite`), aplikasi berjalan di root path `/` pada port `5176` dengan proxy `/api` diarahkan ke `http://localhost:5005`.
 2. Pada mode produksi (`vite build`), aplikasi menggunakan base path `/lppm/` (`PROD_BASE` di `vite.config.ts`). Seluruh referensi gambar statis wajib dibungkus dengan helper `assetUrl()` dari `src/client/lib/assets.ts` agar resolusi aset tetap akurat di balik reverse proxy.
 
 ## Lihat Juga
+
+- [Peta dan aturan template halaman aktif](./routes/pages/RULES.md)
+- Pemeriksaan regresi struktur halaman: `node tests/page-templates.test.cjs` (tanpa build atau akses database).
 
 - [Aturan Proyek Global (`docs/PROJECT_RULES.md`)](./PROJECT_RULES.md)
 - [Aturan Sistem Desain (`docs/design-system/DESIGN_RULES.md`)](./design-system/DESIGN_RULES.md)

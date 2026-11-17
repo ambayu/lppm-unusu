@@ -10,6 +10,7 @@ import {
   type KandidatPenggunaOne,
   type KriteriaKandidat,
 } from '../services/api';
+import { DataTable, type DataTableColumn } from './DataTable';
 
 /**
  * TabelPilihPengguna — direktori ONE UNUSU dalam bentuk tabel bercentang.
@@ -183,6 +184,97 @@ export const TabelPilihPengguna: React.FC<TabelPilihPenggunaProps> = ({
   const gayaKontrol =
     'w-full px-4 py-3 min-h-[44px] text-xs rounded-[10px] border border-[#D8E5DC] bg-white text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#166534] focus:border-[#166534]';
 
+  const kolom: DataTableColumn<KandidatPenggunaOne>[] = [
+    {
+      key: 'pilih',
+      header: (
+        <input
+          type="checkbox"
+          aria-label="Pilih semua pengguna pada halaman ini"
+          checked={semuaTerpilih}
+          onChange={toggleSemua}
+          disabled={memuat || baris.filter(bisaDipilih).length === 0}
+          className="w-4 h-4 accent-[#166534]"
+        />
+      ),
+      headerClassName: 'w-12',
+      render: (u) => (
+        <input
+          type="checkbox"
+          aria-label={`Pilih ${u.nama}`}
+          checked={terpilih.includes(u.id)}
+          disabled={!bisaDipilih(u)}
+          onChange={() => toggleSatu(u)}
+          className="w-4 h-4 accent-[#166534] disabled:opacity-40 disabled:cursor-not-allowed"
+        />
+      ),
+    },
+    {
+      key: 'nomor',
+      header: 'No',
+      headerClassName: 'w-12',
+      cellClassName: 'font-mono text-slate-500',
+      render: (_u, idx) => idx + 1,
+    },
+    {
+      key: 'nama',
+      header: 'Nama',
+      render: (u) => (
+        <div className="flex items-center gap-2.5">
+          {u.avatar ? (
+            <img
+              src={u.avatar}
+              alt=""
+              className="w-8 h-8 rounded-full object-cover border border-[#D8E5DC] flex-shrink-0"
+              loading="lazy"
+            />
+          ) : (
+            <span
+              aria-hidden="true"
+              className="w-8 h-8 rounded-full bg-[#DCFCE7] text-[#166534] font-bold flex items-center justify-center flex-shrink-0"
+            >
+              {inisial(u.nama)}
+            </span>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-slate-900 truncate">{u.nama}</p>
+            <p className="text-slate-500 font-mono truncate">
+              {u.nidn || u.nim || u.username}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    { key: 'role', header: 'Peran', render: (u) => labelPeran(u.role) },
+    {
+      key: 'fakultas',
+      header: 'Fakultas',
+      cellClassName: 'text-slate-600 max-w-[180px]',
+      render: (u) => <span className="line-clamp-2">{u.fakultas || '—'}</span>,
+    },
+    {
+      key: 'prodi',
+      header: 'Program Studi',
+      cellClassName: 'text-slate-600 max-w-[180px]',
+      render: (u) => <span className="line-clamp-2">{u.prodi || '—'}</span>,
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      render: (u) => sudahTerdaftar.has(u.id) ? (
+        <span className="inline-flex items-center gap-1 font-bold text-slate-500">
+          <CheckCircleIcon className="w-3.5 h-3.5" />
+          Terdaftar
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1 font-bold text-[#166534]">
+          <UserCircleIcon className="w-3.5 h-3.5" />
+          Bisa ditambahkan
+        </span>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-3.5">
       {/* ---------- Pencarian & filter ---------- */}
@@ -303,142 +395,17 @@ export const TabelPilihPengguna: React.FC<TabelPilihPenggunaProps> = ({
       )}
 
       {/* ---------- Tabel ---------- */}
-      <div className="overflow-x-auto rounded-[12px] border border-[#D8E5DC]">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-[#F0FDF4] border-b border-[#D8E5DC]">
-              <th scope="col" className="w-12 px-3 py-3">
-                <input
-                  type="checkbox"
-                  aria-label="Pilih semua pengguna pada halaman ini"
-                  checked={semuaTerpilih}
-                  onChange={toggleSemua}
-                  disabled={memuat || baris.filter(bisaDipilih).length === 0}
-                  className="w-4 h-4 accent-[#166534]"
-                />
-              </th>
-              <th scope="col" className="w-12 px-2 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                No
-              </th>
-              <th scope="col" className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                Nama
-              </th>
-              <th scope="col" className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                Peran
-              </th>
-              <th scope="col" className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                Fakultas
-              </th>
-              <th scope="col" className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                Program Studi
-              </th>
-              <th scope="col" className="px-3 py-3 text-[10px] font-bold uppercase tracking-wider text-slate-600">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {memuat && baris.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-xs text-slate-500">
-                  Memuat direktori ONE UNUSU...
-                </td>
-              </tr>
-            )}
-
-            {!memuat && baris.length === 0 && !galat && (
-              <tr>
-                <td colSpan={7} className="px-4 py-12 text-center text-xs text-slate-500">
-                  Tidak ada pengguna yang cocok. Coba ubah kata kunci atau filter.
-                </td>
-              </tr>
-            )}
-
-            {baris.map((u, idx) => {
-              const terdaftar = sudahTerdaftar.has(u.id);
-              const dipilih = terpilih.includes(u.id);
-              const boleh = !terdaftar;
-
-              return (
-                <tr
-                  key={u.id}
-                  className={`border-b border-[#EEF4EF] last:border-0 transition ${
-                    terdaftar
-                      ? 'bg-slate-50'
-                      : dipilih
-                        ? 'bg-[#F0FDF4]'
-                        : 'bg-white hover:bg-[#FAFCFB]'
-                  }`}
-                >
-                  <td className="px-3 py-2.5">
-                    <input
-                      type="checkbox"
-                      aria-label={`Pilih ${u.nama}`}
-                      checked={dipilih}
-                      disabled={!boleh}
-                      onChange={() => toggleSatu(u)}
-                      className="w-4 h-4 accent-[#166534] disabled:opacity-40 disabled:cursor-not-allowed"
-                    />
-                  </td>
-
-                  <td className="px-2 py-2.5 text-[11px] font-mono text-slate-500">{idx + 1}</td>
-
-                  <td className="px-3 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      {u.avatar ? (
-                        <img
-                          src={u.avatar}
-                          alt=""
-                          className="w-8 h-8 rounded-full object-cover border border-[#D8E5DC] flex-shrink-0"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <span
-                          aria-hidden="true"
-                          className="w-8 h-8 rounded-full bg-[#DCFCE7] text-[#166534] text-[10px] font-bold flex items-center justify-center flex-shrink-0"
-                        >
-                          {inisial(u.nama)}
-                        </span>
-                      )}
-                      <div className="min-w-0">
-                        <p className="text-xs font-semibold text-slate-900 truncate">{u.nama}</p>
-                        <p className="text-[11px] text-slate-500 font-mono truncate">
-                          {u.nidn || u.nim || u.username}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-3 py-2.5 text-[11px] text-slate-700">
-                    {labelPeran(u.role)}
-                  </td>
-
-                  <td className="px-3 py-2.5 text-[11px] text-slate-600 max-w-[180px]">
-                    <span className="line-clamp-2">{u.fakultas || '—'}</span>
-                  </td>
-
-                  <td className="px-3 py-2.5 text-[11px] text-slate-600 max-w-[180px]">
-                    <span className="line-clamp-2">{u.prodi || '—'}</span>
-                  </td>
-
-                  <td className="px-3 py-2.5">
-                    {terdaftar ? (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500">
-                        <CheckCircleIcon className="w-3.5 h-3.5" />
-                        Terdaftar
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[10px] font-bold text-[#166534]">
-                        <UserCircleIcon className="w-3.5 h-3.5" />
-                        Bisa ditambahkan
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="rounded-[12px] border border-[#D8E5DC]">
+        <DataTable
+          columns={kolom}
+          rows={baris}
+          rowKey={(u) => u.id}
+          size="sm"
+          emptyMessage={memuat
+            ? 'Memuat direktori ONE UNUSU...'
+            : galat ? null : 'Tidak ada pengguna yang cocok. Coba ubah kata kunci atau filter.'}
+          className="[&_tbody_tr:has(input:disabled)]:!bg-slate-50 [&_tbody_tr:has(input:checked:not(:disabled))]:!bg-[#F0FDF4]"
+        />
       </div>
 
       <p className="text-[11px] text-slate-500 leading-relaxed">

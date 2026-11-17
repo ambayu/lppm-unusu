@@ -12,10 +12,12 @@ import {
   DocumentTextIcon,
   ArrowTrendingUpIcon,
   CheckCircleIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import { fetchDashboardStats, DashboardStatsData } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { ErrorState } from '../components/ErrorState';
+import { DashboardPageTemplate } from '../components/DashboardPageTemplate';
 import {
   ReportCard,
   DonutChart,
@@ -154,26 +156,16 @@ export const DashboardPage: React.FC = () => {
   const publikasiTerbaru = stats?.recentPublikasi ?? [];
 
   return (
-    <div className="space-y-6">
-      {/* 1. BANNER SAMBUTAN */}
-      <section
-        aria-label="Sambutan panel LPPM"
-        className="relative overflow-hidden rounded-[16px] border border-violet-950 bg-gradient-to-br from-violet-900 via-violet-800 to-violet-700 text-white"
-      >
-        <div className="px-5 py-6 sm:px-7 sm:py-7 flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div className="min-w-0">
-            <span className="inline-flex items-center gap-1.5 rounded-[6px] bg-white/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-amber-300">
-              Portal Tridharma Riset
-            </span>
-            <h1 className="mt-2.5 text-xl sm:text-2xl font-bold leading-snug">
-              {sapaan}, {namaDepan}
-            </h1>
-            <p className="mt-1.5 max-w-2xl text-xs sm:text-sm text-violet-50/90 leading-relaxed">
-              Ringkasan kinerja penelitian, pengabdian kepada masyarakat, publikasi ilmiah, serta
-              monitoring dan evaluasi dosen UNUSU dalam satu tampilan laporan.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+    <DashboardPageTemplate
+      title={`${sapaan}, ${namaDepan}`}
+      badge="Portal Tridharma Riset"
+      description="Ringkasan kinerja penelitian, pengabdian kepada masyarakat, publikasi ilmiah, serta monitoring dan evaluasi dosen UNUSU dalam satu tampilan laporan."
+      actions={
+        <>
+          <button type="button" onClick={loadData} disabled={loading} className="min-h-[44px] inline-flex items-center gap-1.5 rounded-[8px] bg-white/10 px-3.5 text-xs font-bold text-white hover:bg-white/20 disabled:opacity-50">
+            <ArrowPathIcon className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+            {loading ? 'Memuat...' : 'Segarkan'}
+          </button>
             <Link
               to="/penelitian"
               className="min-h-[44px] inline-flex items-center gap-1.5 rounded-[8px] bg-white px-3.5 text-xs font-bold text-violet-900 hover:bg-violet-50 transition-colors"
@@ -188,9 +180,9 @@ export const DashboardPage: React.FC = () => {
               <ClipboardDocumentCheckIcon className="w-4 h-4" aria-hidden="true" />
               <span>Jadwal Monev</span>
             </Link>
-          </div>
-        </div>
-      </section>
+        </>
+      }
+    >
 
       {/* 2. ERROR STATE */}
       {error && (
@@ -598,7 +590,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </>
       )}
-    </div>
+    </DashboardPageTemplate>
   );
 };
 

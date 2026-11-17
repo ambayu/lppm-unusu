@@ -69,7 +69,7 @@ export const KategoriLppmPage: React.FC = () => {
       actions={
         bolehMenulis ? (
           <ListActionButton to="/admin/kategori/tambah" icon={<PlusIcon className="w-4 h-4" />}>
-            Tambah Kategori
+            Tambah Data
           </ListActionButton>
         ) : undefined
       }

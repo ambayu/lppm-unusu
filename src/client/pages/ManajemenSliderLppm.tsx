@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import {
   PhotoIcon,
   PlusIcon,
@@ -10,7 +11,11 @@ import {
   XMarkIcon,
   ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
+import { PageShell } from '../components/PageShell';
+import { FormPageTemplate } from '../components/FormPageTemplate';
+import { CardContainer } from '../components/CardContainer';
+import { NotificationModal } from '../components/NotificationModal';
+import { ErrorState } from '../components/ErrorState';
 import {
   LppmBannerSliderItem,
   fetchAdminSliders,
@@ -30,12 +35,17 @@ import {
 const MB = (byte: number) => Math.round(byte / (1024 * 1024));
 
 export const ManajemenSliderLppm: React.FC = () => {
+  const { id } = useParams<{ id?: string }>();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
+  const isEdit = id !== undefined;
+  const isFormPage = isEdit || pathname.endsWith('/tambah');
+  const [notification, setNotification] = useState('');
   const [sliders, setSliders] = useState<LppmBannerSliderItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Form State
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [judul, setJudul] = useState('');
   const [subjudul, setSubjudul] = useState('');
@@ -60,6 +70,8 @@ export const ManajemenSliderLppm: React.FC = () => {
       const res = await fetchAdminSliders();
       if (res.data.success) {
         setSliders(res.data.data);
+      } else {
+        setError('Gagal memuat daftar media slider LPPM.');
       }
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err
@@ -74,6 +86,25 @@ export const ManajemenSliderLppm: React.FC = () => {
   useEffect(() => {
     loadSliders();
   }, []);
+
+  useEffect(() => {
+    resetForm();
+    setNotification('');
+    if (!isEdit) return;
+    const item = sliders.find((slider) => String(slider.id) === id);
+    if (!item) return;
+    setEditingId(item.id);
+    setJudul(item.judul);
+    setSubjudul(item.subjudul || '');
+    setLinkUrl(item.linkUrl || '');
+    setUrutan(item.urutan);
+    setActive(item.active);
+    setMediaLama(item.gambarUrl || '');
+  }, [id, pathname, sliders]);
+
+  useEffect(() => () => {
+    if (pratinjauBaru) URL.revokeObjectURL(pratinjauBaru);
+  }, [pratinjauBaru]);
 
   const resetForm = () => {
     setEditingId(null);
@@ -90,27 +121,7 @@ export const ManajemenSliderLppm: React.FC = () => {
 
   /** Membebaskan object URL pratinjau agar blob tidak menumpuk di memori. */
   const lepasPratinjau = () => {
-    setPratinjauBaru((sebelumnya) => {
-      if (sebelumnya) URL.revokeObjectURL(sebelumnya);
-      return '';
-    });
-  };
-
-  const openCreateModal = () => {
-    resetForm();
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (item: LppmBannerSliderItem) => {
-    resetForm();
-    setEditingId(item.id);
-    setJudul(item.judul);
-    setSubjudul(item.subjudul || '');
-    setLinkUrl(item.linkUrl || '');
-    setUrutan(item.urutan);
-    setActive(item.active);
-    setMediaLama(item.gambarUrl || '');
-    setIsModalOpen(true);
+    setPratinjauBaru('');
   };
 
   /**
@@ -126,7 +137,7 @@ export const ManajemenSliderLppm: React.FC = () => {
 
     const hasil = validasiBerkasMedia(file);
     if (!hasil.sah) {
-      alert(hasil.pesan || 'Berkas tidak dapat dipakai.');
+      setNotification(hasil.pesan || 'Berkas tidak dapat dipakai.');
       e.target.value = '';
       return;
     }
@@ -137,14 +148,15 @@ export const ManajemenSliderLppm: React.FC = () => {
   };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting || (isEdit && (loading || error || !editingId))) return;
 
     if (!judul.trim()) {
-      alert('Judul banner slider LPPM wajib diisi.');
+      setNotification('Judul banner slider LPPM wajib diisi.');
       return;
     }
 
     if (!editingId && !berkasBaru) {
-      alert('Silakan unggah berkas gambar atau video slider LPPM terlebih dahulu.');
+      setNotification('Silakan unggah berkas gambar atau video slider LPPM terlebih dahulu.');
       return;
     }
 
@@ -165,14 +177,14 @@ export const ManajemenSliderLppm: React.FC = () => {
         await createAdminSlider(payload);
       }
 
-      setIsModalOpen(false);
       resetForm();
+      navigate('/slider');
       await loadSliders();
     } catch (err: unknown) {
       const msg = err && typeof err === 'object' && 'response' in err
         ? (err as { response?: { data?: { message?: string } } }).response?.data?.message
         : undefined;
-      alert(msg || 'Gagal menyimpan foto slider LPPM.');
+      setNotification(msg || 'Gagal menyimpan media slider LPPM.');
     } finally {
       setIsSubmitting(false);
     }
@@ -183,7 +195,7 @@ export const ManajemenSliderLppm: React.FC = () => {
       await updateAdminSlider(item.id, { active: !item.active });
       await loadSliders();
     } catch {
-      alert('Gagal memperbarui status aktif slider LPPM.');
+      setNotification(`Gagal memperbarui status aktif slider LPPM «${item.judul}».`);
     }
   };
 
@@ -194,7 +206,7 @@ export const ManajemenSliderLppm: React.FC = () => {
       setItemToDelete(null);
       await loadSliders();
     } catch {
-      alert('Gagal menghapus foto slider LPPM.');
+      setNotification(`Gagal menghapus media slider LPPM «${itemToDelete.judul}».`);
     }
   };
 
@@ -205,7 +217,8 @@ export const ManajemenSliderLppm: React.FC = () => {
     : jenisMedia(mediaLama);
 
   return (
-    <AdminPanelTemplate
+    <>
+    {!isFormPage && <PageShell
       title="Manajemen Slider Hero LPPM"
       description="Kelola foto banner kegiatan riset, pengabdian, publikasi ilmiah, dan urutan rotasi tampilan pada halaman depan publik LPPM UNUSU."
       badge={
@@ -214,14 +227,13 @@ export const ManajemenSliderLppm: React.FC = () => {
         </span>
       }
       actions={
-        <button
-          type="button"
-          onClick={openCreateModal}
+        <Link
+          to="/slider/tambah"
           className="inline-flex items-center gap-2 rounded-xl bg-violet-700 hover:bg-violet-800 text-white px-4 py-2.5 text-xs sm:text-sm font-bold shadow-xs transition-colors"
         >
           <PlusIcon className="w-4 h-4" />
           <span>Tambah Data</span>
-        </button>
+        </Link>
       }
     >
       {/* Konten Utama */}
@@ -230,9 +242,7 @@ export const ManajemenSliderLppm: React.FC = () => {
           Memuat data foto slider hero LPPM...
         </div>
       ) : error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-xs text-rose-700">
-          {error}
-        </div>
+        <ErrorState description={error} onRetry={loadSliders} />
       ) : sliders.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center space-y-3">
           <PhotoIcon className="w-12 h-12 text-slate-300 mx-auto" />
@@ -318,14 +328,13 @@ export const ManajemenSliderLppm: React.FC = () => {
                   <span>{item.active ? 'Nonaktifkan' : 'Aktifkan'}</span>
                 </button>
                 <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(item)}
+                  <Link
+                    to={`/slider/edit/${item.id}`}
                     className="p-1.5 rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100"
                     title="Edit Slider"
                   >
                     <PencilSquareIcon className="w-4 h-4" />
-                  </button>
+                  </Link>
                   <button
                     type="button"
                     onClick={() => setItemToDelete(item)}
@@ -342,30 +351,30 @@ export const ManajemenSliderLppm: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Form Tambah / Edit */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
-          <div className="w-full max-w-lg rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900">
-                {editingId ? 'Ubah Media Slider LPPM' : 'Tambah Media Slider LPPM'}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
+    </PageShell>}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+      {isFormPage && (
+        <FormPageTemplate
+          title={isEdit ? 'Ubah Media Slider LPPM' : 'Tambah Media Slider LPPM'}
+          description="Atur media, keterangan, dan urutan slider halaman depan publik LPPM."
+          backTo="/slider"
+          isEdit={isEdit}
+          submitting={isSubmitting || (isEdit && (loading || Boolean(error) || !editingId))}
+          error={isEdit ? error || (!loading && !editingId ? 'Media slider LPPM tidak ditemukan.' : null) : null}
+          onSubmit={handleSubmit}
+          accentClassName="bg-violet-700 hover:bg-violet-800"
+        >
+          {isEdit && loading ? <p role="status" className="text-sm text-slate-500">Memuat media slider LPPM...</p> : (
+          <fieldset disabled={isSubmitting || (isEdit && (Boolean(error) || !editingId))}>
+            <CardContainer title="Informasi Media Slider" subtitle="Unggah gambar atau video dan lengkapi pengaturan tampilannya.">
+            <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Judul Banner <span className="text-rose-500">*</span>
+                  <span id="slider-judul-label">Judul Banner</span> <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
+                  aria-labelledby="slider-judul-label"
                   required
                   placeholder="Contoh: Seminar Hasil Hibah Riset Unggulan LPPM UNUSU"
                   value={judul}
@@ -376,10 +385,11 @@ export const ManajemenSliderLppm: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Subjudul / Ringkasan Program
+                  <span id="slider-subjudul-label">Subjudul / Ringkasan Program</span>
                 </label>
                 <input
                   type="text"
+                  aria-labelledby="slider-subjudul-label"
                   placeholder="Contoh: Hilirisasi riset dosen dan inovasi teknologi tepat guna untuk masyarakat"
                   value={subjudul}
                   onChange={(e) => setSubjudul(e.target.value)}
@@ -390,7 +400,7 @@ export const ManajemenSliderLppm: React.FC = () => {
               {/* Area Upload File Gambar Langsung */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Unggah Berkas Gambar <span className="text-rose-500">*</span>
+                  Unggah Gambar atau Video {!isEdit && <span className="text-rose-500">*</span>}
                 </label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
@@ -434,6 +444,7 @@ export const ManajemenSliderLppm: React.FC = () => {
                           }}
                           className="absolute top-2 right-2 rounded-full bg-rose-600 p-1 text-white shadow-md hover:bg-rose-700"
                           title="Batalkan Berkas Baru"
+                          aria-label="Batalkan berkas baru"
                         >
                           <XMarkIcon className="w-3.5 h-3.5" />
                         </button>
@@ -457,10 +468,11 @@ export const ManajemenSliderLppm: React.FC = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Tautan / URL Tujuan
+                    <span id="slider-link-label">Tautan / URL Tujuan</span>
                   </label>
                   <input
                     type="text"
+                    aria-labelledby="slider-link-label"
                     placeholder="Contoh: /riset atau /pengabdian"
                     value={linkUrl}
                     onChange={(e) => setLinkUrl(e.target.value)}
@@ -469,10 +481,11 @@ export const ManajemenSliderLppm: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Nomor Urutan
+                    <span id="slider-urutan-label">Nomor Urutan</span>
                   </label>
                   <input
                     type="number"
+                    aria-labelledby="slider-urutan-label"
                     min={0}
                     value={urutan}
                     onChange={(e) => setUrutan(Number(e.target.value))}
@@ -494,25 +507,10 @@ export const ManajemenSliderLppm: React.FC = () => {
                 </label>
               </div>
 
-              <div className="flex items-center justify-end gap-2 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-xl bg-violet-700 hover:bg-violet-800 px-5 py-2 text-xs font-bold text-white shadow-md transition-all disabled:opacity-50"
-                >
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Foto'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+            </CardContainer>
+          </fieldset>)}
+        </FormPageTemplate>
       )}
 
       {/* Dialog Konfirmasi Hapus */}
@@ -543,7 +541,14 @@ export const ManajemenSliderLppm: React.FC = () => {
           </div>
         </div>
       )}
-    </AdminPanelTemplate>
+      <NotificationModal
+        isOpen={Boolean(notification)}
+        type="error"
+        title="Gagal Memproses Media Slider LPPM"
+        message={notification}
+        onClose={() => setNotification('')}
+      />
+    </>
   );
 };
 

@@ -24,6 +24,7 @@ import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 export const PeranFormPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
 
   const [loadingPermissions, setLoadingPermissions] = useState(true);
   const [permissionsError, setPermissionsError] = useState<string | null>(null);
@@ -65,6 +66,7 @@ export const PeranFormPage: React.FC = () => {
 
   // Mode ubah: muat detail peran yang akan diedit dari daftar peran.
   useEffect(() => {
+    setLoadedId(null);
     if (!isEdit || !id) return;
     let aktif = true;
     fetchRoles()
@@ -82,6 +84,7 @@ export const PeranFormPage: React.FC = () => {
           deskripsi: peran.deskripsi || '',
           permissionIds: peran.permissions?.map((p: any) => p.permissionId) || [],
         });
+        setLoadedId(id);
       })
       .catch((err: any) => {
         if (aktif) {
@@ -170,6 +173,7 @@ export const PeranFormPage: React.FC = () => {
 
   return (
     <FormPageTemplate
+      submitDisabled={loadingPermissions || Boolean(permissionsError) || (isEdit && loadedId !== id)}
       title={isEdit ? 'Ubah Peran Pengguna' : 'Tambah Peran Pengguna Baru'}
       description="Konfigurasi peran (role) sistem LPPM UNUSU dan alokasi hak izin operasional Tridharma perguruan tinggi."
       badge={

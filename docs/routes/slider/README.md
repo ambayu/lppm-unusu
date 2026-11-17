@@ -2,6 +2,15 @@
 
 Catatan modul untuk halaman `/slider` (panel) dan hero beranda publik LPPM UNUSU.
 
+## Template panel
+
+- `/slider`: katalog kartu media dalam `PageShell`.
+- `/slider/tambah` dan `/slider/edit/:id`: komponen halaman yang sama, memakai
+  `FormPageTemplate` dan seksi `CardContainer`; bukan modal input.
+- Izin rute mengikuti `IZIN_FITUR.penelitianLihat` existing. Modal hanya untuk
+  konfirmasi hapus dan notifikasi; validasi gambar/video tetap berlaku.
+- Acuan [tata kelola halaman](../pages/RULES.md).
+
 ## Berkas
 
 | Lapisan | Berkas |

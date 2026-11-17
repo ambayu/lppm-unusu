@@ -16,8 +16,11 @@ Dokumen ini mendaftarkan seluruh komponen bersama (shared components) yang terse
 | `FullHeroSlider` | `src/client/components/FullHeroSlider.tsx` | **Aktif (Landing Page)** | Carousel banner beranda dengan rasio 80% gambar visual dan 20% teks ringkas, auto-advance 6 detik, indikator titik, dan tombol navigasi slide. |
 | `AnimatedFlatSsoLogo` | `src/client/components/AnimatedFlatSsoLogo.tsx` | **Aktif (Login Page)** | Logo SVG interaktif ONE UNUSU dengan 6 satelit berputar mengelilingi badge angka "1" statis. |
 | `OneUnusuMark` | `src/client/components/OneUnusuMark.tsx` | Cadangan / Utilitas | Emblem SVG ringkas ONE UNUSU berukuran default `96px` yang mendukung `@media (prefers-reduced-motion: reduce)`. |
-| `UserAuthorityCard` | `src/client/components/UserAuthorityCard.tsx` | **Aktif (Wajib di Panel Admin)** | Kartu otoritas pengguna berisi `USERNAME`, `HAK AKSES`, `UNIT KERJA`, dan `STATUS AKUN`. Dirender otomatis oleh `SidebarLayout` di atas konten halaman sehingga seluruh panel LPPM menampilkan identitas sesi secara seragam. |
-| `Navbar` | — (berkas dihapus) | **Dihapus** | Header navigasi horizontal lama berbasis `lucide-react` yang tidak pernah dirender. Berkas `src/client/components/Navbar.tsx` telah dihapus; navbar landing page kini inline di `src/client/pages/Landing.tsx`. |
+| `UserAuthorityCard` | `src/client/components/UserAuthorityCard.tsx` | Tidak dipasang global | Identitas sesi cukup di topbar/sidebar; jangan menambahkan kartu identitas ke setiap halaman. |
+| `Navbar` | `src/client/components/Navbar.tsx` | Aktif pada halaman publik | Navigasi publik dan survei; tidak dipasang pada panel sidebar. |
+| `ListPageTemplate` | `src/client/components/ListPageTemplate.tsx` | Wajib untuk daftar tabel | Header `PageShell`, pencarian/filter dalam `CardContainer`, tabel global, loading/empty/error dan footer. |
+| `FormPageTemplate` | `src/client/components/FormPageTemplate.tsx` | Wajib untuk form CRUD | Header `PageShell`, submit/cancel; seksi field disediakan pemanggil melalui `CardContainer`. Aksen default violet. |
+| `DashboardPageTemplate` | `src/client/components/DashboardPageTemplate.tsx` | Dashboard saja | Props `title`, `description`, `badge`, `actions`, `children`; mempertahankan banner khusus dan area laporan tanpa struktur tabel CRUD. |
 | `DataTable` | `src/client/components/DataTable.tsx` | **Aktif (Wajib)** | Satu-satunya komponen tabel data aplikasi. `ListPageTemplate` memakainya secara internal. Ukuran baku `size="md"`: header `text-xs` uppercase `tracking-wider` latar `bg-slate-50/70`, isi sel `text-sm` padding `py-3.5 px-4`. **Dilarang** menulis `<table>` inline. |
 | `NotificationModal` | `src/client/components/NotificationModal.tsx` | **Aktif (Wajib)** | Modal umpan balik sistem (`error` / `warning` / `confirm` / `info`) dengan palette emerald LPPM, pengganti `alert()` dan `window.confirm()`. |
 
@@ -101,7 +104,7 @@ interface AdminPanelTemplateProps {
   className?: string;
 }
 ```
-- **Aturan Pakai**: Wajib menjadi elemen terluar di setiap komponen halaman yang dirender di dalam `SidebarLayout` (`PenelitianPage`, `PenelitianFormPage`, `PengabdianPage`, `PengabdianFormPage`, `PublikasiPage`, `PublikasiFormPage`).
+- **Aturan Pakai**: Komponen legacy. Halaman aktif memakai `PageShell` melalui `ListPageTemplate`/`FormPageTemplate`, atau `DashboardPageTemplate` untuk dashboard; jangan menambahkan pembungkus panel legacy di luar template tersebut.
 - **Slot `actions`**: Gunakan untuk menempatkan tombol segarkan data (`ArrowPathIcon`) dan tombol CTA utama (`Tambah ...`) pada halaman daftar, atau tombol `Kembali` pada halaman form.
 
 ### 2.2 `CardContainer`
@@ -154,7 +157,7 @@ interface SidebarLayoutProps {
 }
 ```
 - **Aturan Pakai**: Membungkus rute terproteksi (`<ProtectedRoute>`) di `src/client/App.tsx`. Jika menambahkan rute modul baru, perbarui array `navItems`, fungsi `isActive`, dan fungsi `getBreadcrumbLabel` di dalam `SidebarLayout.tsx`.
-- **Kartu Otoritas Sesi**: `SidebarLayout` merender `UserAuthorityCard` secara otomatis di atas `{children}` pada elemen `<main>`. Halaman anak **tidak boleh** merender kartu serupa agar tidak terjadi duplikasi.
+- **Identitas Sesi**: ditampilkan melalui topbar/sidebar. `UserAuthorityCard` tidak dipasang otomatis; halaman anak tidak menambahkan kartu identitas berulang.
 
 ### 2.6 `UserAuthorityCard`
 **Berkas**: `src/client/components/UserAuthorityCard.tsx`
@@ -203,7 +206,7 @@ Beberapa elemen berulang belum diekstrak menjadi file komponen terpisah namun me
 ## 4. Larangan Duplikasi
 
 - **Dilarang** membuat komponen pembungkus kartu baru jika `CardContainer` sudah memenuhi kebutuhan.
-- **Dilarang** membuat layout halaman admin tanpa `SidebarLayout` dan `AdminPanelTemplate`.
+- **Dilarang** menggandakan struktur panel: gunakan `SidebarLayout` dan template sesuai jenis halaman pada registri template, bukan mewajibkan `AdminPanelTemplate` legacy.
 - **Dilarang** mengimpor `Navbar.tsx` ke halaman panel manajemen karena seluruh halaman manajemen wajib menggunakan navigasi `SidebarLayout`.
 
 ---

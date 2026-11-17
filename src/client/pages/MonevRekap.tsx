@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { Navbar } from '../components/Navbar';
 import {
   fetchRekapMonevSurvei,
   RekapMonevData,
@@ -85,46 +86,50 @@ export const MonevRekapPage: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
       <div>
-        <Link
-          to="/monev-survei"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-violet-700"
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          <span>Kembali ke Katalog Monev</span>
-        </Link>
-      </div>
+        <Navbar />
 
-      {/* Header Info */}
-      <div className="flex flex-col gap-4 rounded-[16px] border border-violet-100 bg-gradient-to-r from-violet-900 to-indigo-900 p-6 text-white shadow-xs sm:flex-row sm:items-center sm:justify-between sm:p-8">
-        <div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-violet-300">
-            <CalendarDaysIcon className="h-4 w-4" />
-            <span>{rekap.survei.periode}</span>
+        <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+          <div>
+            <Link
+              to="/monev-survei"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-violet-700"
+            >
+              <ArrowLeftIcon className="h-3.5 w-3.5" />
+              <span>Kembali ke Katalog Monev</span>
+            </Link>
           </div>
-          <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
-            {rekap.survei.judul}
-          </h1>
-          <p className="mt-1 text-xs text-violet-200">
-            Rekapitulasi statistik dan agregasi jawaban survei kepuasan mahasiswa/civitas.
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="rounded-[12px] bg-white/10 px-4 py-2.5 text-center backdrop-blur-md">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200">Total Responden</p>
-            <p className="text-xl font-extrabold text-white">{rekap.survei.totalRespon}</p>
+          {/* Header Info */}
+          <div className="flex flex-col gap-4 rounded-[20px] border border-violet-800 bg-gradient-to-br from-violet-950 via-indigo-950 to-slate-900 p-6 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between sm:p-8">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-violet-300">
+                <CalendarDaysIcon className="h-4 w-4" />
+                <span>{rekap.survei.periode}</span>
+              </div>
+              <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
+                {rekap.survei.judul}
+              </h1>
+              <p className="mt-1 text-xs text-violet-200">
+                Rekapitulasi statistik dan agregasi jawaban survei kepuasan mahasiswa/civitas.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="rounded-[12px] bg-white/10 px-4 py-2.5 text-center backdrop-blur-md">
+                <p className="text-[10px] font-semibold uppercase tracking-wider text-violet-200">Total Responden</p>
+                <p className="text-xl font-extrabold text-white">{rekap.survei.totalRespon}</p>
+              </div>
+              <button
+                onClick={handleExportCsv}
+                className="inline-flex items-center gap-1.5 rounded-[8px] bg-emerald-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700"
+              >
+                <DocumentArrowDownIcon className="h-4 w-4" />
+                <span>Ekspor CSV</span>
+              </button>
+            </div>
           </div>
-          <button
-            onClick={handleExportCsv}
-            className="inline-flex items-center gap-1.5 rounded-[8px] bg-emerald-600 px-3.5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700"
-          >
-            <DocumentArrowDownIcon className="h-4 w-4" />
-            <span>Ekspor CSV</span>
-          </button>
-        </div>
-      </div>
 
       {/* Rincian Jawaban per Pertanyaan */}
       <div className="space-y-4">
@@ -198,6 +203,12 @@ export const MonevRekapPage: React.FC = () => {
           </div>
         ))}
       </div>
+        </main>
+      </div>
+
+      <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
+        <p>&copy; {new Date().getFullYear()} LPPM Universitas Nahdlatul Ulama Sumatera Utara.</p>
+      </footer>
     </div>
   );
 };

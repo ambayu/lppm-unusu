@@ -47,6 +47,9 @@ const PANEL_PREFIXES = [
   '/penelitian',
   '/pengabdian',
   '/publikasi',
+  '/monev-kategori',
+  '/monev-soal',
+  '/monev-responden',
   '/monev',
   '/pengguna',
   '/peran',
@@ -84,6 +87,12 @@ export const Navbar: React.FC = () => {
 
   const links: NavLinkItem[] = [
     { to: '/', label: 'Beranda', icon: HomeIcon, match: (p) => p === '/' },
+    {
+      to: '/monev-survei',
+      label: 'Monev Mutu',
+      icon: ClipboardDocumentCheckIcon,
+      match: (p) => p.startsWith('/monev-survei'),
+    },
     {
       to: '/#layanan',
       label: 'Layanan',

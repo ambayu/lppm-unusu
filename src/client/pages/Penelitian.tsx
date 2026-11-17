@@ -180,7 +180,7 @@ export const PenelitianPage: React.FC = () => {
             className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
           >
             <PlusIcon className="w-5 h-5 text-amber-400" />
-            <span>Tambah Penelitian</span>
+            <span>Tambah Data</span>
           </Link>
         </>
       }
@@ -269,6 +269,7 @@ export const PenelitianPage: React.FC = () => {
       noResultMessage="Tidak ditemukan penelitian yang cocok dengan kriteria pencarian Anda."
       rowKey={(item) => item.id}
       rows={filteredList}
+      minTableWidth="min-w-[1960px]"
       columns={[
         {
           key: 'no',
@@ -279,30 +280,38 @@ export const PenelitianPage: React.FC = () => {
         },
         {
           key: 'judul',
-          header: 'Judul Penelitian & Bidang Fokus',
+          header: 'Judul Penelitian',
           headerClassName: 'min-w-[280px]',
           render: (item) => (
-            <>
-              <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
-              <div className="text-[11px] text-violet-700 font-medium mt-1">Fokus: {item.bidangFokus}</div>
-              {item.anggota && (
-                <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-md">
-                  Anggota: {item.anggota}
-                </div>
-              )}
-            </>
+            <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
           ),
         },
         {
+          key: 'bidangFokus',
+          header: 'Bidang Fokus',
+          headerClassName: 'min-w-[180px]',
+          render: (item) => item.bidangFokus || '-',
+        },
+        {
+          key: 'anggota',
+          header: 'Anggota Peneliti',
+          headerClassName: 'min-w-[200px]',
+          render: (item) => item.anggota || '-',
+        },
+        {
           key: 'ketua',
-          header: 'Ketua & NIDN',
+          header: 'Ketua Peneliti',
           headerClassName: 'min-w-[190px]',
           render: (item) => (
-            <>
-              <div className="font-semibold text-slate-800">{item.ketua}</div>
-              <div className="text-[11px] font-mono text-slate-500 mt-0.5">NIDN: {item.nidn}</div>
-            </>
+            <div className="font-semibold text-slate-800">{item.ketua}</div>
           ),
+        },
+        {
+          key: 'nidn',
+          header: 'NIDN',
+          headerClassName: 'min-w-[140px]',
+          cellClassName: 'font-mono text-slate-500',
+          render: (item) => item.nidn || '-',
         },
         {
           key: 'sumberDana',
@@ -320,15 +329,19 @@ export const PenelitianPage: React.FC = () => {
         },
         {
           key: 'tahun',
-          header: 'Tahun / Status',
+          header: 'Tahun',
           headerClassName: 'min-w-[100px] text-center',
           cellClassName: 'text-center',
           render: (item) => (
-            <>
-              <div className="font-mono font-bold text-slate-800">{item.tahun}</div>
-              <div className="text-[11px] font-semibold text-violet-700 mt-0.5">{item.status}</div>
-            </>
+            <div className="font-mono font-bold text-slate-800">{item.tahun}</div>
           ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          headerClassName: 'min-w-[140px]',
+          cellClassName: 'font-semibold text-violet-700',
+          render: (item) => item.status || '-',
         },
         {
           key: 'createdAt',

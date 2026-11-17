@@ -15,6 +15,7 @@ export const KategoriLppmFormPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [loading, setLoading] = useState(isEdit);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,22 +25,28 @@ export const KategoriLppmFormPage: React.FC = () => {
   });
 
   useEffect(() => {
+    let active = true;
+    setLoadedId(null);
     if (isEdit && id) {
       setLoading(true);
       fetchKategoriDetail(id)
         .then((res) => {
+          if (!active) return;
           const cat = res.data.data;
           setFormData({
             nama: cat.nama || '',
             deskripsi: cat.deskripsi || '',
           });
+          setLoadedId(id);
         })
         .catch((err) => {
+          if (!active) return;
           console.error(err);
           setError(err.response?.data?.message || 'Gagal memuat data kategori.');
         })
-        .finally(() => setLoading(false));
+        .finally(() => { if (active) setLoading(false); });
     }
+    return () => { active = false; };
   }, [id, isEdit]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -83,9 +90,10 @@ export const KategoriLppmFormPage: React.FC = () => {
       backTo="/admin/kategori"
       isEdit={isEdit}
       submitting={submitting}
+      submitDisabled={loading || (isEdit && loadedId !== id)}
       error={error}
       onSubmit={handleSubmit}
-      accentClassName="bg-emerald-700 hover:bg-emerald-800"
+      accentClassName="bg-violet-700 hover:bg-violet-800"
     >
       <CardContainer
         title="Informasi Kategori"

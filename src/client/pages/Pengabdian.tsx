@@ -93,7 +93,7 @@ export const PengabdianPage: React.FC = () => {
             className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
           >
             <PlusIcon className="w-5 h-5 text-amber-400" />
-            <span>Tambah PKM</span>
+            <span>Tambah Data</span>
           </Link>
         </>
       }
@@ -179,6 +179,7 @@ export const PengabdianPage: React.FC = () => {
       noResultMessage="Tidak ditemukan program PKM yang cocok dengan pencarian Anda."
       rowKey={(item) => item.id}
       rows={filteredList}
+      minTableWidth="min-w-[2060px]"
       columns={[
         {
           key: 'no',
@@ -192,39 +193,47 @@ export const PengabdianPage: React.FC = () => {
           header: 'Judul Program PKM',
           headerClassName: 'min-w-[280px]',
           render: (item) => (
-            <>
-              <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
-              {item.anggota && (
-                <div className="text-[11px] text-slate-400 mt-1 truncate max-w-md">
-                  Tim: {item.anggota}
-                </div>
-              )}
-            </>
+            <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
           ),
+        },
+        {
+          key: 'anggota',
+          header: 'Anggota Tim',
+          headerClassName: 'min-w-[200px]',
+          render: (item) => item.anggota || '-',
         },
         {
           key: 'ketua',
-          header: 'Ketua & NIDN',
+          header: 'Ketua',
           headerClassName: 'min-w-[190px]',
           render: (item) => (
-            <>
-              <div className="font-semibold text-slate-800">{item.ketua}</div>
-              <div className="text-[11px] font-mono text-slate-500 mt-0.5">NIDN: {item.nidn}</div>
-            </>
+            <div className="font-semibold text-slate-800">{item.ketua}</div>
           ),
         },
         {
+          key: 'nidn',
+          header: 'NIDN',
+          headerClassName: 'min-w-[140px]',
+          cellClassName: 'font-mono text-slate-500',
+          render: (item) => item.nidn || '-',
+        },
+        {
           key: 'mitra',
-          header: 'Mitra & Lokasi',
+          header: 'Mitra',
           headerClassName: 'min-w-[180px]',
           render: (item) => (
-            <>
-              <div className="font-semibold text-slate-800">{item.mitra}</div>
-              <div className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
-                <MapPinIcon className="w-3.5 h-3.5 text-violet-700" />
-                <span>{item.lokasi}</span>
-              </div>
-            </>
+            <div className="font-semibold text-slate-800">{item.mitra}</div>
+          ),
+        },
+        {
+          key: 'lokasi',
+          header: 'Lokasi',
+          headerClassName: 'min-w-[200px]',
+          render: (item) => (
+            <div className="text-slate-500 flex items-center gap-1">
+              <MapPinIcon className="w-3.5 h-3.5 text-violet-700 shrink-0" />
+              <span>{item.lokasi || '-'}</span>
+            </div>
           ),
         },
         {
@@ -237,15 +246,19 @@ export const PengabdianPage: React.FC = () => {
         },
         {
           key: 'tahun',
-          header: 'Tahun / Status',
+          header: 'Tahun',
           headerClassName: 'min-w-[110px] text-center',
           cellClassName: 'text-center',
           render: (item) => (
-            <>
-              <div className="font-mono font-bold text-slate-800">{item.tahun}</div>
-              <div className="text-[11px] font-semibold text-violet-700 mt-0.5">{item.status}</div>
-            </>
+            <div className="font-mono font-bold text-slate-800">{item.tahun}</div>
           ),
+        },
+        {
+          key: 'status',
+          header: 'Status',
+          headerClassName: 'min-w-[140px]',
+          cellClassName: 'font-semibold text-violet-700',
+          render: (item) => item.status || '-',
         },
         {
           key: 'createdAt',

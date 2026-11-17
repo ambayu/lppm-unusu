@@ -92,7 +92,7 @@ export const DokumenLppmPage: React.FC = () => {
       actions={
         bolehMenulis ? (
           <ListActionButton to="/admin/arsip-dokumen/tambah" icon={<PlusIcon className="w-4 h-4" />}>
-            Tambah Dokumen
+            Tambah Data
           </ListActionButton>
         ) : undefined
       }

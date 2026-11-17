@@ -32,7 +32,8 @@ export const IzinFormPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sukses, setSukses] = useState<string | null>(null);
@@ -46,6 +47,7 @@ export const IzinFormPage: React.FC = () => {
 
   // Mode ubah: ambil detail izin dari katalog.
   useEffect(() => {
+    setLoadedId(null);
     if (!isEdit || !id) return;
     let aktif = true;
     setLoading(true);
@@ -64,6 +66,7 @@ export const IzinFormPage: React.FC = () => {
           modul: izin.modul,
           deskripsi: izin.deskripsi || '',
         });
+        setLoadedId(id);
       })
       .catch((err: any) => {
         if (aktif) {
@@ -134,6 +137,7 @@ export const IzinFormPage: React.FC = () => {
       isEdit={isEdit}
       submitLabel={isEdit ? 'Simpan Perubahan' : 'Simpan Hak Izin'}
       submitting={submitting}
+      submitDisabled={loading || (isEdit && loadedId !== id)}
       error={error}
       onSubmit={handleSubmit}
       accentClassName="bg-violet-700 hover:bg-violet-800"

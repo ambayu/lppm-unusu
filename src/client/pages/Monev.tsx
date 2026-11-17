@@ -209,7 +209,7 @@ export const MonevPage: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-xs sm:text-sm font-bold transition-all shadow-2xs hover:shadow-md cursor-pointer"
           >
             <PlusIcon className="w-4 h-4 stroke-[2.5]" />
-            <span>Jadwal Monev Baru</span>
+            <span>Tambah Data</span>
           </Link>
         </>
       }
@@ -337,6 +337,7 @@ export const MonevPage: React.FC = () => {
       noResultMessage="Tidak ditemukan agenda monev yang cocok dengan kriteria filter Anda."
       rowKey={(item) => item.id}
       rows={list}
+      minTableWidth="min-w-[2960px]"
       columns={[
         {
           key: 'no',
@@ -347,94 +348,110 @@ export const MonevPage: React.FC = () => {
         },
         {
           key: 'kodeMonev',
-          header: 'Kode & Program',
+          header: 'Kode Monev',
           headerClassName: 'min-w-[160px]',
+          cellClassName: 'font-mono font-bold text-violet-800',
+          render: (item) => item.kodeMonev,
+        },
+        {
+          key: 'jenisProgram',
+          header: 'Program',
+          headerClassName: 'min-w-[150px]',
           render: (item) => (
-            <>
-              <div className="font-mono font-bold text-violet-800">{item.kodeMonev}</div>
-              <div className="flex items-center gap-1.5 mt-1">
-                <span
-                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                    item.jenisProgram === 'PENELITIAN'
-                      ? 'bg-violet-50 text-violet-700 border-violet-200'
-                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                  }`}
-                >
-                  {item.jenisProgram}
-                </span>
-                <span
-                  className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border ${formatTahapBadge(
-                    item.tahap
-                  )}`}
-                >
-                  {item.tahap.replace('MONEV_', '')}
-                </span>
-              </div>
-            </>
+            <span
+              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                item.jenisProgram === 'PENELITIAN'
+                  ? 'bg-violet-50 text-violet-700 border-violet-200'
+                  : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+              }`}
+            >
+              {item.jenisProgram}
+            </span>
+          ),
+        },
+        {
+          key: 'tahap',
+          header: 'Tahap',
+          headerClassName: 'min-w-[140px]',
+          render: (item) => (
+            <span
+              className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium border ${formatTahapBadge(
+                item.tahap
+              )}`}
+            >
+              {item.tahap.replace('MONEV_', '')}
+            </span>
           ),
         },
         {
           key: 'judul',
-          header: 'Judul Kegiatan & Tim Pengusul',
+          header: 'Judul Kegiatan',
           headerClassName: 'min-w-[280px]',
           render: (item) => {
             const judul =
               item.jenisProgram === 'PENELITIAN'
                 ? item.penelitian?.judul || 'Proposal Penelitian Belum Terpaut'
                 : item.pengabdian?.judul || 'Kegiatan Pengabdian Belum Terpaut';
-            const ketua =
-              item.jenisProgram === 'PENELITIAN'
-                ? item.penelitian?.ketua || '-'
-                : item.pengabdian?.ketua || '-';
-            const nidn =
-              item.jenisProgram === 'PENELITIAN'
-                ? item.penelitian?.nidn || '-'
-                : item.pengabdian?.nidn || '-';
             return (
-              <>
-                <div className="font-bold text-slate-900 leading-snug line-clamp-2">{judul}</div>
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1">
-                  <span className="font-semibold text-slate-700">{ketua}</span>
-                  <span>•</span>
-                  <span className="font-mono">NIDN: {nidn}</span>
-                </div>
-              </>
+              <div className="font-bold text-slate-900 leading-snug line-clamp-2">{judul}</div>
             );
           },
         },
         {
+          key: 'ketua',
+          header: 'Ketua Pengusul',
+          headerClassName: 'min-w-[190px]',
+          cellClassName: 'font-semibold text-slate-700',
+          render: (item) =>
+            (item.jenisProgram === 'PENELITIAN' ? item.penelitian?.ketua : item.pengabdian?.ketua) || '-',
+        },
+        {
+          key: 'nidn',
+          header: 'NIDN Pengusul',
+          headerClassName: 'min-w-[140px]',
+          cellClassName: 'font-mono text-slate-500',
+          render: (item) =>
+            (item.jenisProgram === 'PENELITIAN' ? item.penelitian?.nidn : item.pengabdian?.nidn) || '-',
+        },
+        {
           key: 'namaReviewer',
-          header: 'Reviewer & Jadwal',
+          header: 'Reviewer',
           headerClassName: 'min-w-[180px]',
           render: (item) => (
-            <>
-              <div className="font-semibold text-slate-800 flex items-center gap-1.5">
-                <UserIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                <span>{item.namaReviewer}</span>
-              </div>
-              <div className="text-[11px] text-slate-500 font-mono mt-0.5 flex items-center gap-1.5">
-                <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
-                <span>
-                  {item.tanggalJadwal
-                    ? new Date(item.tanggalJadwal).toLocaleDateString('id-ID', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })
-                    : '-'}
-                </span>
-              </div>
-              {item.lokasiMonev && (
-                <div className="text-[10px] text-slate-400 truncate max-w-xs mt-0.5">
-                  {item.lokasiMonev}
-                </div>
-              )}
-            </>
+            <div className="font-semibold text-slate-800 flex items-center gap-1.5">
+              <UserIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <span>{item.namaReviewer}</span>
+            </div>
           ),
         },
         {
-          key: 'kemajuan',
-          header: 'Kemajuan & Serapan',
+          key: 'tanggalJadwal',
+          header: 'Tanggal Jadwal',
+          headerClassName: 'min-w-[160px]',
+          render: (item) => (
+            <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5">
+              <CalendarDaysIcon className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+              <span>
+                {item.tanggalJadwal
+                  ? new Date(item.tanggalJadwal).toLocaleDateString('id-ID', {
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })
+                  : '-'}
+              </span>
+            </div>
+          ),
+        },
+        {
+          key: 'lokasiMonev',
+          header: 'Lokasi Monev',
+          headerClassName: 'min-w-[200px]',
+          render: (item) => item.lokasiMonev || '-',
+        },
+        {
+          key: 'persentaseKemajuan',
+          header: 'Kemajuan',
           headerClassName: 'min-w-[130px] text-center',
           cellClassName: 'text-center',
           render: (item) => (
@@ -446,30 +463,39 @@ export const MonevPage: React.FC = () => {
                 />
               </div>
               <div className="text-[10px] font-semibold text-slate-600 font-mono">
-                Kemajuan: {item.persentaseKemajuan}% | Dana: {item.persentaseDanaTerpakai}%
+                {item.persentaseKemajuan}%
               </div>
             </div>
           ),
         },
         {
+          key: 'persentaseDanaTerpakai',
+          header: 'Serapan Dana',
+          headerClassName: 'min-w-[140px] text-center',
+          cellClassName: 'text-center font-mono',
+          render: (item) => `${item.persentaseDanaTerpakai}%`,
+        },
+        {
           key: 'status',
-          header: 'Status / Skor',
+          header: 'Status',
           headerClassName: 'min-w-[130px] text-center',
           cellClassName: 'text-center',
           render: (item) => (
-            <>
-              <span
-                className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border ${formatStatusBadge(
-                  item.status
-                )}`}
-              >
-                {item.status.replace('_', ' ')}
-              </span>
-              <div className="text-[11px] font-mono font-bold text-slate-700 mt-1">
-                {item.skorSubstansi ? `Skor: ${item.skorSubstansi}` : 'Skor: -'}
-              </div>
-            </>
+            <span
+              className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-bold border ${formatStatusBadge(
+                item.status
+              )}`}
+            >
+              {item.status.replace('_', ' ')}
+            </span>
           ),
+        },
+        {
+          key: 'skorSubstansi',
+          header: 'Skor Substansi',
+          headerClassName: 'min-w-[140px] text-center',
+          cellClassName: 'text-center font-mono font-bold text-slate-700',
+          render: (item) => item.skorSubstansi ?? '-',
         },
         {
           key: 'createdAt',

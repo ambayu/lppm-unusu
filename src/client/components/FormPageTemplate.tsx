@@ -17,6 +17,7 @@ interface FormPageTemplateProps {
   /** True bila formulir sedang dalam mode ubah data. */
   isEdit?: boolean;
   submitting?: boolean;
+  submitDisabled?: boolean;
   error?: string | null;
   /** Label tambahan di kanan judul (mis. badge status). */
   badge?: React.ReactNode;
@@ -64,11 +65,12 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
   cancelLabel = 'Batal',
   isEdit = false,
   submitting = false,
+  submitDisabled = false,
   error,
   badge,
   onSubmit,
   onCancel,
-  accentClassName = 'bg-blue-900 hover:bg-blue-950',
+  accentClassName = 'bg-violet-700 hover:bg-violet-800',
   submitIconClassName = 'text-amber-400',
   children,
 }) => {
@@ -92,7 +94,13 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
     >
       {/* Kartu isian — kerangka sama dengan kartu tabel pada ListPageTemplate */}
       <div className="w-full min-w-0 bg-white border border-[#CBD5E1] rounded-[16px] shadow-xs overflow-hidden">
-        <form onSubmit={onSubmit} className="p-5 sm:p-6 space-y-6">
+        <form onSubmit={(event) => {
+          if (submitting || submitDisabled) {
+            event.preventDefault();
+            return;
+          }
+          onSubmit(event);
+        }} className="p-5 sm:p-6 space-y-6">
           {error && (
             <div
               role="alert"
@@ -102,7 +110,9 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
             </div>
           )}
 
-          {children}
+          <fieldset disabled={submitDisabled} className="min-w-0 space-y-6">
+            {children}
+          </fieldset>
 
           {/* Baris aksi standar — selalu di bawah formulir */}
           <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
@@ -126,7 +136,7 @@ export const FormPageTemplate: React.FC<FormPageTemplateProps> = ({
 
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || submitDisabled}
               className={`inline-flex items-center justify-center gap-2.5 px-6 py-2.5 h-[42px] rounded-[12px] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer ${accentClassName}`}
             >
               <CheckIcon className={`w-5 h-5 ${submitIconClassName}`} aria-hidden="true" />

@@ -28,6 +28,8 @@ export const PenggunaFormPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [roles, setRoles] = useState<RoleItem[]>([]);
+  const [rolesReady, setRolesReady] = useState(false);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sukses, setSukses] = useState<string | null>(null);
@@ -52,6 +54,7 @@ export const PenggunaFormPage: React.FC = () => {
       .then((res) => {
         if (!aktif) return;
         setRoles(res.data.data || []);
+        setRolesReady(true);
       })
       .catch((err: any) => {
         if (aktif) setError(err?.response?.data?.message || 'Gagal memuat daftar peran sistem.');
@@ -63,7 +66,8 @@ export const PenggunaFormPage: React.FC = () => {
 
   // Mode ubah: muat data pengguna dari API.
   useEffect(() => {
-    if (!isEdit || !id) return;
+    setLoadedId(null);
+    if (!isEdit || !id || !rolesReady) return;
     let aktif = true;
     fetchUsers()
       .then((res) => {
@@ -87,6 +91,7 @@ export const PenggunaFormPage: React.FC = () => {
           status: target.status || 'Aktif',
           roleIds: roleTarget ? [roleTarget.id] : [],
         });
+        setLoadedId(id);
       })
       .catch((err: any) => {
         if (aktif) setError(err?.response?.data?.message || 'Gagal memuat data pengguna.');
@@ -94,7 +99,7 @@ export const PenggunaFormPage: React.FC = () => {
     return () => {
       aktif = false;
     };
-  }, [isEdit, id, roles]);
+  }, [isEdit, id, roles, rolesReady]);
 
   /** Simpan hasil centang tabel: kirim id ke server tanpa peran */
   const simpanDariTabel = async (e: React.FormEvent) => {
@@ -187,6 +192,7 @@ export const PenggunaFormPage: React.FC = () => {
   return (
     <FormPageTemplate
       title="Ubah Pengguna LPPM"
+      submitDisabled={!rolesReady || loadedId !== id}
       description={`Perbarui peran dan status akun ${formData.nama || ''}. Biodata dikelola ONE UNUSU.`}
       backTo="/pengguna"
       onSubmit={handleEditSubmit}

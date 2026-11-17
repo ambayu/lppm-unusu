@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { PageShell } from './PageShell';
 import { DataTable } from './DataTable';
+import { CardContainer } from './CardContainer';
 
 /* -------------------------------------------------------------------------- */
 /* Tipe kolom tabel                                                           */
@@ -130,7 +131,7 @@ export const ListActionButton: React.FC<ListActionButtonProps> = ({
   icon,
   variant = 'primary',
   disabled = false,
-  accentClassName = 'bg-emerald-700 hover:bg-emerald-800',
+  accentClassName = 'bg-violet-700 hover:bg-violet-800',
   type = 'button',
 }) => {
   const base =
@@ -250,10 +251,10 @@ export function ListPageTemplate<T>({
 
       {/* ---------- Toolbar pencarian & filter ---------- */}
       {(showSearch || filters) && (
-        <div className="bg-white border border-[#CBD5E1] rounded-[14px] p-4 shadow-xs">
-          <div className="flex flex-col sm:flex-row gap-3">
+        <CardContainer>
+          <div className="flex flex-col lg:flex-row gap-3">
             {showSearch && (
-              <div className="relative flex-1">
+              <div className="relative flex-1 min-w-[min(100%,16rem)]">
                 <MagnifyingGlassIcon
                   className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                   aria-hidden="true"
@@ -270,7 +271,7 @@ export function ListPageTemplate<T>({
             )}
             {filters && <div className="flex flex-wrap items-center gap-2">{filters}</div>}
           </div>
-        </div>
+        </CardContainer>
       )}
 
       {/* ---------- Kartu tabel ---------- */}

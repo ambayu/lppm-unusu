@@ -93,7 +93,7 @@ export const PublikasiPage: React.FC = () => {
             className="inline-flex items-center justify-center gap-2.5 px-5 py-2.5 h-[42px] rounded-[12px] bg-violet-700 hover:bg-violet-800 text-white text-sm font-bold transition-all shadow-md hover:shadow-lg active:scale-98 cursor-pointer"
           >
             <PlusIcon className="w-5 h-5 text-amber-400" />
-            <span>Tambah Publikasi</span>
+            <span>Tambah Data</span>
           </Link>
         </>
       }
@@ -178,6 +178,7 @@ export const PublikasiPage: React.FC = () => {
       noResultMessage="Tidak ditemukan publikasi ilmiah yang cocok dengan kata kunci pencarian."
       rowKey={(item) => item.id}
       rows={filteredList}
+      minTableWidth="min-w-[1960px]"
       columns={[
         {
           key: 'no',
@@ -188,17 +189,24 @@ export const PublikasiPage: React.FC = () => {
         },
         {
           key: 'judul',
-          header: 'Judul Artikel & Jurnal Penerbit',
+          header: 'Judul Artikel',
           headerClassName: 'min-w-[300px]',
           render: (item) => (
-            <>
-              <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
-              <div className="text-[11px] text-slate-500 mt-1">
-                Jurnal: <em className="text-slate-700 font-semibold">{item.namaJurnal}</em>
-                {item.volumeIssue && <span> ({item.volumeIssue})</span>}
-              </div>
-            </>
+            <div className="font-bold text-slate-900 leading-snug">{item.judul}</div>
           ),
+        },
+        {
+          key: 'namaJurnal',
+          header: 'Jurnal Penerbit',
+          headerClassName: 'min-w-[220px]',
+          cellClassName: 'font-semibold text-slate-700 italic',
+          render: (item) => item.namaJurnal || '-',
+        },
+        {
+          key: 'volumeIssue',
+          header: 'Volume / Edisi',
+          headerClassName: 'min-w-[140px]',
+          render: (item) => item.volumeIssue || '-',
         },
         {
           key: 'penulis',
@@ -209,18 +217,18 @@ export const PublikasiPage: React.FC = () => {
         },
         {
           key: 'jenis',
-          header: 'Kategori & Akreditasi',
+          header: 'Kategori',
           headerClassName: 'min-w-[150px]',
           render: (item) => (
-            <>
-              <div className="font-semibold text-slate-800">{item.jenis}</div>
-              {item.sintaScore && (
-                <div className="text-[11px] font-mono font-bold text-violet-700 mt-0.5">
-                  {item.sintaScore}
-                </div>
-              )}
-            </>
+            <div className="font-semibold text-slate-800">{item.jenis}</div>
           ),
+        },
+        {
+          key: 'sintaScore',
+          header: 'Akreditasi',
+          headerClassName: 'min-w-[130px]',
+          cellClassName: 'font-mono font-bold text-violet-700',
+          render: (item) => item.sintaScore || '-',
         },
         {
           key: 'doiUrl',

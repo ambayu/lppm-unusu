@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { Navbar } from '../components/Navbar';
 import {
   fetchMonevSurveiDetail,
   submitMonevSurvei,
@@ -178,35 +179,39 @@ export const MonevSurveiFormPage: React.FC = () => {
   });
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 pb-16">
-      {/* Tombol kembali & breadcrumb */}
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between">
       <div>
-        <Link
-          to="/monev-survei"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-violet-700"
-        >
-          <ArrowLeftIcon className="h-3.5 w-3.5" />
-          <span>Kembali ke Daftar Survei</span>
-        </Link>
-      </div>
+        <Navbar />
 
-      {/* Header Formulir */}
-      <div className="rounded-[16px] border border-violet-100 bg-gradient-to-r from-violet-900 to-indigo-900 p-6 text-white shadow-xs sm:p-8">
-        <div className="flex items-center gap-2 text-xs font-semibold text-violet-300">
-          <ClipboardDocumentCheckIcon className="h-4 w-4" />
-          <span>{survei?.periode?.nama}</span>
-        </div>
-        <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
-          {survei?.judul}
-        </h1>
-        <p className="mt-2 max-w-2xl text-xs leading-relaxed text-violet-100/90 sm:text-sm">
-          {survei?.deskripsi}
-        </p>
-        <div className="mt-4 flex items-center gap-2 text-xs text-emerald-300">
-          <ShieldCheckIcon className="h-4 w-4" />
-          <span>Pengisian formulir ini dijamin anonim dan data dihimpun untuk perbaikan mutu.</span>
-        </div>
-      </div>
+        <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+          {/* Tombol kembali & breadcrumb */}
+          <div>
+            <Link
+              to="/monev-survei"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-violet-700"
+            >
+              <ArrowLeftIcon className="h-3.5 w-3.5" />
+              <span>Kembali ke Katalog Monev</span>
+            </Link>
+          </div>
+
+          {/* Header Formulir */}
+          <div className="rounded-[20px] border border-violet-800 bg-gradient-to-br from-violet-950 via-indigo-950 to-slate-900 p-6 sm:p-8 text-white shadow-lg">
+            <div className="flex items-center gap-2 text-xs font-semibold text-violet-300">
+              <ClipboardDocumentCheckIcon className="h-4 w-4" />
+              <span>{survei?.periode?.nama}</span>
+            </div>
+            <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">
+              {survei?.judul}
+            </h1>
+            <p className="mt-2 max-w-2xl text-xs leading-relaxed text-violet-100/90 sm:text-sm">
+              {survei?.deskripsi}
+            </p>
+            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-300">
+              <ShieldCheckIcon className="h-4 w-4" />
+              <span>Pengisian formulir ini dijamin anonim dan data dihimpun untuk perbaikan mutu institusi.</span>
+            </div>
+          </div>
 
       {error && (
         <div className="rounded-[10px] border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-700">
@@ -359,6 +364,12 @@ export const MonevSurveiFormPage: React.FC = () => {
           </button>
         </div>
       </form>
+        </main>
+      </div>
+
+      <footer className="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-500">
+        <p>&copy; {new Date().getFullYear()} LPPM Universitas Nahdlatul Ulama Sumatera Utara.</p>
+      </footer>
     </div>
   );
 };

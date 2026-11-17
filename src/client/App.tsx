@@ -20,6 +20,9 @@ import { MonevSurveiListPage } from './pages/MonevSurveiList';
 import { MonevSurveiFormPage } from './pages/MonevSurveiForm';
 import { MonevRekapPage } from './pages/MonevRekap';
 import { MonevPeriodePage } from './pages/MonevPeriode';
+import { MonevKategoriPage } from './pages/MonevKategori';
+import { MonevSoalPage } from './pages/MonevSoal';
+import { MonevRespondenPage } from './pages/MonevResponden';
 import { DokumenLppmPage } from './pages/Dokumen';
 import { DokumenLppmFormPage } from './pages/DokumenForm';
 import { KategoriLppmPage } from './pages/Kategori';
@@ -440,43 +443,52 @@ export function App() {
               }
             />
 
-            {/* 8. Kuesioner Survei Monev Dinamis (Mahasiswa & Civitas) */}
-            <Route
-              path="/monev-survei"
-              element={
-                <ProtectedRoute>
-                  <SidebarLayout>
-                    <MonevSurveiListPage />
-                  </SidebarLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/monev-survei/:id"
-              element={
-                <ProtectedRoute>
-                  <SidebarLayout>
-                    <MonevSurveiFormPage />
-                  </SidebarLayout>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/monev-survei/:id/rekap"
-              element={
-                <ProtectedRoute>
-                  <SidebarLayout>
-                    <MonevRekapPage />
-                  </SidebarLayout>
-                </ProtectedRoute>
-              }
-            />
+            {/* 8. Kuesioner Survei Monev Dinamis (Mahasiswa & Civitas Langsung di Halaman Publik) */}
+            <Route path="/monev-survei" element={<MonevSurveiListPage />} />
+            <Route path="/monev-survei/:id" element={<MonevSurveiFormPage />} />
+            <Route path="/monev-survei/:id/rekap" element={<MonevRekapPage />} />
+
+            {/* 9. Master Monev di Panel Admin */}
             <Route
               path="/admin/monev-periode"
               element={
                 <ProtectedRoute>
                   <SidebarLayout>
                     <MonevPeriodePage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev-periode"
+              element={<Navigate to="/admin/monev-periode" replace />}
+            />
+            <Route
+              path="/monev-kategori"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevKategoriPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev-soal"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevSoalPage />
+                  </SidebarLayout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/monev-responden"
+              element={
+                <ProtectedRoute>
+                  <SidebarLayout>
+                    <MonevRespondenPage />
                   </SidebarLayout>
                 </ProtectedRoute>
               }
@@ -499,6 +511,30 @@ export function App() {
               path="/admin/slider"
               element={<Navigate to="/slider" replace />}
             />
+            {['/slider/tambah', '/slider/edit/:id'].map((path) => (
+              <Route key={path} path={path} element={
+                <ProtectedRoute>
+                  <IzinRoute izin={[IZIN_FITUR.penelitianLihat]}>
+                    <SidebarLayout><ManajemenSliderLppm /></SidebarLayout>
+                  </IzinRoute>
+                </ProtectedRoute>
+              } />
+            ))}
+            {['/admin/monev-periode/tambah', '/admin/monev-periode/edit/:id'].map((path) => (
+              <Route key={path} path={path} element={
+                <ProtectedRoute><SidebarLayout><MonevPeriodePage /></SidebarLayout></ProtectedRoute>
+              } />
+            ))}
+            {['/monev-kategori/tambah', '/monev-kategori/edit/:id'].map((path) => (
+              <Route key={path} path={path} element={
+                <ProtectedRoute><SidebarLayout><MonevKategoriPage /></SidebarLayout></ProtectedRoute>
+              } />
+            ))}
+            {['/monev-soal/tambah', '/monev-soal/edit/:id'].map((path) => (
+              <Route key={path} path={path} element={
+                <ProtectedRoute><SidebarLayout><MonevSoalPage /></SidebarLayout></ProtectedRoute>
+              } />
+            ))}
 
             {/* Dokumen LPPM Terpadu */}
             <Route

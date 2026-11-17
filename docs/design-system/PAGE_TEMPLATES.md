@@ -6,6 +6,31 @@ Dokumen ini mendefinisikan arsitektur template halaman yang digunakan di **LPPM 
 
 ## 1. Peta Template Halaman di LPPM UNUSU
 
+### Acuan aktif (audit 2026-11-17)
+
+Peta berikut menggantikan spesifikasi legacy `AdminPanelTemplate` pada bagian 2–3:
+
+| Jenis | Template | Pemakaian |
+|---|---|---|
+| Daftar tabel | `ListPageTemplate` → `PageShell`, `CardContainer`, `DataTable` | Penelitian, pengabdian, publikasi, monev riset, izin, pengguna, dokumen, kategori, master Monev dan responden |
+| Tambah/ubah | `FormPageTemplate` → `PageShell`; seksi `CardContainer` | Seluruh form CRUD panel, termasuk master Monev dan slider |
+| Dashboard | `DashboardPageTemplate` | `/dashboard`: banner/sapaan/aksi melalui props; metrik, grafik dan daftar terbaru melalui children |
+| Daftar kartu | `PageShell` | Peran dan slider; kartu dipertahankan karena medianya bukan tabel |
+| Detail akun | `PageShell`, `CardContainer` | `/profil` (hanya baca) |
+| Publik, survei, autentikasi/status | Komposisi khusus existing | Tidak memakai sidebar atau tombol form CRUD admin |
+
+Ketentuan aktif: jangan menulis tabel inline atau modal tambah/ubah; modal hanya
+untuk konfirmasi, notifikasi dan preview. `DataTable` menangani loading/empty;
+`ListPageTemplate` menyediakan pencarian, filter, galat/coba lagi dan footer.
+Tombol aksi utama menggunakan violet LPPM. Rute dan pengecualian komposisi publik
+dicatat di [aturan halaman](../routes/pages/RULES.md).
+
+Contoh daftar: `<ListPageTemplate title="Kategori" description="Kelola kategori" tableTitle="Daftar Kategori" columns={columns} rows={rows} rowKey={(row) => row.id} />`.
+Contoh form: `<FormPageTemplate title="Tambah Data" description="Isi data" backTo="/admin/kategori" onSubmit={handleSubmit}><CardContainer title="Informasi Kategori">{fields}</CardContainer></FormPageTemplate>`.
+Gunakan `stats`, `filters`, `footer`, `actions` dan `tabs` pada daftar, bukan
+menggandakan struktur header/toolbar. Ekstensi template baru harus menjaga kontrak
+pemanggil existing serta dicatat di registri ini.
+
 | Kategori Halaman | Rute Aktual | Pembungkus Layout | Template & Struktur Kontainer |
 |---|---|---|---|
 | **A. List / Table Page Template** | `/penelitian`, `/pengabdian`, `/publikasi` | `ProtectedRoute` -> `SidebarLayout` | `AdminPanelTemplate` -> [1. KPI Grid 4 Kolom] + [2. `CardContainer` Filter & Search] + [3. `CardContainer` Tabel Horizontal Scroll] |
@@ -13,11 +38,11 @@ Dokumen ini mendefinisikan arsitektur template halaman yang digunakan di **LPPM 
 | **C. Public Landing Page** | `/` | Tanpa `SidebarLayout` | Top Announcement Strip + Sticky Public Header + `FullHeroSlider` + Seksi Profil, 3 Pilar Layanan, Skema Hibah, Statistik Kinerja, Alur Pengajuan, & Footer Kampus |
 | **D. Authentication & SSO Pages** | `/login`, `/sso/callback` | Tanpa `SidebarLayout` | Split-screen Login (`LoginPage` dengan `AnimatedFlatSsoLogo` & wallpaper kampus) serta Card Verifikasi Token Sekali Pakai (`SsoCallbackPage`) |
 
-*Catatan Dashboard*: Saat ini LPPM UNUSU tidak memiliki rute `/dashboard` terpisah; metrik ringkasan (KPI) disajikan pada baris kartu di bagian atas masing-masing modul (`PenelitianPage`, `PengabdianPage`, `PublikasiPage`). Apabila di masa mendatang dibangun halaman `/dashboard` khusus, halaman tersebut wajib dibuatkan `DashboardPageTemplate` tersendiri dan dilarang menyalin template halaman tabel CRUD.
+*Dashboard*: Rute `/dashboard` aktif dan memakai `DashboardPageTemplate`, terpisah dari template tabel CRUD.
 
 ---
 
-## 2. Spesifikasi Template A: List / Table Page
+## 2. Pola legacy daftar (riwayat, bukan acuan implementasi baru)
 
 Digunakan oleh: `src/client/pages/Penelitian.tsx`, `src/client/pages/Pengabdian.tsx`, dan `src/client/pages/Publikasi.tsx`.
 
@@ -37,12 +62,12 @@ Digunakan oleh: `src/client/pages/Penelitian.tsx`, `src/client/pages/Pengabdian.
      1. `loading === true` -> Spinner `ArrowPathIcon` berputar.
      2. `error !== null` -> `<ErrorState description={error} onRetry={loadData} />`.
      3. `filteredList.length === 0` -> `<EmptyState ... />`.
-     4. Data tersedia -> `<div className="w-full overflow-x-auto"><table className="w-full min-w-[1080px] text-left border-collapse">...</table></div>`.
-   - Kolom tabel wajib diakhiri dengan kolom `Dibuat` (audit trail `createdAt`) dan kolom `Aksi` (tombol `PencilSquareIcon` menuju `/<modul>/edit/:id` dan tombol `TrashIcon` untuk hapus dengan konfirmasi `window.confirm`).
+      4. Data tersedia -> `DataTable` melalui `ListPageTemplate`, tanpa tabel inline.
+    - Sertakan `Dibuat` jika kontrak API menyediakan `createdAt`; jangan mengarang tanggal. Aksi hapus memakai `NotificationModal`, bukan `window.confirm`.
 
 ---
 
-## 3. Spesifikasi Template B: Form Page (Tambah & Edit)
+## 3. Pola legacy form (digantikan FormPageTemplate bagian 6)
 
 Digunakan oleh: `src/client/pages/PenelitianForm.tsx`, `src/client/pages/PengabdianForm.tsx`, dan `src/client/pages/PublikasiForm.tsx`.
 
@@ -75,7 +100,7 @@ const isEdit = Boolean(id);
 
 Sebelum membuat halaman baru di `src/client/pages/`:
 1. Periksa apakah halaman tersebut bertipe **Daftar Data (List)** atau **Formulir (Form)**.
-2. Gunakan struktur `AdminPanelTemplate` + `CardContainer` yang sudah ada sebagaimana didokumentasikan pada Bagian 2 dan 3 di atas.
+2. Gunakan template aktif pada peta bagian 1: `ListPageTemplate`, `FormPageTemplate` atau `DashboardPageTemplate`; jangan menyalin pola legacy bagian 2–3.
 3. Daftarkan rute di `src/client/App.tsx` di dalam pembungkus `<ProtectedRoute><SidebarLayout>...</SidebarLayout></ProtectedRoute>`.
 4. Tambahkan entri navigasi dan label breadcrumb pada `src/client/components/SidebarLayout.tsx`.
 5. Perbarui dokumentasi ini (`docs/design-system/PAGE_TEMPLATES.md`) dan `CHANGELOG.md`.
@@ -114,15 +139,15 @@ Sebelum membuat halaman baru di `src/client/pages/`:
 
 ---
 
-## 6b. Template 6b: Dashboard Page (`pages/Dashboard.tsx`)
+## 6b. Dashboard (`components/DashboardPageTemplate.tsx` dan `pages/Dashboard.tsx`)
 
 Dashboard LPPM mengikuti pola baku yang sama dengan E-Surat UNUSU. Urutan blok dari atas ke bawah:
 
 1. **Banner sambutan** — latar gradien warna primer repo (violet), badge kecil uppercase,
    `h1` berisi sapaan dinamis (`Selamat pagi/siang/sore/malam` + nama depan dari `user?.nama`),
    satu paragraf penjelas modul, dan 2 tombol aksi ke modul inti (`min-h-[44px]`).
-2. **Kartu ringkasan** (`AdminPanelTemplate`) — badge + judul `Ringkasan ...` + aksi
-   `Segarkan` (ikon berputar saat `loading`) dan tautan ke halaman daftar data.
+2. **Aksi ringkasan** — `Segarkan` di slot `actions` banner (ikon berputar saat `loading`)
+   dan tautan ke modul existing. Tidak ada panel `AdminPanelTemplate` tambahan.
 3. **Error state** — `ErrorState` + tombol coba lagi.
 4. **Skeleton** — grid 4 kartu `animate-pulse` selama `loading` dan data belum ada.
 5. **Kartu metrik** — grid 4 kolom; label uppercase, ikon dalam kotak warna lembut, angka

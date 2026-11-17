@@ -1,8 +1,60 @@
 # CHANGELOG — LPPM UNUSU
 
+## [2026-11-18] — Keputusan akses masuk per peran ONE UNUSU
+
+- Ditegaskan di `docs/PROJECT_RULES.md`: saat login, akun dicari berdasarkan `userId` ONE; akun aktif memakai peran/izin yang sudah ditetapkan melalui Manajemen Pengguna LPPM, tanpa penetapan ulang atau pemetaan peran otomatis.
+
+- Kebijakan terbaru menggantikan kewajiban pendaftaran anggota untuk login: izin masuk ditentukan per peran pada ONE UNUSU. Peran dan izin fitur internal LPPM tetap terpisah; hak masuk tidak berarti administrator.
+- Integrasi menggunakan pemeriksaan akses server-ke-server dengan ONE; tanpa keanggotaan lokal, pengguna tidak otomatis diberi izin tindakan atau dibuatkan akun lokal.
+
+## [2026-11-17] — Keseragaman template panel
+
+### Changed
+- Master periode, kategori, soal dan responden Monev memakai `ListPageTemplate`; tambah/ubah periode, kategori dan soal memakai rute form penuh. Modal responden hanya untuk pratinjau.
+- Kolom gabungan pada penelitian, pengabdian, publikasi dan Monev dipisahkan per jenis data; tombol tambah diseragamkan menjadi `Tambah Data`.
+- Form edit menonaktifkan submit hingga detail berhasil dimuat melalui `submitDisabled`; kegagalan validasi/simpan tetap dapat dicoba ulang.
+- Daftar pengguna memakai `ListPageTemplate`; pengaturan peran menuju form edit existing, bukan modal input terpisah.
+- Slider mempertahankan katalog kartu dalam `PageShell`; tambah/ubah menggunakan halaman `FormPageTemplate` dengan seksi `CardContainer`.
+- Dashboard menggunakan `DashboardPageTemplate` tersendiri dengan aksi segarkan; profil menggunakan `PageShell` dan kartu rincian bersama.
+- Aksen default tombol template form/daftar menjadi violet LPPM; toolbar daftar memakai `CardContainer` dan menjaga ruang pencarian saat filter banyak.
+
+### Fixed
+- Tabel pemilihan direktori pengguna menggunakan `DataTable`, bukan tabel inline.
+
+### Documentation
+- Mencatat peta halaman aktif dan pemisahan template daftar/form/dashboard/publik di `docs/routes/pages/RULES.md`; memperbarui registri template/komponen yang tertinggal.
+
+## [2026-11-17] — Endpoint direktori terpadu
+
+- Verifikasi pilihan pengguna memakai `POST /api/v2/website/users` dengan `ids`, menggantikan URL `/users/by-ids`; tetap mencocokkan ID langsung.
+
 ## [2026-11-21] — Sistem Kuesioner Monev Dinamis & Master Periode
 
 ### Added
+- **Pemisahan Kuesioner Mutu ke Portal Publik (Landing Page)**:
+  - Menu **"Monev Mutu"** ditambahkan langsung pada bilah navigasi utama (`Navbar.tsx`) halaman depan LPPM.
+  - Halaman pengisian kuesioner mutu (`/monev-survei`, `/monev-survei/:id`, dan `/monev-survei/:id/rekap`) dapat diakses langsung oleh mahasiswa dan civitas dari halaman depan tanpa harus masuk ke panel admin pengelola.
+  - Mahasiswa dapat langsung mengisi kuesioner skala Likert dan esai saran secara anonim dan aman.
+- **Panel Khusus Tata Kelola Monev di Sidebar Admin**:
+  - Menu sidebar admin difokuskan murni untuk pengelolaan:
+    1. *Kategori Monev* (`/monev-kategori`)
+    2. *Periode Monev* (`/admin/monev-periode`)
+    3. *Monev Soal* (`/monev-soal`)
+    4. *Monev Responden* (`/monev-responden`)
+    5. *Monev Riset & PKM* (`/monev`)
+- **Struktur Menu Monev Collapse Beranak Terpadu**:
+  1. *Kuesioner Mutu* (`/monev-survei`): Katalog pengisian kuesioner skala 1–5 & esai masukan civitas.
+  2. *Kategori Monev* (`/monev-kategori`): Master jenis instrumen kuesioner, target audiens (Mahasiswa, Dosen/Tendik, Semua), dan switch aktif/nonaktif.
+  3. *Periode Monev* (`/admin/monev-periode`): Master tahun akademik, semester, dan status masa survei (DRAFT, AKTIF, DITUTUP).
+  4. *Monev Soal* (`/monev-soal`): Bank soal kuesioner per instrumen monev dengan pengaturan seksi kategori, tipe skala Likert/esai, bobot urutan, dan flag wajib isi.
+  5. *Monev Responden* (`/monev-responden`): Log pemantauan pengisi kuesioner dengan perlindungan hash satu arah, rincian data demografis, dan modal peninjauan detail jawaban per responden.
+  6. *Monev Riset & PKM* (`/monev`): Monitoring luaran riset dan pengabdian dosen.
+- **REST API Pendukung Monev**:
+  - `GET/POST/PUT /api/monev-survei/kategori`: CRUD instrumen kategori monev.
+  - `GET/POST/PUT/DELETE /api/monev-survei/pertanyaan`: Manajemen bank soal pertanyaan kuesioner monev.
+  - `GET /api/monev-survei/responden` & `GET /api/monev-survei/responden/:id`: Log pengisi kuesioner dan inspeksi rincian jawaban per responden.
+
+## [2026-11-20] — Tabel Pengguna Sendiri & Pendaftaran dari ONE UNUSU
 - **5 Instrumen Kuesioner Monev Berbasis PDF**:
   1. *Monev Pembelajaran* (20 butir pertanyaan mencakup proses belajar, kedisiplinan dosen, transparansi nilai, komunikasi, fasilitas, dan esai saran).
   2. *Monev Kepuasan SDM terhadap Layanan Perguruan Tinggi* (10 butir pertanyaan mencakup kesejahteraan, sarpras, pengembangan karir dosen/tendik, dan iklim kerja).

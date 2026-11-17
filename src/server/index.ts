@@ -4,6 +4,7 @@ import crypto from "crypto";
 import dotenv from "dotenv";
 import path from "path";
 import jwt from "jsonwebtoken";
+import { CentralAccessError, checkCentralAccess, effectiveSsoRole, localFeaturesEnabled } from "./centralAccess.js";
 import { PrismaClient } from "@prisma/client";
 import {
   createMonevSchema,
@@ -40,6 +41,7 @@ import {
 dotenv.config();
 if (process.env.NODE_ENV === 'production' && !process.env.SSO_BASE_URL?.trim()) throw new Error('Missing required SSO_BASE_URL configuration.');
 const SSO_BASE_URL = process.env.SSO_BASE_URL || 'http://localhost:5000';
+const SSO_VERIFY_URL = process.env.SSO_VERIFY_URL || `${SSO_BASE_URL.replace(/\/$/, "")}/api/v2/website/verify-token`;
 if (!/^https?:$/.test(new URL(SSO_BASE_URL).protocol)) throw new Error('SSO_BASE_URL must use HTTP(S).');
 
 const app = express();
@@ -226,7 +228,7 @@ async function verifikasiPenggunaOneUnusu(
   if (daftarId.length === 0) return hasil;
 
   const res = await panggilOneUnusu<PenggunaOneUnusu[]>(
-    "/api/v2/website/users/by-ids",
+    "/api/v2/website/users",
     { ids: daftarId.slice(0, 50) }
   );
   if (!res.ok || !Array.isArray(res.data)) return hasil;
@@ -319,16 +321,8 @@ const APP_SCOPE = "lppm";
 const APP_NAME = "LPPM UNUSU";
 
 // ===========================================================================
-// OTORISASI — KEANGGOTAAN PENGGUNA LPPM
-//
-// Sumber kebenaran akses adalah tabel `lppm_users` + `lppm_users_roles` milik
-// aplikasi ini. Pengguna didaftarkan Admin LPPM dari direktori ONE UNUSU; tidak
-// ada auto-provisioning saat login, sehingga "belum terdaftar" benar-benar
-// berbeda dari "sudah terdaftar tetapi nonaktif".
-//
-// Peran SSO kampus TIDAK dipakai untuk memberi akses (kecuali SUPERADMIN yang
-// selalu diloloskan sebagai jaring pengaman). Izin fitur diturunkan dari peran
-// LPPM pengguna lewat `lppm_role_permissions`.
+// ONE menentukan izin masuk pada setiap request JWT; peran lokal hanya fitur.
+// Tidak ada auto-provisioning. Tanpa anggota aktif, izin fitur lokal kosong.
 // ===========================================================================
 
 /** Tingkat akses panel LPPM — diturunkan dari peran lokal. */
@@ -416,9 +410,7 @@ export interface AppAccessDecision {
 /**
  * Putusan akses aplikasi LPPM.
  *
- * Urutan pemeriksaan disengaja: Superadmin lebih dulu (jaring pengaman), lalu
- * keanggotaan, status, dan terakhir peran — supaya pesan penolakan selalu
- * menyebut langkah perbaikan yang paling tepat.
+ * Dipanggil hanya setelah check-access ONE berhasil; peran pusat biasa tidak memberi fitur admin.
  */
 const putuskanAkses = (params: {
   ssoRole: string;
@@ -426,7 +418,7 @@ const putuskanAkses = (params: {
   statusAkun: string | null;
 }): AppAccessDecision => {
   const ssoRole = (params.ssoRole || "").toUpperCase();
-  const tingkat = tingkatMasukDari(params.roles);
+  const tingkat = ssoRole === "SUPERADMIN" ? "admin" : tingkatMasukDari(localFeaturesEnabled(params.statusAkun) ? params.roles : []);
 
   const dasar = {
     app: APP_SCOPE,
@@ -445,33 +437,6 @@ const putuskanAkses = (params: {
       allowed: true,
       reason: "superadmin_bypass",
       message: `Selamat datang di panel ${APP_NAME}.`,
-    };
-  }
-
-  if (params.statusAkun === null) {
-    return {
-      ...dasar,
-      allowed: false,
-      reason: "not_registered",
-      message: `Akun Anda belum terdaftar di ${APP_NAME}. Hubungi Admin LPPM untuk didaftarkan.`,
-    };
-  }
-
-  if (params.statusAkun !== "Aktif") {
-    return {
-      ...dasar,
-      allowed: false,
-      reason: "inactive_account",
-      message: `Akun ${APP_NAME} Anda sedang nonaktif. Hubungi Admin LPPM untuk mengaktifkan kembali.`,
-    };
-  }
-
-  if (!tingkat) {
-    return {
-      ...dasar,
-      allowed: false,
-      reason: "no_role",
-      message: `Akun Anda belum ditetapkan peran oleh Admin ${APP_NAME}. Hubungi Admin LPPM.`,
     };
   }
 
@@ -514,10 +479,19 @@ const verifikasiTokenLayananArsip = (token: string): { clientId: string } | null
 };
 
 const authenticate = async (req: Request, res: Response, next: NextFunction) => {
+  // Endpoint survei publik & pengisian kuesioner mutu anonim dapat diakses tanpa token
+  const isPublicMonev =
+    req.path === "/monev-survei/aktif" ||
+    (/^\/monev-survei\/\d+$/.test(req.path) && req.method === "GET") ||
+    (/^\/monev-survei\/\d+\/submit$/.test(req.path) && req.method === "POST");
+
   const header = req.headers.authorization;
   const token = header && header.startsWith("Bearer ") ? header.slice(7) : null;
 
   if (!token) {
+    if (isPublicMonev) {
+      return next();
+    }
     return res.status(401).json({ success: false, message: "Token otentikasi tidak disediakan" });
   }
 
@@ -568,13 +542,14 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
   }
 
   try {
+    const central = await checkCentralAccess(SSO_VERIFY_URL, SSO_CLIENT_ID, SSO_CLIENT_KEY, Number(decoded.id));
     const session: SsoSession = {
       id: Number(decoded.id),
       username: String(decoded.username ?? ""),
       nama: String(decoded.nama ?? ""),
       email: typeof decoded.email === "string" ? decoded.email : null,
-      role: String(decoded.role ?? "mahasiswa"),
-      ssoRole: String(decoded.ssoRole ?? ""),
+      role: "",
+      ssoRole: effectiveSsoRole(central),
       app: APP_SCOPE,
       appName: APP_NAME,
       nim: typeof decoded.nim === "string" ? decoded.nim : null,
@@ -583,16 +558,15 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
       fakultas: typeof decoded.fakultas === "string" ? decoded.fakultas : null,
     };
 
-    // Keanggotaan dibaca ulang dari database pada setiap permintaan sehingga
-    // penonaktifan oleh Admin LPPM berlaku seketika, tanpa menunggu JWT habis.
-    const lokal = await ambilAksesLokalPengguna(session.id, session.username, session.ssoRole);
+    // Status lokal hanya membatasi fitur; izin masuk sudah diperiksa di ONE.
+    const lokal = await ambilAksesLokalPengguna(session.id, session.ssoRole);
     const akses = putuskanAkses({
       ssoRole: session.ssoRole,
       roles: lokal.roles,
       statusAkun: lokal.record ? String(lokal.record.status ?? "") : null,
     });
 
-    // Tanpa keanggotaan aktif + peran, seluruh API panel ditolak.
+    // Pertahankan bentuk respons penolakan untuk kompatibilitas klien.
     if (!akses.allowed) {
       return res.status(403).json({
         success: false,
@@ -603,11 +577,13 @@ const authenticate = async (req: Request, res: Response, next: NextFunction) => 
       });
     }
 
+    session.role = akses.tingkat ?? "";
     (req as AuthRequest).user = session;
     (req as AuthRequest).izin = lokal.permissions;
     (req as AuthRequest).akses = { ...akses, izin: Array.from(lokal.permissions) };
     next();
   } catch (error: any) {
+    if (error instanceof CentralAccessError) return res.status(error.status).json({ success: false, code: error.status === 403 ? "IZIN_MASUK_DITOLAK" : "CENTRAL_ACCESS_UNAVAILABLE", message: error.message });
     console.error("Gagal memverifikasi izin akses:", error?.message);
     return res.status(500).json({ success: false, message: "Gagal memverifikasi izin akses" });
   }
@@ -626,14 +602,10 @@ async function seluruhIzin(): Promise<string[]> {
 /**
  * Mengambil keanggotaan, peran, dan izin pengguna dari database LPPM.
  *
- * Tidak ada auto-provisioning: baris `lppm_users` hanya lahir ketika Admin LPPM
- * mendaftarkan pengguna dari direktori ONE UNUSU. `record` bernilai null bila
- * pengguna belum terdaftar, dan pemanggil wajib menolak akses — itulah satu-
- * satunya cara membedakan "belum didaftarkan" dari "terdaftar tetapi nonaktif".
+ * Tidak menulis akun lokal; baris yang tidak ada atau nonaktif tidak memberi fitur.
  */
 async function ambilAksesLokalPengguna(
   userId: number,
-  username: string,
   ssoRole: string
 ): Promise<{
   record: Awaited<ReturnType<typeof prisma.lppmUser.findFirst>> | null;
@@ -641,7 +613,7 @@ async function ambilAksesLokalPengguna(
   permissions: Set<string>;
 }> {
   const record = await prisma.lppmUser.findFirst({
-    where: { OR: [{ userId }, ...(username ? [{ username }] : [])] },
+    where: { userId },
     include: {
       peran: {
         include: {
@@ -658,7 +630,7 @@ async function ambilAksesLokalPengguna(
   const roles: string[] = [];
   const permissions = new Set<string>();
 
-  if (record) {
+  if (record && localFeaturesEnabled(record.status)) {
     for (const ur of record.peran) {
       roles.push(ur.role.kode);
       for (const rp of ur.role.permissions) {
@@ -697,8 +669,9 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       return res.status(500).json({ success: false, message: "SSO_CLIENT_KEY belum dikonfigurasi di server" });
     }
 
-    const ssoResponse = await fetch(`${SSO_BASE_URL}/api/v2/website/verify-token`, {
+    const ssoResponse = await fetch(SSO_VERIFY_URL, {
       method: "POST",
+      signal: AbortSignal.timeout(5000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ client_id: SSO_CLIENT_ID, client_key: SSO_CLIENT_KEY, token }),
     });
@@ -719,12 +692,12 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       return res.status(401).json({ success: false, message: ssoPayload?.message || "Verifikasi token SSO gagal" });
     }
 
-    // Keanggotaan LPPM dibaca dari database lokal. Pengguna yang belum
-    // didaftarkan Admin LPPM TIDAK dibuatkan akun di sini.
-    const lokal = await ambilAksesLokalPengguna(ssoUser.id, ssoUser.username, ssoUser.role);
+    const central = await checkCentralAccess(SSO_VERIFY_URL, SSO_CLIENT_ID, SSO_CLIENT_KEY, ssoUser.id);
+    const ssoRole = effectiveSsoRole(central);
+    const lokal = await ambilAksesLokalPengguna(ssoUser.id, ssoRole);
 
     const akses = putuskanAkses({
-      ssoRole: ssoUser.role,
+      ssoRole,
       roles: lokal.roles,
       statusAkun: lokal.record ? String(lokal.record.status ?? "") : null,
     });
@@ -739,24 +712,6 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       });
     }
 
-    // Segarkan biodata yang bersumber dari ONE UNUSU. Peran lokal TIDAK
-    // disentuh: penugasan peran adalah wewenang Admin LPPM.
-    if (lokal.record) {
-      const namaBaru = ssoUser.nama || lokal.record.nama;
-      const emailBaru = ssoUser.email ?? lokal.record.email ?? null;
-      const ssoRoleBaru = ssoUser.role ? String(ssoUser.role).toUpperCase() : lokal.record.ssoRole;
-      if (
-        namaBaru !== lokal.record.nama ||
-        emailBaru !== lokal.record.email ||
-        ssoRoleBaru !== lokal.record.ssoRole
-      ) {
-        await prisma.lppmUser.update({
-          where: { id: lokal.record.id },
-          data: { nama: namaBaru, email: emailBaru, ssoRole: ssoRoleBaru },
-        }).catch(() => null);
-      }
-    }
-
     const aksesFinal: AppAccessDecision = { ...akses, izin: Array.from(lokal.permissions) };
 
     const sessionUser: SsoSession = {
@@ -764,8 +719,8 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       username: ssoUser.username,
       nama: ssoUser.nama,
       email: ssoUser.email ?? null,
-      role: akses.tingkat ?? "mahasiswa",
-      ssoRole: ssoUser.role,
+      role: akses.tingkat ?? "",
+      ssoRole,
       app: APP_SCOPE,
       appName: APP_NAME,
       nim: ssoUser.nim ?? null,
@@ -792,6 +747,7 @@ app.post("/api/auth/sso", async (req: Request, res: Response) => {
       izin: aksesFinal.izin,
     });
   } catch (error: any) {
+    if (error instanceof CentralAccessError) return res.status(error.status).json({ success: false, code: error.status === 403 ? "IZIN_MASUK_DITOLAK" : "CENTRAL_ACCESS_UNAVAILABLE", message: error.message });
     res.status(500).json({ success: false, message: "Gagal memproses SSO: " + error?.message });
   }
 });
@@ -812,11 +768,8 @@ app.get("/api/auth/session", (req: Request, res: Response) => {
   }
 
   const izin = (req as AuthRequest).izin ?? new Set<string>();
-  const akses = (req as AuthRequest).akses ?? putuskanAkses({
-    ssoRole: user.ssoRole,
-    roles: [user.role],
-    statusAkun: "Aktif",
-  });
+  const akses = (req as AuthRequest).akses;
+  if (!akses) return res.status(403).json({ success: false, message: "Sesi pengguna tidak tersedia." });
 
   res.json({
     success: true,
@@ -2848,9 +2801,6 @@ app.put("/api/monev-survei/periode/:id", requirePermission("monev.survei.manage"
 app.get("/api/monev-survei/aktif", async (req: Request, res: Response) => {
   try {
     const user = (req as AuthRequest).user;
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Sesi tidak valid" });
-    }
     const periodeAktif = await prisma.monevPeriode.findFirst({
       where: { status: "AKTIF" },
       orderBy: { id: "desc" },
@@ -2873,21 +2823,24 @@ app.get("/api/monev-survei/aktif", async (req: Request, res: Response) => {
       },
     });
 
-    // Periksa status pengisian user ini (apakah sudah mengisi survei ini)
+    // Periksa status pengisian user ini jika user sedang login
     const secretHash = process.env.JWT_SECRET || "monev-hash-secret";
     const daftarStatus = await Promise.all(
       surveiList.map(async (s) => {
-        const rawHash = `${user.id || user.username}:${periodeAktif.id}:${s.id}:${secretHash}`;
-        const respondenHash = crypto.createHash("sha256").update(rawHash).digest("hex");
-        const sudah = await prisma.monevRespon.findUnique({
-          where: {
-            surveiId_respondenHash: {
-              surveiId: s.id,
-              respondenHash,
+        let sudah: { id: number; createdAt: Date } | null = null;
+        if (user && (user.id || user.username)) {
+          const rawHash = `${user.id || user.username}:${periodeAktif.id}:${s.id}:${secretHash}`;
+          const respondenHash = crypto.createHash("sha256").update(rawHash).digest("hex");
+          sudah = await prisma.monevRespon.findUnique({
+            where: {
+              surveiId_respondenHash: {
+                surveiId: s.id,
+                respondenHash,
+              },
             },
-          },
-          select: { id: true, createdAt: true },
-        });
+            select: { id: true, createdAt: true },
+          });
+        }
 
         return {
           id: s.id,
@@ -2914,10 +2867,256 @@ app.get("/api/monev-survei/aktif", async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/monev-survei/kategori (Semua instrumen/kategori survei monev untuk manajemen admin)
+app.get("/api/monev-survei/kategori", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const { periodeId } = req.query;
+    const where: any = {};
+    if (periodeId) {
+      where.periodeId = Number(periodeId);
+    }
+
+    const list = await prisma.monevSurvei.findMany({
+      where,
+      orderBy: [{ periodeId: "desc" }, { urutan: "asc" }, { id: "asc" }],
+      include: {
+        periode: true,
+        _count: {
+          select: { pertanyaanList: true, responList: true },
+        },
+      },
+    });
+
+    res.json({ success: true, data: list });
+  } catch (error: any) {
+    console.error("ERROR /api/monev-survei/kategori:", error);
+    res.status(500).json({ success: false, message: "Gagal mengambil kategori monev: " + (error?.message || "") });
+  }
+});
+
+// POST /api/monev-survei/kategori (Buat kategori survei baru)
+app.post("/api/monev-survei/kategori", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const { periodeId, kode, judul, deskripsi, targetAudiens, aktif, urutan } = req.body;
+    if (!periodeId || !kode || !judul) {
+      return res.status(400).json({ success: false, message: "Periode, kode, dan judul kuesioner wajib diisi" });
+    }
+
+    const created = await prisma.monevSurvei.create({
+      data: {
+        periodeId: Number(periodeId),
+        kode: String(kode).trim().toUpperCase(),
+        judul: String(judul).trim(),
+        deskripsi: deskripsi ? String(deskripsi).trim() : null,
+        targetAudiens: targetAudiens || "MAHASISWA",
+        aktif: aktif !== undefined ? Boolean(aktif) : true,
+        urutan: urutan ? Number(urutan) : 0,
+      },
+      include: { periode: true },
+    });
+
+    res.status(201).json({ success: true, data: created, message: "Kategori instrumen monev berhasil dibuat" });
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return res.status(409).json({ success: false, message: "Kode survei sudah digunakan pada periode ini" });
+    }
+    res.status(500).json({ success: false, message: "Gagal membuat kategori monev: " + (error?.message || "") });
+  }
+});
+
+// PUT /api/monev-survei/kategori/:id (Update kategori survei)
+app.put("/api/monev-survei/kategori/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { judul, deskripsi, targetAudiens, aktif, urutan } = req.body;
+
+    const updated = await prisma.monevSurvei.update({
+      where: { id },
+      data: {
+        judul: judul ? String(judul).trim() : undefined,
+        deskripsi: deskripsi !== undefined ? (deskripsi ? String(deskripsi).trim() : null) : undefined,
+        targetAudiens: targetAudiens || undefined,
+        aktif: aktif !== undefined ? Boolean(aktif) : undefined,
+        urutan: urutan !== undefined ? Number(urutan) : undefined,
+      },
+      include: { periode: true },
+    });
+
+    res.json({ success: true, data: updated, message: "Kategori monev berhasil diperbarui" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui kategori monev: " + (error?.message || "") });
+  }
+});
+
+// GET /api/monev-survei/pertanyaan (Daftar semua soal monev per survei)
+app.get("/api/monev-survei/pertanyaan", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const { surveiId } = req.query;
+    const where: any = {};
+    if (surveiId) {
+      where.surveiId = Number(surveiId);
+    }
+
+    const list = await prisma.monevPertanyaan.findMany({
+      where,
+      orderBy: [{ surveiId: "asc" }, { urutan: "asc" }, { id: "asc" }],
+      include: {
+        survei: {
+          include: { periode: true },
+        },
+        _count: {
+          select: { jawabanList: true },
+        },
+      },
+    });
+
+    res.json({ success: true, data: list });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal mengambil daftar soal monev: " + (error?.message || "") });
+  }
+});
+
+// POST /api/monev-survei/pertanyaan (Tambah butir soal/pertanyaan baru)
+app.post("/api/monev-survei/pertanyaan", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const { surveiId, seksi, kode, teks, tipe, wajib, urutan } = req.body;
+    if (!surveiId || !teks) {
+      return res.status(400).json({ success: false, message: "Survei dan teks pertanyaan wajib diisi" });
+    }
+
+    const created = await prisma.monevPertanyaan.create({
+      data: {
+        surveiId: Number(surveiId),
+        seksi: seksi ? String(seksi).trim() : null,
+        kode: kode ? String(kode).trim() : null,
+        teks: String(teks).trim(),
+        tipe: tipe || "SKALA_5",
+        wajib: wajib !== undefined ? Boolean(wajib) : true,
+        urutan: urutan ? Number(urutan) : 0,
+      },
+      include: { survei: true },
+    });
+
+    res.status(201).json({ success: true, data: created, message: "Butir soal berhasil ditambahkan" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal menambah butir soal: " + (error?.message || "") });
+  }
+});
+
+// PUT /api/monev-survei/pertanyaan/:id (Update butir soal/pertanyaan)
+app.put("/api/monev-survei/pertanyaan/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const { seksi, kode, teks, tipe, wajib, urutan } = req.body;
+
+    const updated = await prisma.monevPertanyaan.update({
+      where: { id },
+      data: {
+        seksi: seksi !== undefined ? (seksi ? String(seksi).trim() : null) : undefined,
+        kode: kode !== undefined ? (kode ? String(kode).trim() : null) : undefined,
+        teks: teks ? String(teks).trim() : undefined,
+        tipe: tipe || undefined,
+        wajib: wajib !== undefined ? Boolean(wajib) : undefined,
+        urutan: urutan !== undefined ? Number(urutan) : undefined,
+      },
+      include: { survei: true },
+    });
+
+    res.json({ success: true, data: updated, message: "Butir soal berhasil diperbarui" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal memperbarui soal: " + (error?.message || "") });
+  }
+});
+
+// DELETE /api/monev-survei/pertanyaan/:id (Hapus butir soal)
+app.delete("/api/monev-survei/pertanyaan/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    await prisma.monevPertanyaan.delete({ where: { id } });
+    res.json({ success: true, message: "Butir soal berhasil dihapus" });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal menghapus soal: " + (error?.message || "") });
+  }
+});
+
+// GET /api/monev-survei/responden (Daftar responden/respon yang sudah mengisi)
+app.get("/api/monev-survei/responden", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const { periodeId, surveiId, page = "1", limit = "20" } = req.query;
+    const skip = (Math.max(1, Number(page)) - 1) * Number(limit);
+    const take = Number(limit);
+
+    const where: any = {};
+    if (periodeId) where.periodeId = Number(periodeId);
+    if (surveiId) where.surveiId = Number(surveiId);
+
+    const [total, list] = await Promise.all([
+      prisma.monevRespon.count({ where }),
+      prisma.monevRespon.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take,
+        include: {
+          periode: true,
+          survei: true,
+          _count: {
+            select: { jawabanList: true },
+          },
+        },
+      }),
+    ]);
+
+    res.json({
+      success: true,
+      data: list,
+      meta: {
+        total,
+        page: Number(page),
+        limit: take,
+        totalPages: Math.ceil(total / take),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal mengambil daftar responden: " + (error?.message || "") });
+  }
+});
+
+// GET /api/monev-survei/responden/:id (Detail jawaban spesifik satu responden)
+app.get("/api/monev-survei/responden/:id", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
+  try {
+    const id = Number(req.params.id);
+    const respon = await prisma.monevRespon.findUnique({
+      where: { id },
+      include: {
+        periode: true,
+        survei: true,
+        jawabanList: {
+          include: {
+            pertanyaan: true,
+          },
+          orderBy: { pertanyaan: { urutan: "asc" } },
+        },
+      },
+    });
+
+    if (!respon) {
+      return res.status(404).json({ success: false, message: "Data respon tidak ditemukan" });
+    }
+
+    res.json({ success: true, data: respon });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: "Gagal mengambil detail jawaban responden: " + (error?.message || "") });
+  }
+});
+
 // GET /api/monev-survei/:id (Detail formulir kuesioner & pertanyaan)
 app.get("/api/monev-survei/:id", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, message: "ID kuesioner tidak valid" });
+    }
     const survei = await prisma.monevSurvei.findUnique({
       where: { id },
       include: {
@@ -2942,10 +3141,10 @@ app.get("/api/monev-survei/:id", async (req: Request, res: Response) => {
 app.post("/api/monev-survei/:id/submit", async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const user = (req as AuthRequest).user;
-    if (!user) {
-      return res.status(401).json({ success: false, message: "Sesi tidak valid" });
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, message: "ID kuesioner tidak valid" });
     }
+    const user = (req as AuthRequest).user;
     const { demografi, jawaban } = req.body;
 
     const survei = await prisma.monevSurvei.findUnique({
@@ -2961,8 +3160,10 @@ app.post("/api/monev-survei/:id/submit", async (req: Request, res: Response) => 
     }
 
     // Token anonim: Hash kombinasi rahasia
+    // Bila mahasiswa belum login, gunakan IP & User-Agent sebagai seed anonim fallback
+    const userIdentifier = user?.id || user?.username || req.ip || req.headers["user-agent"] || "anonymous";
     const secretHash = process.env.JWT_SECRET || "monev-hash-secret";
-    const rawHash = `${user.id || user.username}:${survei.periodeId}:${survei.id}:${secretHash}`;
+    const rawHash = `${userIdentifier}:${survei.periodeId}:${survei.id}:${secretHash}`;
     const respondenHash = crypto.createHash("sha256").update(rawHash).digest("hex");
 
     // Periksa apakah sudah pernah mengisi
@@ -2993,8 +3194,8 @@ app.post("/api/monev-survei/:id/submit", async (req: Request, res: Response) => 
           periodeId: survei.periodeId,
           surveiId: survei.id,
           respondenHash,
-          prodi: demografi?.prodi || user.prodi || null,
-          fakultas: demografi?.fakultas || user.fakultas || null,
+          prodi: demografi?.prodi || user?.prodi || null,
+          fakultas: demografi?.fakultas || user?.fakultas || null,
           semester: demografi?.semester ? String(demografi.semester) : null,
           mataKuliah: demografi?.mataKuliah || null,
           dosenPengampu: demografi?.dosenPengampu || null,
@@ -3030,6 +3231,9 @@ app.post("/api/monev-survei/:id/submit", async (req: Request, res: Response) => 
 app.get("/api/monev-survei/:id/rekap", requirePermission("monev.survei.manage"), async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
+    if (!id || isNaN(id)) {
+      return res.status(400).json({ success: false, message: "ID kuesioner tidak valid" });
+    }
     const survei = await prisma.monevSurvei.findUnique({
       where: { id },
       include: {

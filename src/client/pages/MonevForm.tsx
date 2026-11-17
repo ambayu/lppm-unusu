@@ -24,7 +24,8 @@ export const MonevFormPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -57,6 +58,8 @@ export const MonevFormPage: React.FC = () => {
   const [tindakLanjut, setTindakLanjut] = useState('');
 
   useEffect(() => {
+    let active = true;
+    setLoadedId(null);
     // Muat daftar riset & pengabdian untuk pilihan relasi
     fetchPenelitian()
       .then((res) => setPenelitianList(res.data.data || []))
@@ -70,6 +73,7 @@ export const MonevFormPage: React.FC = () => {
       setLoading(true);
       getMonev(id)
         .then((res) => {
+          if (!active) return;
           const data = res.data.data;
           setKodeMonev(data.kodeMonev);
           setJenisProgram(data.jenisProgram);
@@ -92,13 +96,16 @@ export const MonevFormPage: React.FC = () => {
           setCapaianLuaran(data.capaianLuaran || '');
           setCatatanReviewer(data.catatanReviewer || '');
           setTindakLanjut(data.tindakLanjut || '');
+          setLoadedId(id);
         })
         .catch((err) => {
+          if (!active) return;
           console.error(err);
           setError('Gagal memuat rincian agenda Monev untuk diedit.');
         })
-        .finally(() => setLoading(false));
+        .finally(() => { if (active) setLoading(false); });
     }
+    return () => { active = false; };
   }, [id, isEdit]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -163,6 +170,7 @@ export const MonevFormPage: React.FC = () => {
       isEdit={isEdit}
       submitLabel={isEdit ? 'Simpan Perubahan' : 'Jadwalkan Monev'}
       submitting={submitting}
+      submitDisabled={loading || (isEdit && loadedId !== id)}
       error={error}
       onSubmit={handleSubmit}
       accentClassName="bg-violet-700 hover:bg-violet-800"

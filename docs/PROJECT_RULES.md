@@ -4,6 +4,17 @@ Dokumen ini menetapkan aturan global pengembangan fullstack monolith **LPPM UNUS
 
 ## ATURAN SSO — Callback, Tiket, dan Diagnosis Gagal Login
 
+### Aturan Akses Masuk dan Pemuatan Peran LPPM (2026-11-18)
+
+1. **Hak masuk ditentukan per peran di ONE UNUSU.** ONE memeriksa apakah salah satu peran pengguna diizinkan mengakses LPPM; keputusan ini bukan pemberian izin fitur internal LPPM.
+2. **Login memeriksa akun LPPM berdasarkan ID pengguna ONE (`userId`).** Nama dan username tidak menjadi identitas pencocokan izin.
+3. **Akun yang sudah diatur di Manajemen Pengguna LPPM langsung memakai penugasan yang ada.** Jika akun lokal aktif, peran dan izin internal dimuat otomatis saat login; menu dan tindakan mengikuti izin tersebut. Tidak perlu menempatkan ulang peran setiap login.
+4. **Pemuatan peran bukan penetapan peran otomatis.** Login tidak membuat anggota lokal, tidak menimpa penugasan lokal, dan tidak otomatis memetakan peran DOSEN ONE menjadi peran dosen LPPM. Penetapan peran internal dilakukan melalui Manajemen Pengguna LPPM.
+5. **Tanpa akun atau peran lokal, pengguna yang diizinkan ONE tetap boleh masuk, tetapi izin fiturnya kosong.** Akun lokal nonaktif tidak memperoleh izin fitur internal. SUPERADMIN tetap mendapat seluruh izin sesuai kebijakan ekosistem.
+6. **Keputusan akses tidak hanya diperiksa saat login.** Setiap request JWT memeriksa kembali akses pusat dan membaca penugasan lokal terbaru. Gangguan pemeriksaan pusat tidak boleh membuka akses; klaim JWT atau cache browser bukan sumber kebenaran hak akses.
+
+Aturan ini menggantikan ketentuan lama yang mewajibkan keanggotaan lokal sebagai syarat masuk atau menyamakan peran pusat dengan administrator internal LPPM.
+
 Kontrak tetap antara Portal ONE UNUSU dan aplikasi ini. Melanggar satu butir cukup untuk membuat login gagal total, dan gejalanya sering menyerupai masalah lain. Katalog gejala–sebab–solusi lengkap: `one-unusu/docs/SSO_TROUBLESHOOTING.md`.
 
 ### A. Aturan Wajib Callback Browser
@@ -43,9 +54,9 @@ Jika terdapat perbedaan aturan di antara dokumen, urutan prioritas dari tertingg
 4. Konvensi lokal pada berkas modul di `src/client/` dan `src/server/`.
 
 ## 2. Arsitektur & Konvensi Global
-- **Monolith Satu Port**: Backend Express (`src/server/`) dan Frontend Vite React (`src/client/`) berjalan dalam satu repositori (`PORT` default `5005`, Vite dev server pada `5178` dengan proxy `/api` ke `localhost:5005`).
+- **Monolith Satu Port**: Backend Express (`src/server/`) dan Frontend Vite React (`src/client/`) berjalan dalam satu repositori (`PORT` default `5005`, Vite dev server pada `5176` dengan proxy `/api` ke `localhost:5005`).
 - **Build Once, Reuse Everywhere**: Every page must use the correct page template and shared components. Dashboard must use its own dashboard template. Duplicating UI structure that already exists in a shared template is forbidden.
-- **Full-Page CRUD (Tanpa Modal Form)**: Seluruh operasi penambahan dan penyuntingan data untuk modul Penelitian, Pengabdian, dan Publikasi wajib menggunakan rute halaman penuh (`/tambah` dan `/edit/:id`). Dilarang menggunakan popup modal untuk form input data.
+- **Full-Page CRUD (Tanpa Modal Form)**: Seluruh operasi penambahan dan penyuntingan data panel, termasuk master Monev, pengguna dan slider, wajib menggunakan rute halaman penuh (`/tambah` dan `/edit/:id`) dengan `FormPageTemplate`. Modal hanya untuk notifikasi, konfirmasi dan preview singkat. Daftar tabel memakai `ListPageTemplate`; daftar kartu memakai `PageShell`; dashboard memakai `DashboardPageTemplate`.
 - **Form Section Layout Rule (Part 10.8)**: Setiap grup field pada halaman form wajib dibungkus di dalam `CardContainer` ber-heading di atas kanvas halaman (`#F1F5F9`). Dilarang merender label dan input telanjang langsung di atas background halaman.
 - **Icon Standard & Anti-Sparkles**: Wajib menggunakan `@heroicons/react/24/outline` atau `solid` untuk komponen panel manajemen, tanpa ikon sparkles (`SparklesIcon`). Gunakan ikon fungsional (`AcademicCapIcon`, `BeakerIcon`, `HeartIcon`, `BookOpenIcon`, `DocumentTextIcon`).
   - *Catatan Audit Kode*: Komponen `src/client/components/Navbar.tsx` (legacy, tidak aktif di `App.tsx`) dan `src/client/pages/SsoCallback.tsx` masih mengimpor ikon dari `lucide-react`. Pengembangan baru atau refaktor wajib menggunakan `@heroicons/react`.
@@ -59,7 +70,7 @@ Jika terdapat perbedaan aturan di antara dokumen, urutan prioritas dari tertingg
 - **Desentralisasi RBAC & Multi-Role**: LPPM UNUSU mengelola hak akses mandiri di basis data lokal melalui relasi `lppm_users`, `lppm_roles`, `lppm_permissions`, `lppm_role_permissions`, dan tabel junction multi-role `lppm_user_roles`.
 - **Auto-Provisioning**: Pengguna SSO baru otomatis dibuatkan akun lokal LPPM saat login pertama kali dengan peran bawaan sesuai tingkat SSO (`admin` atau `dosen`).
 - **Pembedaan URL Callback (Local Dev vs VPS)**:
-  - Lingkungan lokal: `http://localhost:5178/sso/callback`.
+  - Lingkungan lokal: `http://localhost:5176/sso/callback`.
   - Lingkungan VPS / Produksi: `https://unusu.ac.id/lppm/sso/callback` (atau sesuai `SEED_PUBLIC_BASE_URL`).
   - Dikelola terpusat dari seeder portal ONE UNUSU via skrip `npm run db:sso-dev-urls` / `npm run db:sso-vps-urls`.
 - **Deduplikasi Token Callback**: Token SSO bersifat sekali pakai (5 menit). Halaman `SsoCallbackPage` wajib mempertahankan deduplikasi request (`exchangeRequests` Map) agar tidak gagal akibat double-invocation pada React `StrictMode`.

@@ -1,27 +1,21 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { PageShell } from '../components/PageShell';
-import { CardContainer } from '../components/CardContainer';
-import { DataTable } from '../components/DataTable';
-import { EmptyState } from '../components/EmptyState';
-import { ErrorState } from '../components/ErrorState';
-import { ModalAturPeran } from '../components/ModalAturPeran';
+import { ListPageTemplate, ListActionButton } from '../components/ListPageTemplate';
+import { NotificationModal } from '../components/NotificationModal';
+import { deskripsikanGalat, type DeskripsiGalat } from '../lib/galat';
 import { useAuth } from '../context/AuthContext';
 import { IZIN_FITUR } from '../lib/appAccess';
 import {
   fetchUsers,
-  fetchRoles,
   updateUserAssignment,
   deleteUserAssignment,
   type PenggunaLppm,
-  type RoleItem,
 } from '../services/api';
 import {
   PlusIcon,
   PencilSquareIcon,
   TrashIcon,
   ArrowPathIcon,
-  MagnifyingGlassIcon,
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 
@@ -40,7 +34,7 @@ function badgeForRole(kode: string): string {
  * PenggunaPage — daftar pengguna panel LPPM.
  *
  * Seluruh akun berasal dari direktori ONE UNUSU dan didaftarkan Admin LPPM.
- * Penugasan peran dilakukan lewat modal "Atur Peran" agar lebih rapi dan jelas.
+ * Penugasan peran dilakukan lewat halaman ubah pengguna.
  */
 export const PenggunaPage: React.FC = () => {
   const { bisa } = useAuth();
@@ -48,16 +42,14 @@ export const PenggunaPage: React.FC = () => {
   const navigate = useNavigate();
 
   const [users, setUsers] = useState<PenggunaLppm[]>([]);
-  const [roles, setRoles] = useState<RoleItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [menyimpan, setMenyimpan] = useState<number | null>(null);
 
-  // Modal atur peran
-  const [penggunaModal, setPenggunaModal] = useState<PenggunaLppm | null>(null);
-  const [galatModal, setGalatModal] = useState<string | null>(null);
-  const [menyimpanPeran, setMenyimpanPeran] = useState(false);
+  const [akanDihapus, setAkanDihapus] = useState<PenggunaLppm | null>(null);
+  const [menghapus, setMenghapus] = useState(false);
+  const [galat, setGalat] = useState<DeskripsiGalat | null>(null);
 
   // Pesan sukses yang dibawa dari halaman Tambah Pengguna
   const [pesanSukses, setPesanSukses] = useState<string | null>(
@@ -80,9 +72,10 @@ export const PenggunaPage: React.FC = () => {
     try {
       const res = await fetchUsers();
       setUsers(res.data.data || []);
-    } catch (err: any) {
-      console.error(err);
-      setError(err?.response?.data?.message || 'Gagal memuat daftar pengguna LPPM');
+    } catch (err: unknown) {
+      const rincian = deskripsikanGalat(err, 'Memuat Pengguna', 'daftar pengguna LPPM');
+      setError(rincian.message);
+      setGalat(rincian);
     } finally {
       setLoading(false);
     }
@@ -90,32 +83,10 @@ export const PenggunaPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    fetchRoles()
-      .then((res) => setRoles(res.data.data || []))
-      .catch(() => {
-        /* daftar peran dibiarkan kosong */
-      });
   }, []);
 
   const isSuperadmin = (u: PenggunaLppm) =>
     (u.ssoRole || '').toUpperCase() === 'SUPERADMIN' || u.peran.includes('SUPERADMIN');
-
-  const simpanPeranModal = async (kode: string) => {
-    if (!penggunaModal) return;
-    setGalatModal(null);
-    setMenyimpanPeran(true);
-    try {
-      await updateUserAssignment(penggunaModal.id, {
-        peran: kode ? [kode] : [],
-      });
-      setPenggunaModal(null);
-      await loadData();
-    } catch (err: any) {
-      setGalatModal(err?.response?.data?.message || 'Gagal mengubah peran pengguna');
-    } finally {
-      setMenyimpanPeran(false);
-    }
-  };
 
   const gantiStatus = async (u: PenggunaLppm, status: string) => {
     if (u.status === status) return;
@@ -123,20 +94,26 @@ export const PenggunaPage: React.FC = () => {
     try {
       await updateUserAssignment(u.id, { status });
       await loadData();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Gagal mengubah status pengguna');
+    } catch (err: unknown) {
+      setGalat(deskripsikanGalat(err, 'Mengubah Status Pengguna', `pengguna «${u.nama}»`));
     } finally {
       setMenyimpan(null);
     }
   };
 
-  const handleDelete = async (u: PenggunaLppm) => {
-    if (!window.confirm(`Yakin ingin menghapus "${u.nama}" (${u.username}) dari pengguna LPPM?`)) return;
+  const handleDelete = async () => {
+    if (!akanDihapus || menghapus) return;
+    const u = akanDihapus;
+    setMenghapus(true);
     try {
       await deleteUserAssignment(u.id);
-      loadData();
-    } catch (err: any) {
-      alert(err?.response?.data?.message || 'Gagal menghapus pengguna');
+      setAkanDihapus(null);
+      await loadData();
+    } catch (err: unknown) {
+      setAkanDihapus(null);
+      setGalat(deskripsikanGalat(err, 'Menghapus Pengguna', `pengguna «${u.nama}»`));
+    } finally {
+      setMenghapus(false);
     }
   };
 
@@ -152,22 +129,23 @@ export const PenggunaPage: React.FC = () => {
   }, [users, search]);
 
   return (
-    <PageShell
+    <>
+    <ListPageTemplate<PenggunaLppm>
       title="Manajemen Pengguna"
       description="Pengguna panel LPPM dipilih dari direktori ONE UNUSU dan diberi peran oleh Admin LPPM."
       actions={
-        canManage ? (
-          <Link
-            to="/pengguna/tambah"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[12px] bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 text-white font-semibold text-sm shadow-md transition-all active:scale-[0.98]"
-          >
-            <PlusIcon className="w-5 h-5" />
-            <span>Tambah Pengguna</span>
-          </Link>
-        ) : undefined
+        <>
+          <ListActionButton onClick={loadData} variant="secondary" disabled={loading} icon={<ArrowPathIcon className="w-4 h-4" />}>
+            Segarkan
+          </ListActionButton>
+          {canManage && (
+            <ListActionButton to="/pengguna/tambah" icon={<PlusIcon className="w-4 h-4" />}>
+              Tambah Data
+            </ListActionButton>
+          )}
+        </>
       }
-    >
-      {pesanSukses && (
+      stats={pesanSukses && (
         <div
           role="status"
           className="mb-6 px-4 py-3.5 rounded-[12px] bg-[#F0FDF4] border border-[#166534] text-[#166534] text-xs font-semibold"
@@ -175,58 +153,19 @@ export const PenggunaPage: React.FC = () => {
           {pesanSukses}
         </div>
       )}
-
-      <CardContainer className="mb-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4">
-          <div className="relative w-full sm:w-80">
-            <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Cari nama, NIDN, atau peran..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-[10px] text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 transition-all"
-            />
-          </div>
-          <button
-            onClick={loadData}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-[8px] transition-colors"
-          >
-            <ArrowPathIcon className="w-4 h-4" />
-            <span>Segarkan</span>
-          </button>
-        </div>
-      </CardContainer>
-
-      {error && <ErrorState description={error} onRetry={loadData} />}
-
-      {!loading && !error && filteredUsers.length === 0 && (
-        <EmptyState
-          title="Belum Ada Pengguna"
-          description={
-            search
-              ? 'Tidak ditemukan pengguna yang cocok dengan pencarian Anda.'
-              : 'Belum ada pengguna yang didaftarkan ke panel LPPM. Tambahkan dari direktori ONE UNUSU.'
-          }
-          action={
-            canManage ? (
-              <Link
-                to="/pengguna/tambah"
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-[10px] bg-violet-600 hover:bg-violet-700 text-white font-semibold text-xs transition"
-              >
-                <PlusIcon className="w-4 h-4" />
-                <span>Tambah Pengguna</span>
-              </Link>
-            ) : undefined
-          }
-        />
-      )}
-
-      {!loading && !error && filteredUsers.length > 0 && (
-        <CardContainer>
-          <DataTable
+      searchValue={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Cari nama, NIDN, atau peran..."
+      tableTitle="Daftar Pengguna LPPM"
+      tableSubtitle={`Menampilkan ${filteredUsers.length} dari total ${users.length} pengguna`}
+      loading={loading}
+      error={error}
+      onRetry={loadData}
+      hasActiveFilter={Boolean(search.trim())}
+      emptyMessage="Belum ada pengguna yang didaftarkan ke panel LPPM. Tambahkan dari direktori ONE UNUSU."
+      noResultMessage="Tidak ditemukan pengguna yang cocok dengan pencarian Anda."
             minTableWidth="min-w-[1180px]"
-            rows={filteredUsers}
+             rows={error ? [] : filteredUsers}
             rowKey={(item) => item.id}
             columns={[
               {
@@ -281,10 +220,7 @@ export const PenggunaPage: React.FC = () => {
                   return (
                     <button
                       type="button"
-                      onClick={() => {
-                        setGalatModal(null);
-                        setPenggunaModal(item);
-                      }}
+                      onClick={() => navigate(`/pengguna/edit/${item.id}`)}
                       className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[36px] rounded-[8px] border border-[#D8E5DC] bg-white text-slate-900 hover:bg-[#F0FDF4] hover:border-[#166534] text-xs font-semibold transition cursor-pointer"
                       aria-label={`Atur peran ${item.nama}`}
                     >
@@ -351,7 +287,7 @@ export const PenggunaPage: React.FC = () => {
                           </Link>
                           {!isSuperadmin(item) && (
                             <button
-                              onClick={() => handleDelete(item)}
+                               onClick={() => setAkanDihapus(item)}
                               className="inline-flex items-center justify-center w-9 h-9 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-[8px] border border-slate-200 transition-colors cursor-pointer"
                               title="Hapus Pengguna"
                               aria-label={`Hapus ${item.nama}`}
@@ -366,22 +302,25 @@ export const PenggunaPage: React.FC = () => {
                 : []),
             ]}
           />
-        </CardContainer>
-      )}
-
-      <ModalAturPeran
-        terbuka={Boolean(penggunaModal)}
-        pengguna={penggunaModal}
-        opsiPeran={roles}
-        sedangMenyimpan={menyimpanPeran}
-        pesanGalat={galatModal}
-        onTutup={() => {
-          if (menyimpanPeran) return;
-          setPenggunaModal(null);
-          setGalatModal(null);
-        }}
-        onSimpan={simpanPeranModal}
+      <NotificationModal
+        isOpen={Boolean(akanDihapus)}
+        type="confirm"
+        title="Hapus Pengguna LPPM"
+        message={`Yakin ingin menghapus "${akanDihapus?.nama}" (${akanDihapus?.username}) dari pengguna LPPM?`}
+        confirmLabel="Hapus Pengguna"
+        loading={menghapus}
+        onConfirm={handleDelete}
+        onClose={() => { if (!menghapus) setAkanDihapus(null); }}
       />
-    </PageShell>
+      <NotificationModal
+        isOpen={Boolean(galat)}
+        type="error"
+        title={galat?.title}
+        message={galat?.message ?? ''}
+        details={galat?.details}
+        code={galat?.code}
+        onClose={() => setGalat(null)}
+      />
+    </>
   );
 };

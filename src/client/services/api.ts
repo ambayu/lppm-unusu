@@ -724,20 +724,28 @@ export interface MonevPeriodeItem {
 
 export interface MonevSurveiItem {
   id: number;
+  periodeId?: number;
+  periode?: MonevPeriodeItem;
   kode: string;
   judul: string;
   deskripsi?: string | null;
   targetAudiens: 'MAHASISWA' | 'DOSEN_TENDIK' | 'SEMUA';
+  aktif?: boolean;
   urutan: number;
   totalPertanyaan?: number;
   totalRespon?: number;
   sudahMengisi?: boolean;
   tanggalMengisi?: string | null;
+  _count?: {
+    pertanyaanList: number;
+    responList: number;
+  };
 }
 
 export interface MonevPertanyaanItem {
   id: number;
   surveiId: number;
+  survei?: MonevSurveiItem;
   seksi?: string | null;
   kode?: string | null;
   teks: string;
@@ -745,6 +753,34 @@ export interface MonevPertanyaanItem {
   opsi?: any;
   wajib: boolean;
   urutan: number;
+  _count?: {
+    jawabanList: number;
+  };
+}
+
+export interface MonevResponItem {
+  id: number;
+  periodeId: number;
+  periode?: MonevPeriodeItem;
+  surveiId: number;
+  survei?: MonevSurveiItem;
+  respondenHash: string;
+  prodi?: string | null;
+  fakultas?: string | null;
+  semester?: string | null;
+  mataKuliah?: string | null;
+  dosenPengampu?: string | null;
+  createdAt: string;
+  _count?: {
+    jawabanList: number;
+  };
+  jawabanList?: Array<{
+    id: number;
+    pertanyaanId: number;
+    pertanyaan: MonevPertanyaanItem;
+    nilaiSkala?: number | null;
+    nilaiTeks?: string | null;
+  }>;
 }
 
 export interface MonevSurveiDetail {
@@ -819,6 +855,45 @@ export const fetchRekapMonevSurvei = (id: number | string) =>
   api.get<{ success: boolean; survei: RekapMonevData['survei']; data: RekapPertanyaanItem[] }>(
     `/monev-survei/${id}/rekap`
   );
+
+// Kategori Monev
+export const fetchMonevKategori = (params?: { periodeId?: number | string }) =>
+  api.get<{ success: boolean; data: MonevSurveiItem[] }>('/monev-survei/kategori', { params });
+
+export const createMonevKategori = (data: Partial<MonevSurveiItem>) =>
+  api.post<{ success: boolean; data: MonevSurveiItem; message: string }>('/monev-survei/kategori', data);
+
+export const updateMonevKategori = (id: number | string, data: Partial<MonevSurveiItem>) =>
+  api.put<{ success: boolean; data: MonevSurveiItem; message: string }>(`/monev-survei/kategori/${id}`, data);
+
+// Soal Monev
+export const fetchMonevPertanyaan = (params?: { surveiId?: number | string }) =>
+  api.get<{ success: boolean; data: MonevPertanyaanItem[] }>('/monev-survei/pertanyaan', { params });
+
+export const createMonevPertanyaan = (data: Partial<MonevPertanyaanItem>) =>
+  api.post<{ success: boolean; data: MonevPertanyaanItem; message: string }>('/monev-survei/pertanyaan', data);
+
+export const updateMonevPertanyaan = (id: number | string, data: Partial<MonevPertanyaanItem>) =>
+  api.put<{ success: boolean; data: MonevPertanyaanItem; message: string }>(`/monev-survei/pertanyaan/${id}`, data);
+
+export const deleteMonevPertanyaan = (id: number | string) =>
+  api.delete<{ success: boolean; message: string }>(`/monev-survei/pertanyaan/${id}`);
+
+// Responden Monev
+export const fetchMonevResponden = (params?: {
+  periodeId?: number | string;
+  surveiId?: number | string;
+  page?: number;
+  limit?: number;
+}) =>
+  api.get<{
+    success: boolean;
+    data: MonevResponItem[];
+    meta: { total: number; page: number; limit: number; totalPages: number };
+  }>('/monev-survei/responden', { params });
+
+export const fetchMonevRespondenDetail = (id: number | string) =>
+  api.get<{ success: boolean; data: MonevResponItem }>(`/monev-survei/responden/${id}`);
 
 
 export default api;

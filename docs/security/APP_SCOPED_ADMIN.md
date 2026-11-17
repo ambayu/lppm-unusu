@@ -1,5 +1,7 @@
 # Pemisahan Admin Per Aplikasi (App-Scoped Admin)
 
+> **Pengganti kebijakan masuk — 2026-11-18:** ONE UNUSU menentukan akses masuk berdasarkan penautan aplikasi per peran (`SsoApp.targetRoles`, kecocokan kode peran persis). Pendaftaran anggota lokal tidak diperlukan untuk masuk. Izin tindakan dan administrator internal tetap mengikuti penugasan lokal yang aktif; pengguna tanpa penugasan tidak mendapat izin fitur. SUPERADMIN tetap pengecualian penuh. Matriks nama peran di bawah adalah riwayat, bukan allowlist login yang berlaku.
+
 Dokumen ini menetapkan kebijakan **satu admin hanya untuk satu aplikasi** pada ekosistem
 ONE UNUSU, khususnya relasi **LPPM UNUSU ↔ LPM UNUSU**.
 

@@ -77,6 +77,7 @@ async function main() {
         "pengabdian.view", "pengabdian.create", "pengabdian.edit", "pengabdian.delete", "pengabdian.review",
         "publikasi.view", "publikasi.create", "publikasi.edit", "publikasi.delete",
         "monev.view", "monev.create", "monev.review", "monev.manage",
+        "monev.survei.view", "monev.survei.manage",
         "roles.view", "roles.manage",
         "permissions.view", "permissions.manage",
         "users.view", "users.manage",
@@ -92,6 +93,7 @@ async function main() {
         "pengabdian.view", "pengabdian.create", "pengabdian.edit", "pengabdian.delete", "pengabdian.review",
         "publikasi.view", "publikasi.create", "publikasi.edit", "publikasi.delete",
         "monev.view", "monev.create", "monev.manage",
+        "monev.survei.view", "monev.survei.manage",
         "roles.view", "permissions.view", "users.view",
         "laporan.view", "laporan.export"
       ],
@@ -105,6 +107,7 @@ async function main() {
         "pengabdian.view", "pengabdian.create",
         "publikasi.view", "publikasi.create",
         "monev.view",
+        "monev.survei.view",
         "laporan.view"
       ],
     },
@@ -117,6 +120,7 @@ async function main() {
         "pengabdian.view", "pengabdian.review",
         "publikasi.view",
         "monev.view", "monev.review",
+        "monev.survei.view",
         "laporan.view"
       ],
     },

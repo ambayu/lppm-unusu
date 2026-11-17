@@ -38,7 +38,29 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [monevMenuOpen, setMonevMenuOpen] = useState(
+    location.pathname.startsWith('/monev') || location.pathname.startsWith('/admin/monev')
+  );
   const profileMenuRef = React.useRef<HTMLDivElement | null>(null);
+  const navContainerRef = React.useRef<HTMLDivElement | null>(null);
+
+  // Simpan posisi scroll sidebar di sessionStorage agar tidak melompat ke atas saat ganti rute
+  React.useEffect(() => {
+    const savedScroll = sessionStorage.getItem('lppm_sidebar_scroll');
+    if (savedScroll && navContainerRef.current) {
+      navContainerRef.current.scrollTop = Number(savedScroll);
+    }
+  }, []);
+
+  const handleSidebarScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    sessionStorage.setItem('lppm_sidebar_scroll', String(e.currentTarget.scrollTop));
+  };
+
+  React.useEffect(() => {
+    if (location.pathname.startsWith('/monev') || location.pathname.startsWith('/admin/monev')) {
+      setMonevMenuOpen(true);
+    }
+  }, [location.pathname]);
 
   /** Tutup dropdown akun saat klik di luar, tekan Escape, atau pindah rute. */
   React.useEffect(() => {
@@ -90,6 +112,9 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       '/publikasi',
       '/monev',
       '/monev-survei',
+      '/monev-kategori',
+      '/monev-soal',
+      '/monev-responden',
       '/admin/monev-periode',
       '/admin/arsip-dokumen',
       '/arsip-dokumen',
@@ -118,12 +143,6 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       label: 'Dashboard Laporan',
       icon: HomeIcon,
       desc: 'Ringkasan Grafik Tiap Menu',
-    },
-    {
-      path: '/monev-survei',
-      label: 'Kuesioner Monev',
-      icon: ClipboardDocumentCheckIcon,
-      desc: 'Survei Mutu & Kepuasan Mahasiswa',
     },
     {
       path: '/profil',
@@ -163,13 +182,6 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
       izin: IZIN_FITUR.publikasiLihat,
     },
     {
-      path: '/monev',
-      label: 'Monitoring & Evaluasi',
-      icon: ClipboardDocumentCheckIcon,
-      desc: 'Kemajuan Riset & Telaah Luaran',
-      izin: IZIN_FITUR.monevLihat,
-    },
-    {
       path: '/admin/arsip-dokumen',
       label: 'Dokumen',
       icon: DocumentTextIcon,
@@ -192,15 +204,39 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     },
   ].filter((item) => bisa(item.izin));
 
-  /** Menu tata kelola — hanya untuk pemegang izinnya. */
-  const tataKelolaItems = [
+  /** Sub-menu Monev Terpadu (Accordion / Collapse beranak) */
+  const monevSubItems = [
+    {
+      path: '/monev-kategori',
+      label: 'Kategori Monev',
+      desc: 'Master Instrumen & Butir Soal',
+      izin: IZIN_FITUR.monevSurveiKelola,
+    },
     {
       path: '/admin/monev-periode',
       label: 'Periode Monev',
-      icon: CalendarDaysIcon,
-      desc: 'Master Jadwal & Masa Kuesioner',
+      desc: 'Tahun Akademik & Masa Kuesioner',
       izin: IZIN_FITUR.monevSurveiKelola,
     },
+    {
+      path: '/monev-responden',
+      label: 'Monev Responden',
+      desc: 'Log Pengisi & Detail Respon Masuk',
+      izin: IZIN_FITUR.monevSurveiKelola,
+    },
+    {
+      path: '/monev',
+      label: 'Monev Riset & PKM',
+      desc: 'Penilaian Luaran & Kemajuan Hibah',
+      izin: IZIN_FITUR.monevLihat,
+    },
+  ].filter((item) => !item.izin || bisa(item.izin));
+
+  const isMonevActive =
+    location.pathname.startsWith('/monev') || location.pathname.startsWith('/admin/monev');
+
+  /** Menu tata kelola — hanya untuk pemegang izinnya. */
+  const tataKelolaItems = [
     {
       path: '/pengguna',
       label: 'Pengguna',
@@ -238,6 +274,13 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
     if (path === '/monev') return 'Monitoring & Evaluasi (Monev) Tridharma';
     if (path === '/monev/tambah') return 'Jadwalkan Monev Riset Baru';
     if (path.startsWith('/monev/edit/')) return 'Edit Penilaian Monev';
+    if (path === '/monev-survei') return 'Katalog Kuesioner Monev';
+    if (path.startsWith('/monev-survei/') && path.endsWith('/rekap')) return 'Rekapitulasi Hasil Survei Monev';
+    if (path.startsWith('/monev-survei/')) return 'Isi Kuesioner Monev';
+    if (path === '/monev-kategori') return 'Kategori Instrumen Monev';
+    if (path === '/admin/monev-periode' || path === '/monev-periode') return 'Master Periode Monev';
+    if (path === '/monev-soal') return 'Monev Soal (Bank Soal Mutu)';
+    if (path === '/monev-responden') return 'Monev Responden (Daftar Pengisi)';
     if (path === '/admin/arsip-dokumen' || path === '/arsip-dokumen') return 'Pangkalan Dokumen & Panduan LPPM';
     if (path === '/admin/arsip-dokumen/tambah' || path === '/arsip-dokumen/tambah') return 'Tambah Dokumen LPPM Baru';
     if (path.startsWith('/admin/arsip-dokumen/edit/') || path.startsWith('/arsip-dokumen/edit/')) return 'Edit Dokumen LPPM';
@@ -290,7 +333,11 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
         </div>
 
         {/* Navigation Section */}
-        <div className="flex-1 py-5 px-3 space-y-6 overflow-y-auto">
+        <div
+          ref={!isCollapsed ? navContainerRef : undefined}
+          onScroll={!isCollapsed ? handleSidebarScroll : undefined}
+          className="flex-1 py-5 px-3 space-y-6 overflow-y-auto"
+        >
           {/* Menu umum: Dashboard + Profil (paling atas, tanpa guard peran) */}
           <div>
             {!isCollapsed && (
@@ -385,6 +432,84 @@ export const SidebarLayout: React.FC<SidebarLayoutProps> = ({ children }) => {
                   </Link>
                 );
               })}
+
+              {/* Menu Collapse Beranak: Monitoring & Evaluasi (Monev) */}
+              {monevSubItems.length > 0 && (
+                <div className="pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setMonevMenuOpen(!monevMenuOpen)}
+                    title={isCollapsed ? 'Monitoring & Evaluasi (Monev)' : undefined}
+                    aria-expanded={monevMenuOpen}
+                    className={`w-full flex items-center justify-between min-h-[44px] rounded-[12px] text-[13.5px] font-bold transition-all ${
+                      isCollapsed ? 'justify-center p-2.5' : 'px-3.5 py-2.5'
+                    } ${
+                      isMonevActive
+                        ? 'bg-[#EDE8F5] text-violet-900 shadow-2xs'
+                        : 'text-slate-700 hover:bg-[#F3EEF9] hover:text-violet-900'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 truncate">
+                      <div
+                        className={`w-8 h-8 rounded-[8px] flex items-center justify-center flex-shrink-0 transition-colors ${
+                          isMonevActive
+                            ? 'bg-violet-700 text-white shadow-2xs'
+                            : 'bg-[#EDE8F5] text-violet-700'
+                        }`}
+                      >
+                        <ClipboardDocumentCheckIcon className="w-4 h-4" aria-hidden="true" />
+                      </div>
+                      {!isCollapsed && (
+                        <div className="text-left truncate">
+                          <div className="leading-tight">Monitoring & Evaluasi</div>
+                          <div className="text-[11px] text-slate-600 font-medium truncate mt-0.5">
+                            Kuesioner Mutu & Riset
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {!isCollapsed && (
+                      <ChevronDownIcon
+                        className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${
+                          monevMenuOpen ? 'rotate-180 text-violet-700' : ''
+                        }`}
+                        aria-hidden="true"
+                      />
+                    )}
+                  </button>
+
+                  {/* Sub-menu (Collapse Children) */}
+                  {!isCollapsed && monevMenuOpen && (
+                    <div className="mt-1.5 ml-4 pl-3 border-l-2 border-violet-200 space-y-1">
+                      {monevSubItems.map((sub) => {
+                        const subAktif = isActive(sub.path);
+                        return (
+                          <Link
+                            key={sub.path}
+                            to={sub.path}
+                            onClick={() => setMobileOpen(false)}
+                            aria-current={subAktif ? 'page' : undefined}
+                            className={`flex flex-col py-1.5 px-3 rounded-[8px] text-[12.5px] font-semibold transition-colors ${
+                              subAktif
+                                ? 'bg-violet-600 text-white shadow-2xs font-bold'
+                                : 'text-slate-600 hover:bg-[#EDE8F5] hover:text-violet-900'
+                            }`}
+                          >
+                            <span>{sub.label}</span>
+                            <span
+                              className={`text-[10.5px] truncate font-normal ${
+                                subAktif ? 'text-violet-100' : 'text-slate-400'
+                              }`}
+                            >
+                              {sub.desc}
+                            </span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </nav>
           </div>
 

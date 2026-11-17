@@ -76,14 +76,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let parsedUser: SessionUser | null = null;
       try {
         parsedUser = JSON.parse(raw) as SessionUser;
-        if (!cancelled) {
-          setUser({ ...parsedUser, app: parsedUser.app ?? APP_SCOPE });
-        }
       } catch {
         localStorage.removeItem(USER_KEY);
       }
 
       try {
+        const { default: api } = await import('../services/api');
+        const response = await api.get<{ success: boolean; data: SessionUser }>('/auth/session');
+        const freshUser = response.data.data;
+        if (!response.data.success || !freshUser?.appAccess?.allowed) {
+          logout();
+          return;
+        }
+        if (!cancelled) setUser({ ...freshUser, app: freshUser.app ?? APP_SCOPE });
+        localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
         const ssoStatus = await checkOneUnusuSession();
         if (ssoStatus?.authenticated === false) {
           // Jika token lokal LPPM masih valid, jangan langsung buang sesi ke login loop.
@@ -107,7 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch {
-        // Abaikan kegagalan jaringan saat offline
+        if (!cancelled) setUser(null);
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -118,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [logout]);
 
   const saveSession = (token: string, sessionUser: SessionUser) => {
     const scopedUser: SessionUser = { ...sessionUser, app: sessionUser.app ?? APP_SCOPE };
@@ -145,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(USER_KEY, JSON.stringify(scoped));
       setUser(scoped);
     } catch {
-      /* biarkan sesi berjalan; kegagalan jaringan bukan alasan mengeluarkan pengguna */
+      setUser(null);
     }
   };
 

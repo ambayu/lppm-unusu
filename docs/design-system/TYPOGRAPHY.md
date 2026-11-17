@@ -40,8 +40,8 @@ Menggunakan tumpukan monospace bawaan sistem/Tailwind (`ui-monospace, SFMono-Reg
 | **Item Menu Sidebar (`SidebarLayout`)** | `text-[13.5px] font-semibold` (aktif: `font-bold`) | `13.5px`, SemiBold (`600`) / Bold (`700`). |
 | **Sub-deskripsi Menu Sidebar** | `text-[10px] text-slate-400 font-normal truncate` | `10px`, Regular (`400`). |
 | **Heading Grup Navigasi Sidebar** | `text-[10px] font-bold text-slate-400 uppercase tracking-widest` | `10px`, Bold (`700`), huruf kapital penuh dengan spasi huruf lebar. |
-| **Header Kolom Tabel (`<th>`)** | `text-[11px] font-bold text-slate-500 uppercase tracking-wider` | `11px`, Bold (`700`), huruf kapital penuh. |
-| **Isi Sel Tabel (`<td>`)** | `text-xs sm:text-[13px]` (judul baris: `font-bold text-slate-900`) | `12px` / `13px`, judul tebal dengan metadata pendukung `text-[11px]`. |
+| **Header Kolom Tabel (`DataTable`)** | `text-xs font-bold uppercase tracking-wider` | Ukuran baku global; tidak diatur ulang per halaman. |
+| **Isi Sel Tabel (`DataTable`)** | `text-sm font-medium` | Ukuran baku `size="md"`; mode ringkas hanya untuk tabel pemilihan direktori. |
 | **Label Field Form (`<label>`)** | `block text-xs font-bold text-slate-700 mb-1.5` | `12px`, Bold (`700`), margin bawah `6px`. |
 | **Teks Input / Select / Textarea** | `text-xs sm:text-sm text-slate-800 placeholder-slate-400` | `12px` / `14px`, Regular (`400`). |
 

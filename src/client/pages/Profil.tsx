@@ -8,7 +8,8 @@ import {
   ShieldCheckIcon,
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
-import { AdminPanelTemplate } from '../components/AdminPanelTemplate';
+import { PageShell } from '../components/PageShell';
+import { CardContainer } from '../components/CardContainer';
 
 /**
  * Halaman Profil Pengguna LPPM UNUSU.
@@ -31,7 +32,7 @@ export const ProfilPage: React.FC = () => {
   ];
 
   return (
-    <AdminPanelTemplate
+    <PageShell
       badge={
         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-[#EDE8F5] text-violet-900 border border-violet-200 uppercase tracking-wider">
           Akun Saya
@@ -59,12 +60,7 @@ export const ProfilPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="rounded-[16px] border border-[#CBD5E1] bg-white overflow-hidden shadow-2xs">
-          <div className="px-5 py-3.5 border-b border-[#CBD5E1] bg-slate-50/70">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700">
-              Rincian Informasi Akun
-            </h3>
-          </div>
+        <CardContainer title="Rincian Informasi Akun">
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-[#CBD5E1]">
             {rows.map((row) => {
               const Icon = row.icon;
@@ -85,9 +81,9 @@ export const ProfilPage: React.FC = () => {
               );
             })}
           </dl>
-        </div>
+        </CardContainer>
       </div>
-    </AdminPanelTemplate>
+    </PageShell>
   );
 };
 

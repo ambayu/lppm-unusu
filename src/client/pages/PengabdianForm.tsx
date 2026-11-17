@@ -16,7 +16,8 @@ export const PengabdianFormPage: React.FC = () => {
   const { id } = useParams<{ id?: string }>();
   const isEdit = Boolean(id);
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEdit);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,10 +33,13 @@ export const PengabdianFormPage: React.FC = () => {
   const [status, setStatus] = useState('Disetujui');
 
   useEffect(() => {
+    let active = true;
+    setLoadedId(null);
     if (isEdit && id) {
       setLoading(true);
       getPengabdian(id)
         .then((res) => {
+          if (!active) return;
           const data = res.data.data;
           setJudul(data.judul);
           setKetua(data.ketua);
@@ -46,13 +50,16 @@ export const PengabdianFormPage: React.FC = () => {
           setDanaDisetujui(data.danaDisetujui || 0);
           setTahun(data.tahun);
           setStatus(data.status || 'Disetujui');
+          setLoadedId(id);
         })
         .catch((err) => {
+          if (!active) return;
           console.error(err);
           setError('Gagal memuat data pengabdian.');
         })
-        .finally(() => setLoading(false));
+        .finally(() => { if (active) setLoading(false); });
     }
+    return () => { active = false; };
   }, [id, isEdit]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -95,6 +102,7 @@ export const PengabdianFormPage: React.FC = () => {
       isEdit={isEdit}
       submitLabel={isEdit ? 'Perbarui Data' : 'Simpan Kegiatan'}
       submitting={submitting}
+      submitDisabled={loading || (isEdit && loadedId !== id)}
       error={error}
       onSubmit={handleSubmit}
       accentClassName="bg-violet-700 hover:bg-violet-800"

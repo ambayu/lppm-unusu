@@ -39,6 +39,7 @@ export const DokumenLppmFormPage: React.FC = () => {
   const [kategoriList, setKategoriList] = useState<KategoriItem[]>([]);
   const [prodiList, setProdiList] = useState<ProdiOption[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadedId, setLoadedId] = useState<string | undefined | null>(null);
   const [submitting, setSubmitting] = useState(false);
   /** Benar selama PDF sedang diunggah; menyimpan dokumen ditahan sampai selesai. */
   const [mengunggah, setMengunggah] = useState(false);
@@ -73,6 +74,9 @@ export const DokumenLppmFormPage: React.FC = () => {
   });
 
   useEffect(() => {
+    let active = true;
+    setLoadedId(null);
+    setLoading(true);
     const promises: Promise<any>[] = [fetchKategori(), fetchProdiList()];
     if (isEdit && id) {
       promises.push(fetchDokumenDetail(id));
@@ -80,6 +84,7 @@ export const DokumenLppmFormPage: React.FC = () => {
 
     Promise.all(promises)
       .then(([catRes, prodiRes, docRes]) => {
+        if (!active) return;
         setKategoriList(catRes.data.data);
         setProdiList(prodiRes?.data?.data || []);
         if (docRes) {
@@ -102,8 +107,10 @@ export const DokumenLppmFormPage: React.FC = () => {
             dokumenAkreditasi: 'Tidak',
           });
         }
+        setLoadedId(id);
       })
       .catch((err) => {
+        if (!active) return;
         console.error(err);
         setError(err.response?.data?.message || 'Gagal memuat formulir dokumen LPPM.');
         setGalat(
@@ -115,7 +122,8 @@ export const DokumenLppmFormPage: React.FC = () => {
           ),
         );
       })
-      .finally(() => setLoading(false));
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [id, isEdit]);
 
   /**
@@ -296,6 +304,7 @@ export const DokumenLppmFormPage: React.FC = () => {
   return (
     <>
       <FormPageTemplate
+        submitDisabled={loading || loadedId !== id || mengunggah}
       title={isEdit ? 'Sunting Dokumen LPPM' : 'Tambah Dokumen LPPM Baru'}
       description="Lengkapi informasi metadata berkas, nomor registrasi, serta unggah arsip dokumen pendukung penelitian dan pengabdian."
       badge={
@@ -309,7 +318,7 @@ export const DokumenLppmFormPage: React.FC = () => {
       submitting={submitting || mengunggah}
       error={error}
       onSubmit={handleSubmit}
-      accentClassName="bg-emerald-700 hover:bg-emerald-800"
+      accentClassName="bg-violet-700 hover:bg-violet-800"
     >
       <div className="space-y-6">
         <CardContainer
