@@ -24,7 +24,7 @@ test('migration tables exist before indexes and foreign keys reference them', ()
     assert.ok(tables.has(table), `missing RBAC table ${table}`);
   }
   const schema = readFileSync(new URL('../prisma/schema.prisma', import.meta.url), 'utf8');
-  for (const model of ['MonevPeriode', 'MonevSurvei', 'MonevPertanyaan', 'MonevRespon', 'MonevJawaban']) {
+  for (const model of ['LppmUser', 'LppmUserRole', 'MonevPeriode', 'MonevSurvei', 'MonevPertanyaan', 'MonevRespon', 'MonevJawaban']) {
     const body = schema.match(new RegExp(`model ${model} \\{([\\s\\S]*?)\\n\\}`))?.[1];
     assert.ok(body, `missing schema model ${model}`);
     const table = body.match(/@@map\("([^"]+)"\)/)?.[1];
