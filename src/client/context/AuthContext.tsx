@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useCall
 import type { SessionUser } from '../services/api';
 import { checkOneUnusuSession } from '../services/api';
 
-const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'http://localhost:5173';
+import { ONE_UNUSU_URL } from '../lib/ssoConfig';
 const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '223ea0752e7619e2';
 import {
   APP_SCOPE,

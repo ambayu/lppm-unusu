@@ -38,6 +38,9 @@ import {
 } from "./sliderMedia.js";
 
 dotenv.config();
+if (process.env.NODE_ENV === 'production' && !process.env.SSO_BASE_URL?.trim()) throw new Error('Missing required SSO_BASE_URL configuration.');
+const SSO_BASE_URL = process.env.SSO_BASE_URL || 'http://localhost:5000';
+if (!/^https?:$/.test(new URL(SSO_BASE_URL).protocol)) throw new Error('SSO_BASE_URL must use HTTP(S).');
 
 const app = express();
 const prisma = new PrismaClient();
@@ -133,7 +136,6 @@ if (!JWT_SECRET) {
   console.error("FATAL: JWT_SECRET belum diset di environment. Server dihentikan demi keamanan.");
   process.exit(1);
 }
-const SSO_BASE_URL = process.env.SSO_BASE_URL || "http://localhost:5000";
 const SSO_CLIENT_ID = process.env.SSO_CLIENT_ID || "223ea0752e7619e2";
 const SSO_CLIENT_KEY = process.env.SSO_CLIENT_KEY || "";
 
@@ -2450,7 +2452,7 @@ app.delete("/api/kategori/:id", requirePermission("dokumen.delete"), async (req:
 // GET /api/prodi (Daftar prodi dari SSO One UNUSU Academic Hierarchy)
 app.get("/api/prodi", async (_req: Request, res: Response) => {
   try {
-    const ssoBase = process.env.SSO_BASE_URL || "http://localhost:5000";
+    const ssoBase = SSO_BASE_URL;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 4000);
     const upstreamRes = await fetch(`${ssoBase}/api/academic/hierarchy`, {

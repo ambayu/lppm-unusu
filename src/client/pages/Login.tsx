@@ -10,7 +10,7 @@ import { AnimatedFlatSsoLogo } from '../components/AnimatedFlatSsoLogo';
 import { SsoLoadingScreen } from '../components/SsoLoadingScreen';
 import { assetUrl } from '../lib/assets';
 
-const ONE_UNUSU_URL = import.meta.env.VITE_ONE_UNUSU_URL || 'https://unusu.bpp-developer.com/sso';
+import { ONE_UNUSU_URL } from '../lib/ssoConfig';
 const SSO_CLIENT_ID = import.meta.env.VITE_SSO_CLIENT_ID || '223ea0752e7619e2';
 
 export function LoginPage() {
