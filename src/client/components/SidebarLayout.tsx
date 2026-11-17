@@ -24,6 +24,7 @@ import {
   PhotoIcon,
   DocumentTextIcon,
   FolderIcon,
+  CalendarDaysIcon,
 } from '@heroicons/react/24/outline';
 
 interface SidebarLayoutProps {
