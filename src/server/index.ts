@@ -1598,7 +1598,6 @@ app.get(
         ...(role ? { role } : {}),
         ...(fakultas ? { fakultas } : {}),
         ...(prodi ? { prodi } : {}),
-        limit: 20,
       });
 
       if (!hasil.ok) {
