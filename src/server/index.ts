@@ -69,6 +69,11 @@ app.use(cors({
  */
 app.use(express.json({ limit: "10mb" }));
 
+// Static client
+const clientDistPath = path.resolve(process.cwd(), "dist/client");
+app.use(express.static(clientDistPath));
+app.use("/lppm", express.static(clientDistPath));
+
 // ===========================================================================
 // MIDDLEWARE TRACKING HIT / VISITOR (LPPM)
 // ===========================================================================
@@ -517,7 +522,8 @@ const IZIN_FITUR_BAWAAN: Record<TingkatMasuk, string[]> = {
     "pengabdian.view", "pengabdian.create", "pengabdian.edit", "pengabdian.delete", "pengabdian.review",
     "publikasi.view", "publikasi.create", "publikasi.edit", "publikasi.delete",
     "monev.view", "monev.create", "monev.manage", "monev.review",
-    "roles.view", "permissions.view", "laporan.view", "laporan.export",
+    "roles.view", "permissions.view", "dokumen.view", "dokumen.create", "dokumen.edit", "dokumen.delete",
+    "laporan.view", "laporan.export",
   ],
   dosen: [
     "penelitian.view", "penelitian.create",
@@ -963,7 +969,11 @@ app.get("/api/auth/session", (req: Request, res: Response) => {
  */
 const requirePermission = (...kunci: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {
-    const izin = (req as AuthRequest).izin;
+    const authReq = req as AuthRequest;
+    if (authReq.user?.ssoRole?.toUpperCase() === "SUPERADMIN") {
+      return next();
+    }
+    const izin = authReq.izin;
     if (!izin) {
       return res.status(401).json({ success: false, message: "Sesi tidak valid" });
     }
@@ -981,7 +991,11 @@ const requirePermission = (...kunci: string[]) =>
 
 const requireAnyPermission = (...kunci: string[]) =>
   (req: Request, res: Response, next: NextFunction) => {
-    const izin = (req as AuthRequest).izin;
+    const authReq = req as AuthRequest;
+    if (authReq.user?.ssoRole?.toUpperCase() === "SUPERADMIN") {
+      return next();
+    }
+    const izin = authReq.izin;
     if (!izin) {
       return res.status(401).json({ success: false, message: "Sesi tidak valid" });
     }

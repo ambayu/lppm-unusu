@@ -49,6 +49,12 @@ async function main() {
     { kode: "users.view", nama: "Lihat Penugasan Pengguna", modul: "Manajemen Pengguna", deskripsi: "Dapat melihat daftar civitas dan peran lokal yang ditugaskan di LPPM" },
     { kode: "users.manage", nama: "Kelola Penugasan Pengguna", modul: "Manajemen Pengguna", deskripsi: "Dapat menugaskan multi-role peran lokal LPPM kepada pengguna" },
 
+    // Dokumen & Arsip
+    { kode: "dokumen.view", nama: "Lihat Arsip Dokumen", modul: "Dokumen", deskripsi: "Melihat daftar dan detail arsip dokumen LPPM" },
+    { kode: "dokumen.create", nama: "Tambah Arsip Dokumen", modul: "Dokumen", deskripsi: "Mengunggah dan membuat arsip dokumen LPPM baru" },
+    { kode: "dokumen.edit", nama: "Ubah Arsip Dokumen", modul: "Dokumen", deskripsi: "Memperbarui data dan metadata arsip dokumen LPPM" },
+    { kode: "dokumen.delete", nama: "Hapus Arsip Dokumen", modul: "Dokumen", deskripsi: "Menghapus arsip dokumen LPPM" },
+
     // Laporan & Ekspor
     { kode: "laporan.view", nama: "Lihat Rekapitulasi & Laporan", modul: "Laporan", deskripsi: "Dapat melihat dan mencetak rekapitulasi Tridharma LPPM" },
     { kode: "laporan.export", nama: "Ekspor Data & Laporan", modul: "Laporan", deskripsi: "Dapat mengunduh arsip data ke format CSV atau dokumen" },
@@ -81,6 +87,7 @@ async function main() {
         "roles.view", "roles.manage",
         "permissions.view", "permissions.manage",
         "users.view", "users.manage",
+        "dokumen.view", "dokumen.create", "dokumen.edit", "dokumen.delete",
         "laporan.view", "laporan.export"
       ],
     },
@@ -95,6 +102,7 @@ async function main() {
         "monev.view", "monev.create", "monev.manage",
         "monev.survei.view", "monev.survei.manage",
         "roles.view", "permissions.view", "users.view",
+        "dokumen.view", "dokumen.create", "dokumen.edit", "dokumen.delete",
         "laporan.view", "laporan.export"
       ],
     },
