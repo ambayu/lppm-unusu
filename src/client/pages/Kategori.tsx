@@ -13,8 +13,8 @@ import {
 } from '@heroicons/react/24/outline';
 
 export const KategoriLppmPage: React.FC = () => {
-  const { bisa } = useAuth();
-  const bolehMenulis = bisa('dokumen.create', 'dokumen.manage');
+  const { bisa, bisaSalahSatu, isSuperadmin } = useAuth();
+  const bolehMenulis = isSuperadmin || bisaSalahSatu('dokumen.create', 'dokumen.manage');
 
   const [categories, setCategories] = useState<KategoriItem[]>([]);
   const [loading, setLoading] = useState(true);

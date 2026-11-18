@@ -116,6 +116,7 @@ export function izinDari(subject?: AccessSubject | null): string[] {
 /** Apakah subjek memegang SEMUA kunci izin yang diminta. */
 export function bisa(subject: AccessSubject | null | undefined, ...kunci: string[]): boolean {
   if (!subject || kunci.length === 0) return false;
+  if ((subject.ssoRole ?? '').toUpperCase() === 'SUPERADMIN') return true;
   const dimiliki = new Set(izinDari(subject));
   return kunci.every((k) => dimiliki.has(k));
 }
@@ -123,6 +124,7 @@ export function bisa(subject: AccessSubject | null | undefined, ...kunci: string
 /** Apakah subjek memegang SALAH SATU kunci izin yang diminta. */
 export function bisaSalahSatu(subject: AccessSubject | null | undefined, ...kunci: string[]): boolean {
   if (!subject || kunci.length === 0) return false;
+  if ((subject.ssoRole ?? '').toUpperCase() === 'SUPERADMIN') return true;
   const dimiliki = new Set(izinDari(subject));
   return kunci.some((k) => dimiliki.has(k));
 }
