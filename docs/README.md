@@ -64,7 +64,8 @@ Pastikan berkas `.env` di root proyek memiliki variabel berikut:
 - `SSO_BASE_URL`: URL backend ONE UNUSU Gateway (default: `http://localhost:5000`)
 - `SSO_CLIENT_ID`: Identitas klien SSO (default: `lppm-unusu`)
 - `SSO_CLIENT_KEY`: Kunci rahasia klien SSO untuk verifikasi server-to-server
-- `VITE_ONE_UNUSU_URL`: URL frontend portal ONE UNUSU (default: `http://localhost:5183`)
+- `ONE_UNUSU_API_KEY`: API key aplikasi ini di API Hub ONE UNUSU; dipakai server untuk mencari pengguna pada direktori (tanpa ini modal "Tambah Pengguna" gagal)
+- `VITE_ONE_UNUSU_URL`: URL frontend portal ONE UNUSU (default: `http://localhost:5173`)
 - `VITE_SSO_CLIENT_ID`: Client ID pada pengalihan login frontend (default: `lppm-unusu`)
 
 ### 2. Perintah NPM

@@ -1602,7 +1602,11 @@ app.get(
       });
 
       if (!hasil.ok) {
-        return res.status(502).json({ success: false, message: hasil.pesan });
+        return res.status(500).json({
+          success: false,
+          code: "DIREKTORI_TIDAK_TERSEDIA",
+          message: hasil.pesan,
+        });
       }
 
       const daftar = Array.isArray(hasil.data) ? hasil.data : [];
